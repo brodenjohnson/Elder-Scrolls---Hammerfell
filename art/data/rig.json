@@ -1,0 +1,28 @@
+{
+  "_note": "Sprite cell, character materials and layer draw order. Read by the generator; exported into every atlas so the game never hard-codes any of it.",
+  "cell": { "w": 192, "h": 192, "ox": 96, "oy": 164, "scale": 0.88, "characterPitchDeg": 12 },
+  "_cellNote": "Ground and shadows use the true 30 degree iso pitch. Characters are drawn at a shallower 12 degrees so faces and chests read, as in concept-05. scale is screen px per unit: 134 units -> about 120 px.",
+  "figureHeightUnits": 134,
+  "materials": {
+    "_note": "Material name used by the generator -> palette ramp. Swap skin and hair entries per race.",
+    "redguard": {
+      "skin": "skin.redguard",
+      "hair": "hair.black",
+      "eye": "eye",
+      "brand": "brand",
+      "linen": "linen",
+      "wool": "wool.brown",
+      "leather": "leather",
+      "leather.dark": "leather.dark",
+      "brass": "brass"
+    }
+  },
+  "slotOrder": {
+    "_note": "Within one body segment, slots always stack in this order.",
+    "order": ["body", "scar", "blood", "facialHair", "hair", "armour", "gloves", "boots", "helmet", "equipBlood"]
+  },
+  "segmentOrder": {
+    "_note": "Back to front, per facing. Only S is used at gate 1; the other seven are filled in at gate 2.",
+    "S": ["shadow", "back", "leg.L", "leg.R", "foot.L", "foot.R", "torso", "forearm.L", "forearm.R", "upperArm.L", "upperArm.R", "head", "offHand", "mainHand"]
+  }
+}

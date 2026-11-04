@@ -1,0 +1,14 @@
+{
+  "name": "hammerfell-art",
+  "private": true,
+  "type": "module",
+  "description": "Character art pipeline. Separate from game code: the game only ever reads the exported PNG sheets and JSON atlases.",
+  "scripts": {
+    "gen": "node --experimental-strip-types --no-warnings generator/src/main.ts",
+    "compare": "node compare/shoot.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1",
+    "pngjs": "^7.0.0"
+  }
+}

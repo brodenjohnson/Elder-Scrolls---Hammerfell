@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Gate 1 style frame</title>
+<style>
+  body { margin: 0; padding: 24px; background: #121010; color: #c9bba3; font: 13px/1.4 Georgia, serif; }
+  h1 { font-size: 20px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 4px; color: #d8c9a8; }
+  .sub { color: #8a7d68; margin-bottom: 18px; }
+  .row { display: flex; align-items: flex-end; gap: 28px; margin-bottom: 26px; flex-wrap: wrap; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  figcaption { color: #8a7d68; font-size: 12px; text-align: center; max-width: 220px; }
+  #layers figcaption { font-size: 10px; max-width: 120px; }
+  h2 { font-size: 14px; font-weight: normal; color: #b3a283; border-bottom: 1px solid #3a322a; padding-bottom: 4px; margin: 0 0 12px; letter-spacing: 0.05em; }
+  canvas { image-rendering: pixelated; display: block; }
+</style>
+</head>
+<body>
+<h1>GATE 1: STYLE FRAME</h1>
+<div class="sub">Redguard farmer, Farm Clothes and Farm Boots, facing south. Code-drawn, 120 px tall at 1x. Concept art shown for comparison only.</div>
+
+<h2>Our sprite at 1x, 2x and 4x (nearest-neighbour)</h2>
+<div class="row" id="ours"></div>
+
+<h2>Every layer on its own, in draw order (2x). Each body part detaches with the clothing on it.</h2>
+<div class="row" id="layers" style="gap:10px"></div>
+
+<h2>Concept art (concept-05 and concept-09), figure cropped, shown at sheet size</h2>
+<div class="row" id="concept"></div>
+
+<h2>The same concept figure reduced to our 120 px game height, then shown at 1x and 4x</h2>
+<div class="row" id="reduced"></div>
+
+<script src="../out/gate1/atlas.js"></script>
+<script>
+// Crops are in source pixels. Sprite crop covers the figure inside the 192 px cell.
+const SPRITE = { x: 66, y: 44, w: 60, h: 128 };
+const CONCEPT05_HERO = { x: 318, y: 66, w: 640, h: 776 };
+const CONCEPT09_FRONT = { x: 40, y: 64, w: 300, h: 420 };
+
+const load = (src) => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+
+function crop(img, r, scale, smooth = false) {
+  const c = document.createElement('canvas');
+  c.width = Math.round(r.w * scale); c.height = Math.round(r.h * scale);
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = smooth; g.imageSmoothingQuality = 'high';
+  g.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+  return c;
+}
+function fig(parent, canvas, caption) {
+  const f = document.createElement('figure');
+  f.appendChild(canvas);
+  const c = document.createElement('figcaption'); c.textContent = caption; f.appendChild(c);
+  document.getElementById(parent).appendChild(f);
+}
+// Downscale in halving steps (better quality than one big jump), then keep it at 1x.
+function reduce(img, r, targetH) {
+  let src = crop(img, r, 1, true);
+  while (src.height / 2 > targetH) src = crop(src, { x: 0, y: 0, w: src.width, h: src.height }, 0.5, true);
+  return crop(src, { x: 0, y: 0, w: src.width, h: src.height }, targetH / src.height, true);
+}
+
+(async () => {
+  const farm = await load('../out/gate1/S_farm.png');
+  const base = await load('../out/gate1/S_base.png');
+  const c05 = await load('../../reference/concept-art/concept-05.png');
+  const c09 = await load('../../reference/concept-art/concept-09.png');
+
+  fig('ours', crop(farm, SPRITE, 1), '1x (game size)');
+  fig('ours', crop(farm, SPRITE, 2), '2x');
+  fig('ours', crop(farm, SPRITE, 4), '4x');
+  fig('ours', crop(base, SPRITE, 4), '4x, base body: brand overlay shown, clothes layers off');
+
+  for (const l of window.ATLAS.layers) {
+    const img = await load('../out/gate1/' + l.file);
+    const c = crop(img, SPRITE, 2);
+    c.style.background = '#1c1816';
+    fig('layers', c, l.id);
+  }
+
+  const h = SPRITE.h * 4;
+  fig('concept', crop(c05, CONCEPT05_HERO, h / CONCEPT05_HERO.h, true), 'concept-05 hero, about 770 px tall in the source');
+  fig('concept', crop(c09, CONCEPT09_FRONT, h / CONCEPT09_FRONT.h, true), 'concept-09 front view');
+
+  const r05 = reduce(c05, CONCEPT05_HERO, 128);
+  const r09 = reduce(c09, CONCEPT09_FRONT, 128);
+  fig('reduced', r05, 'concept-05 at 1x');
+  fig('reduced', crop(r05, { x: 0, y: 0, w: r05.width, h: r05.height }, 4), 'concept-05 at 4x');
+  fig('reduced', r09, 'concept-09 at 1x');
+  fig('reduced', crop(r09, { x: 0, y: 0, w: r09.width, h: r09.height }, 4), 'concept-09 at 4x');
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+{
+  "_note": "Every colour the sprite generator uses. Ramps run dark to light. Skin and hair ramps are keyed by race so a race swap is a palette swap.",
+  "light": {
+    "_note": "Camera space: x right, y up, z toward the viewer. Fixed to the screen, so the light stays top-left in every direction.",
+    "dir": [
+      -0.72,
+      0.55,
+      0.42
+    ],
+    "ambient": 0.08,
+    "_cast": "Cast shadows fall 1 px right and 2 px down from each layer onto the layers already drawn beneath it."
+  },
+  "outline": "#0c0909",
+  "shadow": {
+    "color": "#0a0807",
+    "alpha": 0.42
+  },
+  "ramps": {
+    "skin.redguard": [
+      "#170d0a",
+      "#25150f",
+      "#361f15",
+      "#48291c",
+      "#5a3423",
+      "#6f422c",
+      "#865438",
+      "#9c6747"
+    ],
+    "hair.black": [
+      "#080707",
+      "#0f0c0c",
+      "#161212",
+      "#1e1918",
+      "#28211f",
+      "#342b28"
+    ],
+    "eye": [
+      "#0a0707",
+      "#160f0d",
+      "#3a2a24"
+    ],
+    "linen": [
+      "#1b1712",
+      "#2c261f",
+      "#3f362c",
+      "#544939",
+      "#6a5d4a",
+      "#80715b",
+      "#94846b",
+      "#a6967b"
+    ],
+    "wool.brown": [
+      "#120e0c",
+      "#1d1714",
+      "#2a221d",
+      "#382d26",
+      "#473a31",
+      "#57473c"
+    ],
+    "leather": [
+      "#130b07",
+      "#20130c",
+      "#2f1d12",
+      "#40281a",
+      "#523423",
+      "#66432e",
+      "#7c553b"
+    ],
+    "leather.dark": [
+      "#0c0705",
+      "#160e09",
+      "#21150e",
+      "#2e1d14",
+      "#3c271b",
+      "#4c3324"
+    ],
+    "brass": [
+      "#2a1d0c",
+      "#4a3414",
+      "#6e4f1f",
+      "#93702f",
+      "#b59146",
+      "#d2b263"
+    ],
+    "brand": [
+      "#3b201b",
+      "#58302a",
+      "#784238",
+      "#97584a",
+      "#b2725f",
+      "#c98d78"
+    ],
+    "steel": [
+      "#141619",
+      "#23272c",
+      "#363c43",
+      "#4c535b",
+      "#646d76",
+      "#808a93",
+      "#a3adb5",
+      "#c9d1d6"
+    ],
+    "cloth.teal": [
+      "#0c1517",
+      "#132226",
+      "#1c3136",
+      "#264148",
+      "#31535b",
+      "#3f666f"
+    ],
+    "blood": [
+      "#2a0607",
+      "#45090b",
+      "#640e10",
+      "#851615",
+      "#a3201b"
+    ]
+  },
+  "castShadow": {
+    "dx": 1,
+    "dy": 2,
+    "multiply": 0.62
+  }
+}
