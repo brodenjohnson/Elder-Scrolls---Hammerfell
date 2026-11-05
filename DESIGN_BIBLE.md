@@ -472,6 +472,7 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 28. Voice pipeline decided: licensed AI voices first, recorded actors for key characters later, with explicit care around the child's voice (`SYSTEMS_SPEC.md` section 13).
 29. A fourth ending, "The Quiet Bargain", exists after the dark bargain at Valaneth.
 30. The calendar clock is a pressure system, never a fail state.
+31. **Camera split (art spike):** ground, buildings and props use the true 30 degree isometric camera. Characters and creatures are drawn at a shallower 12 degree pitch so faces and chests read, as in concept-05. Tested in the sample scene, where the two sit together without looking wrong.
 
 ---
 
