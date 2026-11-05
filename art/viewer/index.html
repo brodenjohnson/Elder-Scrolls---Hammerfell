@@ -83,8 +83,9 @@ async function init() {
   }
   for (const [g, t] of Object.entries(GROUNDS)) if (t) tiles[g] = await loadImage(`../out/samples/tiles/${t}.png`);
   const names = Object.keys(sheets);
-  $('anim').innerHTML = names.map((n) => `<option value="${n}">${sheets[n].anim} (${sheets[n].frames} frames, ${sheets[n].fps} fps)</option>`).join('');
-  const pick = names.find((n) => sheets[n].anim === state.anim) || names[0];
+  $('anim').innerHTML = names.map((n) => `<option value="${n}">${sheets[n].outfitLabel}: ${sheets[n].anim}</option>`).join('');
+  const outfit = params.get('outfit') || 'farm';
+  const pick = names.find((n) => sheets[n].anim === state.anim && sheets[n].outfit === outfit) || names.find((n) => sheets[n].anim === state.anim) || names[0];
   $('anim').value = pick; state.sheet = pick;
   $('anim').onchange = () => { state.sheet = $('anim').value; state.frame = 0; buildLayers(); draw(); };
   $('play').onclick = () => { state.playing = !state.playing; $('play').textContent = state.playing ? 'Pause' : 'Play'; };
@@ -173,7 +174,8 @@ function draw() {
   for (const b of document.querySelectorAll('#grounds button')) b.classList.toggle('on', b.dataset.g === state.ground);
   $('noShade').classList.toggle('on', !state.shades);
   $('frameInfo').textContent = `Frame ${state.frame + 1} of ${a.frames}, facing ${state.facing}`;
-  $('sheetInfo').textContent = `${a.outfitLabel}. Sheet ${a.sheet}, ${a.sheetSize[0]} by ${a.sheetSize[1]}.`;
+  $('sheetInfo').innerHTML = `${a.outfitLabel}, ${a.frames} frames at ${a.fps} fps. Sheet ${a.sheet}, ${a.sheetSize[0]} by ${a.sheetSize[1]}.` +
+    (a.items ? '<br>' + a.items.map((i) => `${i.name}: ${i.stats}`).join('<br>') : '');
   $('order').textContent = 'Draw order: ' + order.filter((id) => !id.endsWith('#shade')).join(', ');
   // All eight directions at 2x, same frame.
   const all = $('all'); all.innerHTML = '';

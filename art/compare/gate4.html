@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Equipment swap</title>
+<style>
+  body { margin: 0; padding: 24px; background: #121010; color: #c9bba3; font: 13px/1.4 Georgia, serif; }
+  h1 { font-size: 20px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 4px; color: #d8c9a8; }
+  .sub { color: #8a7d68; margin-bottom: 18px; max-width: 1100px; }
+  h2 { font-size: 14px; font-weight: normal; color: #b3a283; border-bottom: 1px solid #3a322a; padding-bottom: 4px; margin: 0 0 12px; letter-spacing: 0.05em; }
+  .row { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 26px; flex-wrap: wrap; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  figcaption { color: #8a7d68; font-size: 12px; text-align: center; max-width: 330px; }
+  canvas { image-rendering: pixelated; display: block; }
+  table { border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+  td { padding: 1px 6px; color: #a89a82; text-align: left; }
+  td:first-child { color: #d8c9a8; }
+  .strip { display: flex; gap: 0; }
+</style>
+</head>
+<body>
+<h1>GATE 4: EQUIPMENT SWAP</h1>
+<div class="sub">The same body, pose and animation in three outfits. Item names are Skyrim's; stats are copied from data/skyrim/ as labels only ([X] means not captured yet). Every piece is its own layer and detaches with the body part under it.</div>
+
+<h2>Facing south, idle frame 1, 3x</h2>
+<div class="row" id="south"></div>
+
+<h2>Facing south-east and east, 3x</h2>
+<div class="row" id="side"></div>
+
+<h2>All eight directions at 1x (game size), on sand</h2>
+<div class="row" id="eight"></div>
+
+<h2>Walk, facing south-east, every frame, 2x</h2>
+<div class="row" id="walk"></div>
+
+<h2>Concept hero (concept-05) reduced to the same 120 px height, 1x and 3x</h2>
+<div class="row" id="concept"></div>
+
+<script src="../out/sprites/index.js"></script>
+<script>
+const BASE = '../out/sprites/', OUTFITS = ['farm', 'leather', 'steel'];
+const load = (src) => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+const script = (src) => new Promise((ok, err) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = err; document.head.appendChild(s); });
+const sheets = {}, imgs = {};
+function compose(name, facing, frame) {
+  const a = sheets[name], s = a.sprites[`${facing}/${frame}`];
+  const c = document.createElement('canvas'); c.width = a.cell.w; c.height = a.cell.h;
+  const g = c.getContext('2d');
+  for (const id of s.drawOrder) {
+    const p = s.pieces[id];
+    g.globalCompositeOperation = p.kind === 'shade' ? 'source-atop' : 'source-over';
+    g.drawImage(imgs[name], p.sx, p.sy, p.w, p.h, p.x, p.y, p.w, p.h);
+  }
+  return c;
+}
+// Crop around the figure (room for the greatsword above the head) and scale.
+function crop(src, r, s, bg) {
+  const c = document.createElement('canvas'); c.width = r.w * s; c.height = r.h * s;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  if (bg) g.drawImage(bg, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+  g.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+  return c;
+}
+function fig(parent, el, caption, items) {
+  const f = document.createElement('figure'); f.append(el);
+  if (caption) f.append(Object.assign(document.createElement('figcaption'), { textContent: caption }));
+  if (items) {
+    const t = document.createElement('table');
+    t.innerHTML = items.map((i) => `<tr><td>${i.name}</td><td>${i.stats}</td></tr>`).join('');
+    f.append(t);
+  }
+  document.getElementById(parent).append(f);
+}
+(async () => {
+  for (const o of OUTFITS) for (const anim of ['idle', 'walk']) {
+    const name = `${o}_${anim}`;
+    await script(`${BASE}${name}.js`);
+    sheets[name] = window.SPRITES[name];
+    imgs[name] = await load(BASE + sheets[name].sheet);
+  }
+  const R = { x: 40, y: 8, w: 112, h: 168 };
+  for (const o of OUTFITS) {
+    const a = sheets[`${o}_idle`];
+    fig('south', crop(compose(`${o}_idle`, 'S', 0), R, 3), a.outfitLabel, a.items);
+  }
+  for (const o of OUTFITS) for (const f of ['SE', 'E']) fig('side', crop(compose(`${o}_idle`, f, 0), R, 3), `${sheets[`${o}_idle`].outfitLabel}, ${f}`);
+
+  // Sand ground behind the 1x strips, as in the viewer.
+  const tile = await load('../out/samples/tiles/sand.desert_0.png').catch(() => null);
+  const ground = document.createElement('canvas'); ground.width = 192; ground.height = 192;
+  const gg = ground.getContext('2d'); gg.fillStyle = '#121010'; gg.fillRect(0, 0, 192, 192);
+  if (tile) for (let i = -8; i < 8; i++) for (let j = -8; j < 8; j++) gg.drawImage(tile, 96 + (i - j) * 32 - 32, 164 + (i + j) * 16 - 16);
+  for (const o of OUTFITS) {
+    const strip = document.createElement('div'); strip.className = 'strip';
+    for (const f of ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW']) strip.append(crop(compose(`${o}_idle`, f, 0), R, 1, ground));
+    fig('eight', strip, sheets[`${o}_idle`].outfitLabel);
+  }
+  for (const o of OUTFITS) {
+    const a = sheets[`${o}_walk`], strip = document.createElement('div'); strip.className = 'strip';
+    for (let i = 0; i < a.frames; i++) strip.append(crop(compose(`${o}_walk`, 'SE', i), { x: 52, y: 8, w: 88, h: 168 }, 2));
+    fig('walk', strip, a.outfitLabel);
+  }
+  // Concept hero reduced to our figure height, in halving steps.
+  const c05 = await load('../../reference/concept-art/concept-05.png');
+  const box = { x: 318, y: 66, w: 640, h: 776 };
+  let src = document.createElement('canvas'); src.width = box.w; src.height = box.h;
+  src.getContext('2d').drawImage(c05, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+  while (src.height / 2 > 128) {
+    const n = document.createElement('canvas'); n.width = src.width / 2; n.height = src.height / 2;
+    const g = n.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, n.width, n.height); src = n;
+  }
+  const small = document.createElement('canvas'); small.height = 128; small.width = Math.round(src.width * 128 / src.height);
+  const sg = small.getContext('2d'); sg.imageSmoothingQuality = 'high'; sg.drawImage(src, 0, 0, small.width, small.height);
+  fig('concept', small, '1x');
+  fig('concept', crop(small, { x: 0, y: 0, w: small.width, h: small.height }, 3), '3x');
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

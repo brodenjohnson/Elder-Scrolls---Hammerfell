@@ -1,8 +1,10 @@
 import { idlePose, segmentLocal, walkPose, type Pose } from './pose.ts';
-import { bodyLayers, farmClothesLayers, hairLayers, makeBody, type Body, type Layer } from './character.ts';
+import { attackPose, blockPose, rollPose } from './combat.ts';
+import { applyR, bodyLayers, farmClothesLayers, hairLayers, makeBody, moved, type Body, type Fn, type Layer } from './character.ts';
 import { colourLayers, composite, renderLayer, shadowLayer, type Rgba } from './render.ts';
 import type { V3 } from './sdf.ts';
-import { attachOccluders, cell, paletteFile, paletteFor, rig } from './pipeline.ts';
+import { attachOccluders, cell, paletteFile, paletteFor, readJson, rig } from './pipeline.ts';
+import { carryGreatsword, ironSwordLayers, leatherArmourLayers, steelArmourLayers, steelGreatswordLayers } from './equipment.ts';
 
 // ---------- one animation frame, in one direction ----------
 
@@ -16,10 +18,19 @@ export type Facing = keyof typeof FACINGS;
 export const ANIMS: Record<string, { frames: number; fps: number; pose: (t: number) => Pose }> = {
   idle: { frames: 6, fps: 5, pose: idlePose },
   walk: { frames: 8, fps: 10, pose: walkPose },
+  attack: { frames: 6, fps: 14, pose: attackPose },
+  block: { frames: 4, fps: 8, pose: blockPose },
+  roll: { frames: 8, fps: 14, pose: rollPose },
 };
 
-export const OUTFITS: Record<string, { label: string; layers: (p: Pose, body: Body) => Layer[] }> = {
-  farm: { label: 'Farm Clothes, Farm Boots', layers: farmClothesLayers },
+// Outfit labels and item stats come from data/outfits.json; the shapes are code.
+const OUTFIT_DATA = readJson('data/outfits.json');
+type Outfit = { label: string; items: unknown[]; anims: string[]; layers: (p: Pose, body: Body) => Layer[]; pose?: (p: Pose) => Pose };
+// Combat animations are drawn for the one-handed sword set only, so far.
+export const OUTFITS: Record<string, Outfit> = {
+  farm: { ...OUTFIT_DATA.farm, anims: ['idle', 'walk'], layers: farmClothesLayers },
+  leather: { ...OUTFIT_DATA.leather, anims: ['idle', 'walk', 'attack', 'block', 'roll'], layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
+  steel: { ...OUTFIT_DATA.steel, anims: ['idle', 'walk'], layers: (p, b) => [...steelArmourLayers(p, b), ...steelGreatswordLayers(p)], pose: carryGreatsword },
 };
 
 export type FrameJob = { race: string; outfit: string; anim: string; frame: number; facing: Facing };
@@ -74,15 +85,31 @@ function trimPiece(img: Rgba, base: Omit<FramePiece, 'x' | 'y' | 'w' | 'h' | 'da
 export function renderFrame(job: FrameJob): FrameResult {
   const t0 = Date.now();
   const anim = ANIMS[job.anim];
-  const p = anim.pose(job.frame / anim.frames);
+  const outfit = OUTFITS[job.outfit];
+  const p = outfit.pose ? outfit.pose(anim.pose(job.frame / anim.frames)) : anim.pose(job.frame / anim.frames);
   const body = makeBody(p);
-  const layers = [...bodyLayers(p, body), ...hairLayers(p, body), ...OUTFITS[job.outfit].layers(p, body)];
+  const layers = [...bodyLayers(p, body), ...hairLayers(p, body), ...outfit.layers(p, body)];
   const local = segmentLocal(p);
   for (const l of layers) l.local = local[l.segment];
   attachOccluders(layers, body);
+  // Held weapons are drawn last and hidden wherever anything worn is in front of
+  // them, so a blade can pass behind the shoulder and in front of the hip in one frame.
+  const worn: Fn[] = layers.filter((l) => l.slot !== 'weapon' && !l.overlay).flatMap((l) => l.pieces.map((pc) => (x: number, y: number, z: number) => Math.max(pc.shape(x, y, z), pc.cut(x, y, z))));
+  for (const l of layers) if (l.slot === 'weapon') l.occluders = worn;
+  // A whole-body turn (the dodge roll): every layer turns, and the draw order is
+  // worked out from where the joints end up.
+  let drawn = layers, orderPose = p;
+  if (p.root) {
+    const { R, pivot, to } = p.root;
+    drawn = layers.map((l) => moved(l, R, pivot, to));
+    const tp = (v: V3): V3 => { const q = applyR(R, [v[0] - pivot[0], v[1] - pivot[1], v[2] - pivot[2]]); return [q[0] + to[0], q[1] + to[1], q[2] + to[2]]; };
+    orderPose = JSON.parse(JSON.stringify(p));
+    for (const k of ['pelvis', 'chest', 'neck', 'head'] as const) orderPose[k] = tp(p[k]);
+    for (const k of ['hip', 'knee', 'ankle', 'shoulder', 'elbow', 'wrist', 'hand'] as const) for (const sd of ['L', 'R'] as const) orderPose[k][sd] = tp(p[k][sd]);
+  }
   const yaw = FACINGS[job.facing];
-  const segs = segmentOrder(p, yaw), slots: string[] = rig.slotOrder.order;
-  const ordered = [...layers].sort((a, b) => segs.indexOf(a.segment) - segs.indexOf(b.segment) || slots.indexOf(a.slot) - slots.indexOf(b.slot));
+  const segs = segmentOrder(orderPose, yaw), slots: string[] = rig.slotOrder.order;
+  const ordered = [...drawn].sort((a, b) => segs.indexOf(a.segment) - segs.indexOf(b.segment) || slots.indexOf(a.slot) - slots.indexOf(b.slot));
   const palette = paletteFor(job.race);
   const raws = ordered.map((l) => renderLayer(l, yaw, cell, palette));
   const coloured = colourLayers(raws, palette);

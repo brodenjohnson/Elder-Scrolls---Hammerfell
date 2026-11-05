@@ -31,7 +31,7 @@
   },
   "slotOrder": {
     "_note": "Within one body segment, slots always stack in this order.",
-    "order": ["body", "scar", "blood", "facialHair", "hair", "armour", "gloves", "boots", "helmet", "equipBlood"]
+    "order": ["body", "scar", "blood", "facialHair", "hair", "clothes", "armour", "gloves", "boots", "helmet", "weapon", "equipBlood"]
   },
   "segmentOrder": {
     "_note": "Back to front, per facing. Only S is used at gate 1; the other seven are filled in at gate 2.",

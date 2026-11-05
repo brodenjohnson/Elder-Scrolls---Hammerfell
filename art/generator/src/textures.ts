@@ -45,8 +45,10 @@ export function materialTexture(mat: string, x: number, y: number, z: number): n
     }
     case 'iron':
     case 'steel': {
+      // Worn metal: dull patches and the odd bright scratch.
       const g = hash3(f(x / 1.2), f(y / 1.2), f(z / 1.2));
-      return g > 0.96 ? 1 : g < 0.05 ? -1 : 0;
+      const wear = vnoise3(x / 6, y / 6, z / 6);
+      return (g > 0.96 ? 1 : g < 0.07 ? -1 : 0) + (wear < 0.3 ? -1 : 0);
     }
     case 'bark':
       return ((y / 3.4) % 1 + 1) % 1 < 0.3 ? -1 : 0;

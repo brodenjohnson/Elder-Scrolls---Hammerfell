@@ -9,7 +9,8 @@ cd art
 npm install
 npm run gen                     # player style frame to art/out/gate1/ (not committed)
 npm run sprites                 # player idle and walk, 8 directions, sheets and atlases to art/out/sprites/ (about 3 min)
-npm run sprites -- walk         # one animation only
+npm run sprites -- walk         # one animation only (attack, block and roll are drawn for the leather set)
+npm run dismember               # gate 5: head and arm severed, tumbling, to docs/gates/gate5/
 npm run samples                 # tiles, building, props, figures, icons, scene to art/out/samples/ (about 5 min)
 npm run samples -- house scene  # redo only some parts; the rest are read back from the last run
 node compare/shoot.mjs gate1    # comparison sheet to docs/gates/gate1/
@@ -63,9 +64,27 @@ Within a segment, slots stack in slot order (below). The exact order for every f
 
 Tested by mirroring E to stand in for W: 79% of figure pixels differ. Mirroring moves the light to the top right, and puts the brand, pouch and parting on the wrong side. Rendering all eight directions costs only machine time and about 1.6 times the sheet space of five, so every direction is drawn directly.
 
+## Equipment (`equipment.ts`, `data/outfits.json`)
+
+- Three outfits: Farm Clothes; Leather Armor, Leather Bracers, Leather Boots and an Iron Sword; Steel Armor, Steel Gauntlets, Steel Shin Boots and a Steel Greatsword. Names are Skyrim's. Stats in `data/outfits.json` are copied from `data/skyrim/` as labels only.
+- Armour reuses the shirt and trousers underneath and adds its own garment layers: cuirass (`torso/armour`), pauldrons (`upperArm.*/armour`), bracers or gauntlets (`forearm.*/gloves`), boots or greaves (`leg.*/boots`, `foot.*/boots`). Each detaches with its segment.
+- Weapons are a layer on `mainHand`, drawn last. Their occluders are every worn surface, so a blade hides where the body or armour is in front of it and shows where it is not. The one-handed sword follows the forearm, or the blade direction the animation sets. The greatsword is carried on the right shoulder; the outfit poses the right arm for it.
+
+## Combat animations (`combat.ts`)
+
+- Quick attack (6 frames, 14 fps), block (4 frames, 8 fps) and dodge roll (8 frames, 14 fps), drawn for the leather set.
+- Attack and block are keyframed hand positions and blade directions over a fighting stance, with the elbows found by IK and a twist of the shoulders.
+- The roll tucks the figure and turns it whole (`pose.root`), so every shape turns with it; draw order follows where the joints end up.
+
+## Dismemberment (`dismember.ts`)
+
+- A severed segment's layers are drawn on their own, turned and moved with `moved()` in `character.ts`.
+- Cut faces are hidden while attached. Once a neighbour is severed, `layer.wound` paints them: flesh with bone at the joint on the body, a darkened edge on cloth and leather.
+- Blood goes on the outermost surface (`equipBlood` slot) and on the ground as pools.
+
 ## Layers
 
-Layer ids are `segment/slot`. Slots stack within a segment in this order: body, scar, blood, facialHair, hair, armour, gloves, boots, helmet, equipBlood.
+Layer ids are `segment/slot`. Slots stack within a segment in this order: body, scar, blood, facialHair, hair, clothes, armour, gloves, boots, helmet, weapon, equipBlood.
 
 Segment draw order: see Draw order above.
 

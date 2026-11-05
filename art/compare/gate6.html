@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Combat moves</title>
+<style>
+  body { margin: 0; padding: 24px; background: #121010; color: #c9bba3; font: 13px/1.4 Georgia, serif; }
+  h1 { font-size: 20px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 4px; color: #d8c9a8; }
+  .sub { color: #8a7d68; margin-bottom: 18px; max-width: 1100px; }
+  h2 { font-size: 14px; font-weight: normal; color: #b3a283; border-bottom: 1px solid #3a322a; padding-bottom: 4px; margin: 0 0 12px; letter-spacing: 0.05em; }
+  .row { display: flex; align-items: flex-start; gap: 22px; margin-bottom: 26px; flex-wrap: wrap; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  figcaption { color: #8a7d68; font-size: 12px; text-align: center; max-width: 900px; }
+  canvas { image-rendering: pixelated; display: block; }
+  .labels { display: flex; flex-direction: column; color: #8a7d68; font-size: 12px; }
+  .labels div { display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+</style>
+</head>
+<body>
+<h1>GATE 6: QUICK ATTACK, BLOCK, DODGE ROLL</h1>
+<div class="sub">Leather Armor and Iron Sword. Every direction (rows) and frame (columns), all layers, 2x. Play them in viewer/index.html.</div>
+<div id="out"></div>
+<script src="../out/sprites/index.js"></script>
+<script>
+const I = window.SPRITE_INDEX, ROW = 140;
+const load = (src) => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+(async () => {
+  for (const [anim, title] of [['attack', 'Quick attack'], ['block', 'Block'], ['roll', 'Dodge roll']]) {
+    const s = I.sheets[`leather_${anim}`];
+    if (!s) continue;
+    const img = await load(`../out/sprites/previews/leather_${anim}.png`);
+    const c = document.createElement('canvas'); c.width = img.width * 2; c.height = img.height * 2;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, c.width, c.height);
+    const h = document.createElement('h2'); h.textContent = title;
+    const row = document.createElement('div'); row.className = 'row';
+    const wrap = document.createElement('div'); wrap.style.display = 'flex';
+    const lab = document.createElement('div'); lab.className = 'labels';
+    lab.innerHTML = I.facings.map((f) => `<div style="height:${ROW * 2}px">${f}</div>`).join('');
+    wrap.append(lab, c);
+    const f = document.createElement('figure'); f.append(wrap);
+    f.append(Object.assign(document.createElement('figcaption'), { textContent: `${s.pieces} layer pieces in one ${s.sheet[0]} by ${s.sheet[1]} sheet, ${(s.frameMs.mean / 1000).toFixed(1)} s per frame on one core.` }));
+    row.append(f);
+    document.getElementById('out').append(h, row);
+  }
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

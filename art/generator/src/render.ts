@@ -108,11 +108,14 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
           }
           if (!hit) continue;
           // A hit inside the surface is a cut face (the stump where another
-          // segment begins). Hidden while that segment is attached.
-          if (hit.shape(hx, hy, hz) < -0.12) { cutHits++; continue; }
-          let mat: string | null = hit.mat(hx, hy, hz);
-          let dt = 0;
-          if (hit.paint) {
+          // segment begins). Hidden while that segment is attached; once it is
+          // severed, layer.wound paints the face (flesh, bone, cloth edge).
+          const isCut = hit.shape(hx, hy, hz) < -0.12;
+          const wound = isCut && layer.wound ? layer.wound(hx, hy, hz, hit.mat(hx, hy, hz)) : null;
+          if (isCut && !wound) { cutHits++; continue; }
+          let mat: string | null = wound ? wound.mat ?? hit.mat(hx, hy, hz) : hit.mat(hx, hy, hz);
+          let dt = wound?.dt ?? 0;
+          if (hit.paint && !wound) {
             const r = hit.paint(hx, hy, hz, mat);
             if (r) {
               if (r.mat !== undefined) mat = r.mat;
@@ -122,7 +125,7 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
           if (mat === null) continue; // overlay pixel with nothing painted
           if (layer.local) { const q = layer.local(hx, hy, hz); dt += materialTexture(mat, q[0], q[1], q[2]); }
           else dt += materialTexture(mat, hx, hy, hz);
-          const e = 0.05, f = hit.shape;
+          const e = 0.05, f = wound ? hit.cut : hit.shape; // a wound faces along the cut
           let gx = f(hx + e, hy, hz) - f(hx - e, hy, hz);
           let gy = f(hx, hy + e, hz) - f(hx, hy - e, hz);
           let gz = f(hx, hy, hz + e) - f(hx, hy, hz - e);

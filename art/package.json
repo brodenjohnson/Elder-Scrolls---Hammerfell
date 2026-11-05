@@ -7,7 +7,8 @@
     "gen": "node --experimental-strip-types --no-warnings generator/src/main.ts",
     "compare": "node compare/shoot.mjs",
     "samples": "node --experimental-strip-types --no-warnings generator/src/samples.ts",
-    "sprites": "node --experimental-strip-types --no-warnings generator/src/sprites.ts"
+    "sprites": "node --experimental-strip-types --no-warnings generator/src/sprites.ts",
+    "dismember": "node --experimental-strip-types --no-warnings generator/src/dismember.ts"
   },
   "devDependencies": {
     "playwright": "^1.64.1",

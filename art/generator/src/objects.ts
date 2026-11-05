@@ -49,7 +49,7 @@ function custom(sdf: Fn, mat: string, bounds: { c: V3; r: number }, paint?: Pain
 // A flat strip from a to b (palm fronds, sword blades). `normal` is roughly the
 // face direction; widths taper from w1 to w2. `serrate` cuts notches along the
 // edges every that many units, for leaflets.
-function ribbon(a: V3, b: V3, w1: number, w2: number, thick: number, normal: V3 = [0, 1, 0], serrate = 0): Fn {
+export function ribbon(a: V3, b: V3, w1: number, w2: number, thick: number, normal: V3 = [0, 1, 0], serrate = 0): Fn {
   const d: V3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
   const len = Math.hypot(d[0], d[1], d[2]);
   const dir: V3 = [d[0] / len, d[1] / len, d[2] / len];

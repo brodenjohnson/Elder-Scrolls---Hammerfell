@@ -19,6 +19,8 @@ export type Pose = {
   elbow: Record<Side, V3>;
   wrist: Record<Side, V3>;
   hand: Record<Side, V3>;
+  weaponDir?: V3;                                   // blade direction, when an animation sets it
+  root?: { R: number[]; pivot: V3; to: V3 };        // turn the whole figure (dodge roll)
 };
 
 export const H = 134;
@@ -57,7 +59,7 @@ const len = (a: V3) => Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 const dotV = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
 // Two-bone IK: the knee for a hip and ankle, bending toward `bend`.
-function solveKnee(hip: V3, ankle: V3, l1: number, l2: number, bend: V3): V3 {
+export function solveKnee(hip: V3, ankle: V3, l1: number, l2: number, bend: V3): V3 {
   const d0 = sub(ankle, hip);
   const d = Math.min(len(d0), l1 + l2 - 0.01);
   const u = scale(d0, 1 / len(d0));
@@ -140,7 +142,7 @@ function bonesOf(p: Pose): Record<string, Bone | [Bone, Bone]> {
 }
 
 // Rotation taking unit vector u to unit vector v (shortest arc), row-major.
-function rotBetween(u: V3, v: V3): number[] {
+export function rotBetween(u: V3, v: V3): number[] {
   const c = dotV(u, v);
   const k: V3 = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
   if (c > 1 - 1e-9) return [1, 0, 0, 0, 1, 0, 0, 0, 1];

@@ -31,14 +31,15 @@ export type Layer = {
   overlay?: boolean;    // drop pixels whose paint returns mat null
   occluders?: Fn[];     // surfaces underneath that hide this layer's inside
   local?: (x: number, y: number, z: number) => V3; // to the segment's rest pose, for texture
+  wound?: (x: number, y: number, z: number, mat: string) => PaintResult | null; // paints cut faces once severed
 };
 
-const SIDES: Side[] = ['L', 'R'];
-const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
-const lerp3 = (a: V3, b: V3, t: number): V3 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-const sx = (s: Side) => (s === 'L' ? 1 : -1);
+export const SIDES: Side[] = ['L', 'R'];
+export const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+export const lerp3 = (a: V3, b: V3, t: number): V3 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+export const sx = (s: Side) => (s === 'L' ? 1 : -1);
 
-function along(x: number, y: number, z: number, a: V3, b: V3) {
+export function along(x: number, y: number, z: number, a: V3, b: V3) {
   const bx = b[0] - a[0], by = b[1] - a[1], bz = b[2] - a[2];
   const l2 = bx * bx + by * by + bz * bz;
   return { t: ((x - a[0]) * bx + (y - a[1]) * by + (z - a[2]) * bz) / l2, len: Math.sqrt(l2) };
@@ -68,7 +69,7 @@ export function boundsOf(prims: Prim[], margin: number): { c: V3; r: number } {
 // sphere is a lower bound on its distance.
 type Bounds = { c: V3; r: number };
 type PartSet = { names: string[]; sdfs: Fn[]; bounds?: Bounds[] };
-function partSet(parts: Record<string, Fn>, bounds?: Record<string, Bounds>): PartSet {
+export function partSet(parts: Record<string, Fn>, bounds?: Record<string, Bounds>): PartSet {
   const names = Object.keys(parts);
   return { names, sdfs: Object.values(parts), bounds: bounds && names.map((n) => bounds[n]) };
 }
@@ -79,7 +80,7 @@ const lowerBound = (b: Bounds, x: number, y: number, z: number) => {
 // Positive where some other part in the set is nearer than `name`. A part whose
 // lower bound is well clear of this one cannot change the sign near the
 // surface, so its bound stands in for its distance.
-function ownership(set: PartSet, name: string): Fn {
+export function ownership(set: PartSet, name: string): Fn {
   const i = set.names.indexOf(name);
   if (set.sdfs.length === 1) return () => -Infinity;
   return (x, y, z) => {
@@ -99,7 +100,7 @@ function ownership(set: PartSet, name: string): Fn {
 
 // ---------- body shapes ----------
 
-function headPrims(p: Pose): Prim[] {
+export function headPrims(p: Pose): Prim[] {
   const h = (v: V3): V3 => add(p.head, v);
   return [
     { kind: 'ell', c: h([0, 1.3, -0.8]), r: [6.6, 7.3, 7.5], mat: 'skin' },          // cranium
@@ -115,7 +116,7 @@ function headPrims(p: Pose): Prim[] {
   ];
 }
 
-function torsoPrims(p: Pose, withNeck: boolean): Prim[] {
+export function torsoPrims(p: Pose, withNeck: boolean): Prim[] {
   const c = p.chest, pv = p.pelvis;
   const prims: Prim[] = [
     { kind: 'ell', c: add(c, [0, 1, 0]), r: [11.6, 13.2, 8.4], mat: 'skin' },          // ribcage
@@ -131,7 +132,7 @@ function torsoPrims(p: Pose, withNeck: boolean): Prim[] {
   return prims;
 }
 
-function upperArmPrims(p: Pose, s: Side): Prim[] {
+export function upperArmPrims(p: Pose, s: Side): Prim[] {
   const sh = p.shoulder[s], el = p.elbow[s];
   return [
     { kind: 'cone', a: sh, b: el, r1: 4.3, r2: 3.4, mat: 'skin' },
@@ -139,7 +140,7 @@ function upperArmPrims(p: Pose, s: Side): Prim[] {
   ];
 }
 
-function forearmPrims(p: Pose, s: Side): Prim[] {
+export function forearmPrims(p: Pose, s: Side): Prim[] {
   const el = p.elbow[s], wr = p.wrist[s], hd = p.hand[s];
   const knuckle = lerp3(wr, hd, 0.5);
   return [
@@ -151,7 +152,7 @@ function forearmPrims(p: Pose, s: Side): Prim[] {
   ];
 }
 
-function legPrims(p: Pose, s: Side): Prim[] {
+export function legPrims(p: Pose, s: Side): Prim[] {
   const hp = p.hip[s], kn = p.knee[s], an = p.ankle[s];
   return [
     { kind: 'cone', a: hp, b: kn, r1: 7.2, r2: 4.7, mat: 'skin' },
@@ -161,7 +162,7 @@ function legPrims(p: Pose, s: Side): Prim[] {
   ];
 }
 
-function footPrims(p: Pose, s: Side): Prim[] {
+export function footPrims(p: Pose, s: Side): Prim[] {
   const an = p.ankle[s], yaw = p.footYaw[s];
   const fwd = (d: number): V3 => [an[0] + Math.sin(yaw) * d, an[1] - 3.9, an[2] + Math.cos(yaw) * d];
   return [
@@ -348,7 +349,7 @@ export function hairLayers(p: Pose, body: Body): Layer[] {
 // ---------- equipment: Farm Clothes and Farm Boots (Skyrim names) ----------
 
 // One garment surface shared out over the segments it covers.
-function garmentLayers(
+export function garmentLayers(
   slot: string, allowed: string[], shape: Fn, cut: Fn, mat: Piece['mat'], body: Body,
   opts: { paint?: Piece['paint']; bump?: Piece['bump']; segCut?: Record<string, Fn>; margin?: number } = {},
 ): Layer[] {
@@ -374,19 +375,19 @@ function garmentLayers(
   });
 }
 
-export function farmClothesLayers(p: Pose, body: Body): Layer[] {
+// Shirt: torso and both upper arms as one surface, plus a skirt below the belt.
+// mat: the cloth (linen for farm clothes, a padded teal cloth under steel).
+export function shirtLayers(p: Pose, body: Body, mat = 'linen', withBelt = true): Layer[] {
   const pv = p.pelvis, c = p.chest;
   const hem = pv[1] - 13;
   const belt = pv[1] + 7;
-
-  // Shirt: torso and both upper arms as one surface, plus a skirt below the belt.
   const shirtPrims: Prim[] = [
     ...torsoPrims(p, false),
     ...upperArmPrims(p, 'L').slice(0, 1), ...upperArmPrims(p, 'R').slice(0, 1),
     // Skirt below the belt: flattened front to back, flaring a little toward the hem.
-    { kind: 'ell', c: [0, belt - 5, 0.3], r: [12.6, 6.5, 8.8], mat: 'linen' },
-    { kind: 'ell', c: [0, hem + 4, 0.8], r: [13.6, 6.0, 9.4], mat: 'linen' },
-  ].map((q) => ({ ...q, mat: 'linen' }));
+    { kind: 'ell', c: [0, belt - 5, 0.3], r: [12.6, 6.5, 8.8], mat },
+    { kind: 'ell', c: [0, hem + 4, 0.8], r: [13.6, 6.0, 9.4], mat },
+  ].map((q) => ({ ...q, mat }) as Prim);
   const shirtSdf = primsSdf(shirtPrims, 3.4);
   const beltPrims: Prim[] = [
     { kind: 'ell', c: [0, belt, 0.4], r: [13.4, 1.9, 9.9], mat: 'leather' },
@@ -395,8 +396,8 @@ export function farmClothesLayers(p: Pose, body: Body): Layer[] {
   const beltSdf = primsSdf(beltPrims, 0.5);
   // The shirt hugs the body (including the deltoids) with a little slack.
   const shirtShape: Fn = (x, y, z) => smin(shirtSdf(x, y, z), body.shape(x, y, z), 2) - 0.9;
-  const shape: Fn = (x, y, z) => Math.min(shirtShape(x, y, z), beltSdf(x, y, z));
-  const mat = (x: number, y: number, z: number) => (beltSdf(x, y, z) < shirtShape(x, y, z) + 0.05 ? 'leather' : 'linen');
+  const shape: Fn = withBelt ? (x, y, z) => Math.min(shirtShape(x, y, z), beltSdf(x, y, z)) : shirtShape;
+  const matOf = (x: number, y: number, z: number) => (withBelt && beltSdf(x, y, z) < shirtShape(x, y, z) + 0.05 ? 'leather' : mat);
   const cut: Fn = (x, y, z) => {
     const hemCut = hem - y;
     const collar = Math.min(y - (c[1] + 11.5), 6.2 - Math.abs(x));
@@ -405,7 +406,7 @@ export function farmClothesLayers(p: Pose, body: Body): Layer[] {
     return Math.max(hemCut, collar, vCut);
   };
   const sleeveEnd = (s: Side): Fn => (x, y, z) => { const a = along(x, y, z, p.shoulder[s], p.elbow[s]); return (a.t - 0.86) * a.len; };
-  const shirt = garmentLayers('armour', ['torso', 'upperArm.L', 'upperArm.R'], shape, cut, mat, body, {
+  return garmentLayers('clothes', ['torso', 'upperArm.L', 'upperArm.R'], shape, cut, matOf, body, {
     segCut: { 'upperArm.L': sleeveEnd('L'), 'upperArm.R': sleeveEnd('R') },
     margin: 8,
     paint: (x, y, z, m) => {
@@ -425,33 +426,85 @@ export function farmClothesLayers(p: Pose, body: Body): Layer[] {
       return [0, 0, 0];
     },
   });
+}
 
-  // Trousers over both legs, tucked into the boots.
+// Trousers over both legs, tucked in 5.6 units above each ankle (L is +x), so a
+// lifted foot takes its trouser cuff with it.
+export function trouserLayers(p: Pose, body: Body): Layer[] {
   const trouserSdf = primsSdf([...legPrims(p, 'L'), ...legPrims(p, 'R')], 3);
-  // Tucked in 5.6 units above each ankle (L is +x), so a lifted foot takes its trouser cuff with it.
   const tuck: Fn = (x, y) => (x > 0 ? p.ankle.L[1] : p.ankle.R[1]) + 5.6 - y;
-  const trousers = garmentLayers('armour', ['leg.L', 'leg.R'], (x, y, z) => trouserSdf(x, y, z) - 1.2, tuck, () => 'wool', body, {
+  return garmentLayers('clothes', ['leg.L', 'leg.R'], (x, y, z) => trouserSdf(x, y, z) - 1.2, tuck, () => 'wool', body, {
     bump: (x, y) => {
       const kn = p.knee.L[1];
       return Math.abs(y - kn) < 5 ? [0, 0.5 * Math.sin(y * 2.0 + x * 0.3), 0] : [0, 0, 0];
     },
   });
+}
 
-  const boots: Layer[] = [];
+// Plain boots: the foot plus a shaft up the shin. height: how far up the shin
+// (0 ankle, 1 knee). Shafts above the ankle belong to the leg segment.
+export function bootLayers(p: Pose, body: Body, opts: { height?: number; mat?: string; cuff?: string; straps?: number[] } = {}): Layer[] {
+  const height = opts.height ?? 0.36, mat = opts.mat ?? 'leather.dark', cuff = opts.cuff ?? 'leather';
+  const out: Layer[] = [];
   for (const s of SIDES) {
-    const top = p.ankle[s][1] + (p.knee[s][1] - p.ankle[s][1]) * 0.36;
+    const top = p.ankle[s][1] + (p.knee[s][1] - p.ankle[s][1]) * height;
     const bootSdf = primsSdf([
       ...footPrims(p, s),
-      { kind: 'cone', a: p.ankle[s], b: lerp3(p.ankle[s], p.knee[s], 0.36), r1: 3.6, r2: 4.1, mat: 'leather.dark' },
+      { kind: 'cone', a: p.ankle[s], b: lerp3(p.ankle[s], p.knee[s], height), r1: 3.6, r2: 3.6 + 1.4 * height, mat },
     ], 2);
-    boots.push(...garmentLayers('boots', [`foot.${s}`], (x, y, z) => bootSdf(x, y, z) - 1.0, () => -Infinity, () => 'leather.dark', body, {
+    const segs = height > 0.45 ? [`foot.${s}`, `leg.${s}`] : [`foot.${s}`];
+    out.push(...garmentLayers('boots', segs, (x, y, z) => bootSdf(x, y, z) - 1.0, () => -Infinity, () => mat, body, {
       margin: 10,
       paint: (_x, y) => {
-        if (y > top - 2.2) return { mat: 'leather', dt: -1 }; // turned-down cuff
-        if (y < p.ankle[s][1] - 5.2) return { dt: -2 };        // sole
+        if (y > top - 2.2) return { mat: cuff, dt: -1 };          // turned-down cuff
+        if (y < p.ankle[s][1] - 5.2) return { dt: -2 };           // sole
+        for (const f of opts.straps ?? []) {
+          const sy = p.ankle[s][1] + (p.knee[s][1] - p.ankle[s][1]) * f;
+          if (Math.abs(y - sy) < 1.0) return { mat: 'leather.dark', dt: -1 };
+        }
         return null;
       },
     }));
   }
-  return [...shirt, ...trousers, ...boots];
+  return out;
+}
+
+// ---------- equipment: Farm Clothes and Farm Boots (Skyrim names) ----------
+
+export function farmClothesLayers(p: Pose, body: Body): Layer[] {
+  return [...shirtLayers(p, body), ...trouserLayers(p, body), ...bootLayers(p, body)];
+}
+
+// ---------- moving a whole layer ----------
+// Rotation matrices are row-major 3 by 3. Used for severed parts and for the
+// dodge roll, where the whole figure turns over.
+
+export const rotX = (t: number) => [1, 0, 0, 0, Math.cos(t), -Math.sin(t), 0, Math.sin(t), Math.cos(t)];
+export const rotY = (t: number) => [Math.cos(t), 0, Math.sin(t), 0, 1, 0, -Math.sin(t), 0, Math.cos(t)];
+export const rotZ = (t: number) => [Math.cos(t), -Math.sin(t), 0, Math.sin(t), Math.cos(t), 0, 0, 0, 1];
+export const applyR = (R: number[], v: V3): V3 => [R[0] * v[0] + R[1] * v[1] + R[2] * v[2], R[3] * v[0] + R[4] * v[1] + R[5] * v[2], R[6] * v[0] + R[7] * v[1] + R[8] * v[2]];
+const applyRT = (R: number[], v: V3): V3 => [R[0] * v[0] + R[3] * v[1] + R[6] * v[2], R[1] * v[0] + R[4] * v[1] + R[7] * v[2], R[2] * v[0] + R[5] * v[1] + R[8] * v[2]];
+
+// The same layer, turned by R about `pivot` and moved so the pivot lands on `to`.
+export function moved(l: Layer, R: number[], pivot: V3, to: V3): Layer {
+  const back = (x: number, y: number, z: number): V3 => {
+    const q = applyRT(R, [x - to[0], y - to[1], z - to[2]]);
+    return [q[0] + pivot[0], q[1] + pivot[1], q[2] + pivot[2]];
+  };
+  const wrap = (f: Fn): Fn => (x, y, z) => { const q = back(x, y, z); return f(q[0], q[1], q[2]); };
+  const c = applyR(R, [l.bounds.c[0] - pivot[0], l.bounds.c[1] - pivot[1], l.bounds.c[2] - pivot[2]]);
+  return {
+    ...l,
+    bounds: { c: [c[0] + to[0], c[1] + to[1], c[2] + to[2]], r: l.bounds.r },
+    occluders: l.occluders?.map(wrap),
+    local: l.local ? (x, y, z) => { const q = back(x, y, z); return l.local!(q[0], q[1], q[2]); } : undefined,
+    wound: l.wound ? (x, y, z, m) => { const q = back(x, y, z); return l.wound!(q[0], q[1], q[2], m); } : undefined,
+    pieces: l.pieces.map((pc) => ({
+      shape: wrap(pc.shape), cut: wrap(pc.cut),
+      mat: (x: number, y: number, z: number) => { const q = back(x, y, z); return pc.mat(q[0], q[1], q[2]); },
+      paint: pc.paint && ((x: number, y: number, z: number, m: string) => { const q = back(x, y, z); return pc.paint!(q[0], q[1], q[2], m); }),
+      bump: pc.bump && ((x: number, y: number, z: number) => { const q = back(x, y, z); return applyR(R, pc.bump!(q[0], q[1], q[2])); }),
+      bounds: pc.bounds && { c: (() => { const d = applyR(R, [pc.bounds!.c[0] - pivot[0], pc.bounds!.c[1] - pivot[1], pc.bounds!.c[2] - pivot[2]]); return [d[0] + to[0], d[1] + to[1], d[2] + to[2]] as V3; })(), r: pc.bounds.r },
+    })),
+  };
 }

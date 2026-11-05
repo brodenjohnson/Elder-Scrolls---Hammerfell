@@ -17,7 +17,7 @@ const race = 'redguard';
 const facings = Object.keys(FACINGS) as Facing[];
 
 const jobs: FrameJob[] = [];
-for (const outfit of Object.keys(OUTFITS)) for (const anim of anims) for (const facing of facings) {
+for (const outfit of Object.keys(OUTFITS)) for (const anim of anims.filter((a) => OUTFITS[outfit].anims.includes(a))) for (const facing of facings) {
   for (let frame = 0; frame < ANIMS[anim].frames; frame++) jobs.push({ race, outfit, anim, frame, facing });
 }
 
@@ -90,7 +90,7 @@ const shadeAlpha = Math.round((1 - paletteFile.castShadow.multiply) * 255);
 // Preview crop around the figure inside the cell.
 const PV = { x: 46, y: 36, w: 100, h: 140 };
 
-for (const outfit of Object.keys(OUTFITS)) for (const anim of anims) {
+for (const outfit of Object.keys(OUTFITS)) for (const anim of anims.filter((a) => OUTFITS[outfit].anims.includes(a))) {
   const name = `${outfit}_${anim}`;
   const frames = facings.flatMap((f) => Array.from({ length: ANIMS[anim].frames }, (_, i) => byKey.get(`${outfit}/${anim}/${f}/${i}`)!));
   const pieces = frames.flatMap((r) => r.pieces.map((p) => ({ r, p })));
@@ -114,7 +114,7 @@ for (const outfit of Object.keys(OUTFITS)) for (const anim of anims) {
     sprites[k].pieces[p.id] = { sx: at[i].sx, sy: at[i].sy, w: p.w, h: p.h, x: p.x, y: p.y, kind: p.kind, segment: p.segment, slot: p.slot };
   });
   const atlas = {
-    version: 2, outfit, outfitLabel: OUTFITS[outfit].label, race, anim, frames: ANIMS[anim].frames, fps: ANIMS[anim].fps,
+    version: 2, outfit, outfitLabel: OUTFITS[outfit].label, items: OUTFITS[outfit].items, race, anim, frames: ANIMS[anim].frames, fps: ANIMS[anim].fps,
     facings, cell: { w: cell.w, h: cell.h, ox: cell.ox, oy: cell.oy }, sheet: `${name}.png`, sheetSize: [1024, height],
     shade: { mode: 'source-atop', alpha: shadeAlpha, note: 'Draw each #shade piece just before its layer, composited source-atop.' },
     sprites,
