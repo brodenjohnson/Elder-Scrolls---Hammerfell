@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en-AU">
+<head><meta charset="utf-8"><title>Spike: Phaser 3</title>
+<style>body { margin: 0; background: #000; } canvas { image-rendering: pixelated; display: block; }</style></head>
+<body>
+<script type="module">
+// Phaser 3 (WebGL): canvas textures, pooled images, depth set from the sort.
+import * as P from './node_modules/phaser/dist/phaser.esm.js';
+import { loadAssets, makeRunner, params, VIEW } from './world.js';
+const Phaser = P.default ?? P;
+const { n, seconds } = params();
+const assets = await loadAssets();
+class Bench extends Phaser.Scene {
+  create() {
+    this.gImgs = []; this.tImgs = [];
+    const tex = (key, src) => {
+      if (!this.textures.exists(key)) src instanceof HTMLCanvasElement ? this.textures.addCanvas(key, src) : this.textures.addImage(key, src);
+      return key;
+    };
+    const pool = (list, count, depthBase) => {
+      while (list.length < count) list.push(this.add.image(0, 0, '__DEFAULT').setOrigin(0, 0));
+      list.forEach((im, i) => { im.setVisible(i < count); im.setDepth(depthBase + i); });
+    };
+    this.run = makeRunner(assets, n, seconds, (chunks, things, cam) => {
+      pool(this.gImgs, chunks.length, 0);
+      chunks.forEach((ch, i) => {
+        ch.dispose ??= () => this.textures.remove('chunk' + ch.key);
+        this.gImgs[i].setTexture(tex('chunk' + ch.key, ch.canvas)).setPosition(Math.round(ch.x), Math.round(ch.y));
+      });
+      pool(this.tImgs, things.length, 1000);
+      things.forEach((t, i) => this.tImgs[i].setTexture(tex(t.key, t.image)).setPosition(t.x, t.y));
+      this.cameras.main.setScroll(cam.x, cam.y);
+    });
+  }
+  update() { this.run.tick(performance.now()); }
+}
+const game = new Phaser.Game({
+  type: Phaser.WEBGL, width: VIEW.w, height: VIEW.h, backgroundColor: '#071116', pixelArt: true, banner: false,
+  fps: { target: 1000, limit: 0, forceSetTimeOut: false }, scene: Bench,
+});
+game.canvas.style.width = VIEW.w * VIEW.scale + 'px'; game.canvas.style.height = VIEW.h * VIEW.scale + 'px';
+</script>
+</body>
+</html>

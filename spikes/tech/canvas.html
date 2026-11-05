@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en-AU">
+<head><meta charset="utf-8"><title>Spike: Canvas2D</title>
+<style>body { margin: 0; background: #000; } canvas { image-rendering: pixelated; display: block; }</style></head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// Plain Canvas2D: drawImage everything, no engine.
+import { loadAssets, makeRunner, params, VIEW } from './world.js';
+const { n, seconds } = params();
+const c = document.getElementById('c');
+c.width = VIEW.w; c.height = VIEW.h; c.style.width = VIEW.w * VIEW.scale + 'px'; c.style.height = VIEW.h * VIEW.scale + 'px';
+const g = c.getContext('2d', { alpha: false });
+g.imageSmoothingEnabled = false;
+const assets = await loadAssets();
+const run = makeRunner(assets, n, seconds, (chunks, things, cam) => {
+  g.fillStyle = '#071116'; g.fillRect(0, 0, VIEW.w, VIEW.h);
+  for (const ch of chunks) g.drawImage(ch.canvas, Math.round(ch.x - cam.x), Math.round(ch.y - cam.y));
+  for (const t of things) g.drawImage(t.image, t.x - cam.x, t.y - cam.y);
+});
+const loop = (now) => { run.tick(now); if (!run.done) requestAnimationFrame(loop); };
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

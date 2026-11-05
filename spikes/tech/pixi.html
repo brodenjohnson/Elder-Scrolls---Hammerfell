@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-AU">
+<head><meta charset="utf-8"><title>Spike: PixiJS</title>
+<style>body { margin: 0; background: #000; } canvas { image-rendering: pixelated; display: block; }</style></head>
+<body>
+<script type="module">
+// PixiJS 8 (WebGL): one texture per canvas, pooled sprites, order set by the sort.
+import * as PIXI from './node_modules/pixi.js/dist/pixi.min.mjs';
+import { loadAssets, makeRunner, params, VIEW } from './world.js';
+const { n, seconds } = params();
+PIXI.TextureSource.defaultOptions.scaleMode = 'nearest';
+const app = new PIXI.Application();
+await app.init({ width: VIEW.w, height: VIEW.h, background: '#071116', antialias: false, resolution: 1, preference: 'webgl' });
+app.canvas.style.width = VIEW.w * VIEW.scale + 'px'; app.canvas.style.height = VIEW.h * VIEW.scale + 'px';
+document.body.appendChild(app.canvas);
+app.ticker.maxFPS = 0;
+const assets = await loadAssets();
+const textures = new Map();
+const tex = (key, canvas) => { let t = textures.get(key); if (!t) { t = PIXI.Texture.from(canvas); textures.set(key, t); } return t; };
+const groundLayer = new PIXI.Container(), thingLayer = new PIXI.Container();
+app.stage.addChild(groundLayer, thingLayer);
+const pool = (layer, list, count) => { while (list.length < count) { const s = new PIXI.Sprite(); layer.addChild(s); list.push(s); } list.forEach((s, i) => { s.visible = i < count; }); };
+const gSprites = [], tSprites = [];
+const run = makeRunner(assets, n, seconds, (chunks, things, cam) => {
+  pool(groundLayer, gSprites, chunks.length);
+  chunks.forEach((ch, i) => {
+    // Free the GPU copy when the world drops a chunk from its cache.
+    ch.dispose ??= () => { textures.get('chunk' + ch.key)?.destroy(true); textures.delete('chunk' + ch.key); };
+    const s = gSprites[i]; s.texture = tex('chunk' + ch.key, ch.canvas); s.x = Math.round(ch.x - cam.x); s.y = Math.round(ch.y - cam.y);
+  });
+  pool(thingLayer, tSprites, things.length);
+  things.forEach((t, i) => { const s = tSprites[i]; s.texture = tex(t.key, t.image); s.x = t.x - cam.x; s.y = t.y - cam.y; });
+});
+app.ticker.add(() => run.tick(performance.now()));
+</script>
+</body>
+</html>

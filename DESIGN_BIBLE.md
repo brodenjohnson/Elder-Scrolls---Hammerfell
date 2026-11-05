@@ -72,7 +72,7 @@ The playable world matches Skyrim's **playable map size**, not its lore size. Sk
 |---|---|
 | Tiles per Skyrim cell | **12** (LOCKED) |
 | World size in tiles | about **1,428 by 1,128** |
-| Slice size | 128 by 128 tiles (PROPOSED, confirm after the art spike) |
+| Slice size | 128 by 128 tiles (LOCKED: generates in under 10 ms, under 60 ms on a slow CPU) |
 | Slices | about 98 of land equivalent, a 12 by 9 bounding grid of 108 with sea and border slices |
 | East-west crossing | about 5 minutes at 5 tiles a second (PROPOSED run speed, tune in testing) |
 | Islands (Stros M'Kai etc.) | separate small maps by boat, outside the main footprint, later |
@@ -141,7 +141,7 @@ Folder structure and naming from the brief: `/GameAssets/{Characters,Equipment,E
 
 **Platform (LOCKED):** browser game, built with Claude in VS Code, tested and released from a repo. Players on desktop browsers. Hosting via GitHub Pages, as in the earlier project.
 
-**Stack (OPEN, decide in Phase 0 with a spike):** TypeScript with a 2D renderer (candidates: PixiJS or Phaser 3, or a thin custom canvas renderer). Choose by evidence on: isometric depth sorting, tilemap chunk streaming at about 1,536 by 1,152 tiles (12 by 9 slices), performance with many animated layered sprites, and ease of headless testing.
+**Stack (LOCKED after the Phase 0 tech spike):** TypeScript with **PixiJS 8** as the renderer, and our own world, streaming, depth sorting and game logic on top. PixiJS gave the steadiest frame times and used about a tenth of Phaser's memory; Canvas2D fell behind with crowds on a slow CPU. Evidence in `docs/TECH_SPIKE_REPORT.md`.
 
 **Principles (PROPOSED, carried over from the earlier Wasteland project):**
 - Everything content-like is **data**: items, perks, skills, quests, dialogue, enemies, places, factions. Code reads data.
@@ -475,6 +475,7 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 31. **Camera split (art spike):** ground, buildings and props use the true 30 degree isometric camera. Characters and creatures are drawn at a shallower 12 degree pitch so faces and chests read, as in concept-05. Tested in the sample scene, where the two sit together without looking wrong.
 32. **World scale kept at 12 tiles per Skyrim cell.** At character scale a tile is about 0.69 m, so the world (about 1,428 by 1,128 tiles) is about 1 km by 0.8 km of walkable space: Skyrim's layout, compressed about seven times. Chosen for performance (smaller slices to stream and draw) and so the world can actually be filled with hand-placed content. Towns and dungeons are built at character scale inside it.
 33. **Eight directions are all drawn, none mirrored.** Mirroring moved the light and the asymmetric details (brand, pouch, parting); 79% of pixels differed.
+34. **Renderer: PixiJS 8** with our own world and game logic (tech spike). Slice size 128 by 128 tiles confirmed.
 
 ---
 
