@@ -50,6 +50,14 @@ const settings = Object.fromEntries(SETTINGS.map((e) => [e, gm.find((g) => g.edi
 const races = load('races').filter((r) => r.playable && !/Vampire|Child/.test(r.edid))
   .map(({ edid, name, skillBoosts, startingHealth, startingStamina, carryWeight, regen, unarmedDamage }) => ({ edid, name, skillBoosts, startingHealth, startingStamina, carryWeight, regen, unarmedDamage }));
 
+// Enemy templates: Skyrim's own NPC records (level, base health and stamina, combat skills).
+const ACTORS = { bandit1H: 'EncBandit01Melee1HTankRedguardM' };
+const npcs = load('npcs');
+const actors = Object.fromEntries(Object.entries(ACTORS).map(([id, edid]) => {
+  const n = npcs.find((x) => x.edid === edid);
+  return [id, { edid, level: n.level, health: n.base.health, stamina: n.base.stamina, skills: { OneHanded: n.skills.OneHanded, Block: n.skills.Block, LightArmor: n.skills.LightArmor } }];
+}));
+write('actors', actors);
 write('skills', skills); write('perks', perks); write('weapons', weapons); write('armour', armour); write('settings', settings); write('races', races);
 console.log(`data: ${skills.length} skills, ${perks.length} perk ranks, ${weapons.length} weapons, ${armour.length} armour, ${races.length} races`);
 console.log(settings);

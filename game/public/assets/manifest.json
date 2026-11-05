@@ -381,9 +381,28 @@
  "sheets": [
   "farm_idle",
   "farm_walk",
+  "steel_idle",
+  "steel_walk",
   "leather_idle",
   "leather_walk",
-  "steel_idle",
-  "steel_walk"
+  "leather_attack",
+  "leather_block",
+  "leather_roll",
+  "leather_hit",
+  "leather_death",
+  "farmSword_idle",
+  "farmSword_walk",
+  "farmSword_attack",
+  "farmSword_block",
+  "farmSword_roll",
+  "farmSword_hit",
+  "farmSword_death",
+  "bandit_idle",
+  "bandit_walk",
+  "bandit_attack",
+  "bandit_block",
+  "bandit_roll",
+  "bandit_hit",
+  "bandit_death"
  ]
 }

@@ -1,5 +1,5 @@
 import { idlePose, segmentLocal, walkPose, type Pose } from './pose.ts';
-import { attackPose, blockPose, rollPose } from './combat.ts';
+import { attackPose, blockPose, deathPose, hitPose, rollPose } from './combat.ts';
 import { applyR, bodyLayers, farmClothesLayers, hairLayers, makeBody, moved, type Body, type Fn, type Layer } from './character.ts';
 import { colourLayers, composite, renderLayer, shadowLayer, type Rgba } from './render.ts';
 import type { V3 } from './sdf.ts';
@@ -21,15 +21,21 @@ export const ANIMS: Record<string, { frames: number; fps: number; pose: (t: numb
   attack: { frames: 6, fps: 14, pose: attackPose },
   block: { frames: 4, fps: 8, pose: blockPose },
   roll: { frames: 8, fps: 14, pose: rollPose },
+  hit: { frames: 3, fps: 12, pose: hitPose },
+  death: { frames: 8, fps: 10, pose: deathPose },
 };
 
 // Outfit labels and item stats come from data/outfits.json; the shapes are code.
 const OUTFIT_DATA = readJson('data/outfits.json');
-type Outfit = { label: string; items: unknown[]; anims: string[]; layers: (p: Pose, body: Body) => Layer[]; pose?: (p: Pose) => Pose };
+type Outfit = { label: string; items: unknown[]; anims: string[]; race?: string; layers: (p: Pose, body: Body) => Layer[]; pose?: (p: Pose) => Pose };
+const COMBAT = ['idle', 'walk', 'attack', 'block', 'roll', 'hit', 'death'];
 // Combat animations are drawn for the one-handed sword set only, so far.
 export const OUTFITS: Record<string, Outfit> = {
   farm: { ...OUTFIT_DATA.farm, anims: ['idle', 'walk'], layers: farmClothesLayers },
-  leather: { ...OUTFIT_DATA.leather, anims: ['idle', 'walk', 'attack', 'block', 'roll'], layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
+  leather: { ...OUTFIT_DATA.leather, anims: COMBAT, layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
+  // The farmer with a sword in his own clothes, and a Nord bandit in leather: the first fight.
+  farmSword: { ...OUTFIT_DATA.farmSword, anims: COMBAT, layers: (p, b) => [...farmClothesLayers(p, b), ...ironSwordLayers(p)] },
+  bandit: { ...OUTFIT_DATA.bandit, anims: COMBAT, race: 'nord', layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
   steel: { ...OUTFIT_DATA.steel, anims: ['idle', 'walk'], layers: (p, b) => [...steelArmourLayers(p, b), ...steelGreatswordLayers(p)], pose: carryGreatsword },
 };
 

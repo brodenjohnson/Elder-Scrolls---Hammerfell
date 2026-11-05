@@ -9,6 +9,7 @@ import { Character, newCharacter } from './systems/character';
 import { newReputation, type ReputationState } from './systems/reputation';
 import { Conversation, type Dialogue } from './systems/dialogue';
 import { Panels } from './ui/panels';
+import { Combat, type Encounter, type Fighter } from './combat/combat';
 
 declare const __APP_VERSION__: string;
 export const VERSION = __APP_VERSION__;
@@ -48,6 +49,10 @@ export class Game {
   dialogues: Record<string, Dialogue> = {};
   panels!: Panels;
   // People in the world. For now one settler by the Sentinel Coast fire.
+  combat!: Combat;
+  pf: Fighter | undefined;              // the player as a fighter
+  private leftDown: number | null = null;
+  mouse = { x: 0, y: 0 };
   npcs = [{ id: 'settler', dialogue: 'settler', a: START.sx * SLICE + 63.2, b: START.sy * SLICE + 57.5, facing: 'S' as Facing }];
 
   async start(parent: HTMLElement) {
@@ -57,6 +62,11 @@ export class Game {
     this.data = await loadData();
     this.dialogues.settler = await json<Dialogue>('./data/dialogue/settler.json');
     this.panels = new Panels(() => this.character, () => this.reputation, () => {});
+    const enc = await json<{ encounters: Encounter[] }>('./data/encounters.json');
+    this.combat = new Combat(this.data, enc.encounters, {
+      character: () => this.character, flags: () => this.flags, say: (m) => this.say(m),
+      sliceLoaded: (sx, sy) => this.streamer.loaded.has(`${sx},${sy}`),
+    });
     this.map = new WorldMap(slices);
     this.terrain = new Terrain(this.map);
     this.streamer = new Streamer(this.terrain);
@@ -88,6 +98,7 @@ export class Game {
     this.flags = new Set();
     this.streamer.states = {};
     this.streamer.reset();
+    this.combat.reset(); this.pf = undefined;
     this.place(START.sx * SLICE + START.a, START.sy * SLICE + START.b, 'S');
     this.playSeconds = 0;
   }
@@ -108,16 +119,51 @@ export class Game {
       if (e.code === 'KeyC') this.panels.toggle('character');
       if (e.code === 'KeyI') this.panels.toggle('inventory');
       if (e.code === 'Escape') this.panels.close();
+      if (e.code === 'Space') { e.preventDefault(); this.rollPlayer(); }
+      if (e.code === 'KeyN' && this.pf?.state === 'dead') this.newGame();
       if (this.panels.open === 'dialogue' && /^Digit[1-9]$/.test(e.code)) { this.panels.conversation?.choose(+e.code.slice(5) - 1); this.panels.render(); }
     });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
+    const canvas = this.renderer.app.canvas;
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); this.mouse = { x: (e.clientX - r.left) / 2, y: (e.clientY - r.top) / 2 }; });
+    canvas.addEventListener('mousedown', (e) => {
+      if (this.panels.open !== 'none') return;
+      if (e.button === 0) this.leftDown = performance.now();
+      if (e.button === 2 && this.pf && this.armed()) this.combat.block(this.pf, true);
+    });
+    addEventListener('mouseup', (e) => {
+      if (e.button === 0 && this.leftDown !== null) { const held = (performance.now() - this.leftDown) / 1000; this.leftDown = null; if (held < 0.3) this.attack(false); }
+      if (e.button === 2 && this.pf) this.combat.block(this.pf, false);
+    });
     addEventListener('blur', () => this.keys.clear());
   }
 
   // ---------- update ----------
 
-  update(dt: number) {
-    this.playSeconds += dt;
+  // Melee needs a weapon and an outfit that has combat frames (the steel set does not yet).
+  armed() { return !!this.character.weapon() && this.outfit() !== 'steel'; }
+  attack(power: boolean) {
+    const f = this.pf;
+    if (!f || f.state === 'dead' || this.panels.open !== 'none') return false;
+    if (!this.armed()) { this.say(this.character.weapon() ? 'No combat moves in Steel armour yet.' : 'You need a weapon. I for inventory.'); return false; }
+    // Melee faces the cursor (bible 11.1).
+    if (!this.combat.busy(f)) { const v = this.renderer.view; f.facing = facingOf(this.mouse.x - v.w / 2, (this.mouse.y - (v.h / 2 + 30)) * 2); this.player.facing = f.facing; }
+    return power ? this.combat.powerAttack(f) : this.combat.quick(f);
+  }
+  rollPlayer() {
+    const f = this.pf; if (!f || !this.armed()) return false;
+    const k = this.keys; let sx = 0, sy = 0;
+    if (k.has('KeyW')) sy -= 1; if (k.has('KeyS')) sy += 1; if (k.has('KeyA')) sx -= 1; if (k.has('KeyD')) sx += 1;
+    return this.combat.roll(f, sx || sy ? facingOf(sx, sy) : undefined);
+  }
+
+  update(realDt: number) {
+    this.pf = this.combat.playerFighter(this.player, this.pf);
+    const f = this.pf;
+    const dt = realDt * this.combat.timeScale; // a perfect dodge slows everything, the player too
+    this.playSeconds += realDt;
+    if (this.leftDown !== null && (performance.now() - this.leftDown) / 1000 >= 0.3) { this.leftDown = null; this.attack(true); }
     const k = this.keys;
     let sx = 0, sy = 0;
     if (k.has('KeyW') || k.has('ArrowUp')) sy -= 1;
@@ -125,7 +171,7 @@ export class Game {
     if (k.has('KeyA') || k.has('ArrowLeft')) sx -= 1;
     if (k.has('KeyD') || k.has('ArrowRight')) sx += 1;
     const p = this.player;
-    if (this.panels.open === 'dialogue') sx = sy = 0; // standing still while talking
+    if (this.panels.open === 'dialogue' || this.combat.busy(f)) sx = sy = 0; // no walking while talking, swinging, rolling, hurt or dead
     p.moving = !!(sx || sy);
     if (p.moving) {
       p.facing = facingOf(sx, sy);
@@ -133,6 +179,7 @@ export class Game {
       const [ga, gb] = toGround(sx * 32, sy * 32), l = Math.hypot(ga, gb);
       let speed = k.has('ShiftLeft') || k.has('ShiftRight') ? RUN : WALK;
       if (this.terrain.material(p.a, p.b) === M.shallow) speed *= 0.6;
+      if (f.blocking) speed *= 0.5;
       // Sneaking (Ctrl) is slower and trains Sneak while moving.
       const sneaking = k.has('ControlLeft') || k.has('ControlRight');
       if (sneaking) { speed *= 0.55; this.character.useSkill('Sneak', 0.5 * dt); }
@@ -141,6 +188,21 @@ export class Game {
     }
     p.t += dt;
     this.streamer.update(...this.map.sliceOf(p.a, p.b));
+    // Combat: the player fighter follows the player, then a roll may carry him on.
+    f.a = p.a; f.b = p.b; if (!this.combat.busy(f)) f.facing = p.facing;
+    if (f.state === 'idle' || f.state === 'walk') f.state = p.moving ? 'walk' : 'idle';
+    this.combat.sync();
+    this.combat.update(realDt, f);
+    if (f.state === 'roll') [p.a, p.b] = this.move(p.a, p.b, f.a - p.a, f.b - p.b);
+    // Bandits are kept out of solid things by the same rules as the player.
+    const alive = this.combat.enemies.filter((e) => e.state !== 'dead');
+    // Keep fighters from standing inside one another.
+    for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) {
+      const x = alive[i], y = alive[j], d = Math.hypot(x.a - y.a, x.b - y.b), r = 2 * PLAYER_RADIUS;
+      if (d < r) { const ua = d > 0 ? (x.a - y.a) / d : 1, ub = d > 0 ? (x.b - y.b) / d : 0, push = (r - d) / 2; x.a += ua * push; x.b += ub * push; y.a -= ua * push; y.b -= ub * push; }
+    }
+    for (const e of alive) [e.a, e.b] = this.resolve(e.a, e.b, true);
+    p.facing = f.facing;
   }
 
   // Move, then push out of anything solid; deep water stops you outright.
@@ -150,7 +212,12 @@ export class Game {
     if (deep(na, nb)) { if (!deep(a + da, b)) nb = b; else if (!deep(a, b + db)) na = a; else return [a, b]; }
     return this.resolve(na, nb);
   }
-  resolve(a: number, b: number): [number, number] {
+  resolve(a: number, b: number, skipFighters = false): [number, number] {
+    if (!skipFighters) for (const e of this.combat?.enemies ?? []) {
+      if (e.state === 'dead') continue;
+      const d = Math.hypot(a - e.a, b - e.b), r = 2 * PLAYER_RADIUS;
+      if (d < r && d > 0) { a = e.a + ((a - e.a) / d) * r; b = e.b + ((b - e.b) / d) * r; }
+    }
     for (const n of this.npcs) {
       const d = Math.hypot(a - n.a, b - n.b), r = 2 * PLAYER_RADIUS;
       if (d < r && d > 0) { a = n.a + ((a - n.a) / d) * r; b = n.b + ((b - n.b) / d) * r; }
@@ -197,6 +264,13 @@ export class Game {
   interact() {
     if (this.panels.open === 'dialogue') return;
     const p = this.player;
+    const body = this.combat.enemies.find((e) => e.state === 'dead' && e.encounter && Math.hypot(e.a - p.a, e.b - p.b) < 1.6 && !this.flags.has(`looted:${e.id}`));
+    if (body) {
+      this.flags.add(`looted:${body.id}`);
+      for (const g of body.gear) this.character.give(g);
+      this.say(`Searched the body: ${body.gear.map((g) => this.data.weapons.get(g)?.name ?? this.data.armour.get(g)?.name ?? g).join(', ')}.`);
+      return;
+    }
     const npc = this.npcs.find((n) => Math.hypot(n.a - p.a, n.b - p.b) < 1.8);
     if (npc) { this.talk(npc.dialogue); return; }
     const chest = [...this.streamer.things()].find((t) => t.id === 'chest' && Math.hypot(t.a - p.a, t.b - p.b) < 1.6);
@@ -219,9 +293,9 @@ export class Game {
     this.say('Opened the chest: Leather and Steel armour, a Steel Greatsword. I for inventory.');
   }
   // Which sprite set the player wears follows the body armour.
-  outfit(): 'farm' | 'leather' | 'steel' {
+  outfit(): 'farm' | 'farmSword' | 'leather' | 'steel' {
     const body = this.character.s.equipped.body ?? '';
-    return body.startsWith('ArmorLeather') ? 'leather' : body.startsWith('ArmorSteel') ? 'steel' : 'farm';
+    return body.startsWith('ArmorLeather') ? 'leather' : body.startsWith('ArmorSteel') ? 'steel' : this.character.weapon() ? 'farmSword' : 'farm';
   }
 
   // ---------- draw ----------
@@ -239,11 +313,21 @@ export class Game {
       items.push({ texture: r.texture(o.body), x: Math.round(x - m.ox), y: Math.round(y - m.oy), a0: t.a - ha, a1: t.a + ha, b0: t.b - hb, b1: t.b + hb, c: t.a + t.b });
     }
     // The player: idle or walking frames, the walk sped up to match the pace.
-    const name = `${this.outfit()}_${p.moving ? 'walk' : 'idle'}`, sheet = this.sheets[name], atlas = sheet.atlas;
+    const f = this.pf!;
+    const [anim, cframe] = this.combat.frame(f);
+    const combatAnim = anim !== 'idle' && anim !== 'walk' && this.sheets[`${this.outfit()}_${anim}`];
+    const name = combatAnim ? `${this.outfit()}_${anim}` : `${this.outfit()}_${p.moving ? 'walk' : 'idle'}`, sheet = this.sheets[name], atlas = sheet.atlas;
     const fps = p.moving ? atlas.fps * (p.speed / 2.6) : atlas.fps;
-    const frame = Math.floor(p.t * fps) % atlas.frames;
+    const frame = combatAnim ? cframe : Math.floor(p.t * fps) % atlas.frames;
     const [px, py] = toScreen(p.a, p.b);
     items.push({ texture: r.frame(name, atlas, sheet.image, p.facing, frame), x: Math.round(px - atlas.cell.ox), y: Math.round(py - atlas.cell.oy), a0: p.a, a1: p.a, b0: p.b, b1: p.b, c: p.a + p.b });
+    for (const e of this.combat.enemies) {
+      if (Math.abs(e.a - p.a) > reach || Math.abs(e.b - p.b) > reach) continue;
+      const [anim2, fr2] = this.combat.frame(e), nm = `${e.outfit}_${anim2}`, s2 = this.sheets[nm] ?? this.sheets[`${e.outfit}_idle`];
+      const [ex, ey] = toScreen(e.a, e.b);
+      const flash = e.state === 'hit' && e.t < 0.1;
+      items.push({ texture: r.frame(nm, s2.atlas, s2.image, e.facing, fr2), x: Math.round(ex - s2.atlas.cell.ox), y: Math.round(ey - s2.atlas.cell.oy), tint: flash ? 0xff8877 : 0xffffff, a0: e.a, a1: e.a, b0: e.b, b1: e.b, c: e.a + e.b - (e.state === 'dead' ? 0.5 : 0) });
+    }
     for (const n of this.npcs) {
       if (Math.abs(n.a - p.a) > reach || Math.abs(n.b - p.b) > reach) continue;
       const [nx, ny] = toScreen(n.a, n.b), s2 = this.sheets.farm_idle, a2 = s2.atlas;
@@ -253,6 +337,7 @@ export class Game {
     }
     items.sort(depthOrder);
     r.draw(p.a, p.b, shadows, items);
+    r.blood(this.combat.decals, this.combat.drops);
   }
 
   // ---------- saving ----------
@@ -274,6 +359,7 @@ export class Game {
     this.reputation = structuredClone(s.reputation);
     this.flags = new Set(s.flags);
     this.panels.close();
+    this.combat.reset(); this.pf = undefined;
     this.playSeconds = s.playSeconds;
     this.place(s.player.a, s.player.b, s.player.facing);
     this.say(`Loaded (${slot}).`);

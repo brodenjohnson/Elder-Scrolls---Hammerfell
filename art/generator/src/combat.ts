@@ -146,3 +146,32 @@ export function rollPose(t: number): Pose {
   p.root = { R: rotX(angle), pivot: [0, 46, 12], to: [0, 30, 0] };
   return p;
 }
+
+// Hit reaction (3 frames): the blow snaps the shoulders back and the head with them,
+// the sword arm drops, then he recovers toward guard.
+export function hitPose(t: number): Pose {
+  const k = [0.9, 1, 0.4][Math.min(2, Math.floor(t * 3))];
+  const p = stance(4 + 2 * k, 2 - 5 * k);
+  twist(p, -0.25 * k);
+  p.head = add(p.head, [0, -1.2 * k, -3 * k]);
+  reach(p, 'R', [-14, 84 - 6 * k, 14 - 6 * k]);
+  reach(p, 'L', [10, 84 - 4 * k, 8]);
+  p.weaponDir = [-0.2, 0.2 - 0.6 * k, 0.95];
+  return p;
+}
+
+// Death (8 frames): the knees go, then the body falls back and lies still. The fall
+// turns the whole figure about the heels (pose.root), the last two frames lying flat.
+export function deathPose(t: number): Pose {
+  const k = Math.min(7, Math.round(t * 8));
+  const p = stance(6 + Math.min(k, 3) * 6, 1 - Math.min(k, 3));
+  reach(p, 'R', [-18, 70 - k * 2, 6]);
+  reach(p, 'L', [16, 72 - k * 2, 4]);
+  p.weaponDir = [-0.3, -0.6, 0.7];
+  if (k >= 2) {
+    const fall = Math.min(1, (k - 1) / 5);
+    // Fall backward (away from where he faced), coming to rest on the ground.
+    p.root = { R: rotX(-fall * (Math.PI / 2) * 0.96), pivot: [0, 0, -8], to: [0, 2 * fall, -8] };
+  }
+  return p;
+}

@@ -29,6 +29,10 @@
   #panel .perk { margin-bottom: 6px; }
   #panel .perk.have b { color: #d8b46a; }
   #panel .levelup { margin: 8px 0; color: #e6c27a; }
+  #vitals { bottom: 34px; left: 10px; width: 220px; }
+  #vitals .v { height: 7px; background: #231d18; border: 1px solid #3a322a; margin: 3px 0; }
+  #vitals .v span { display: block; height: 100%; }
+  #dead { top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #e0a090; text-align: center; padding: 14px 24px; }
   .bar { display: inline-block; width: 80px; height: 6px; background: #231d18; border: 1px solid #3a322a; vertical-align: middle; }
   .bar span { display: block; height: 100%; }
 </style>
@@ -39,7 +43,9 @@
 <div id="msg" class="panel"></div>
 <div id="notice" class="panel" hidden></div>
 <div id="panel" hidden></div>
-<div id="keys" class="panel">WASD move &middot; Shift run &middot; Ctrl sneak &middot; E talk, open, smash &middot; C character &middot; I inventory &middot; F5 save &middot; F9 load</div>
+<div id="vitals" class="panel"><div class="v"><span id="hp" style="background:#8f2a22"></span></div><div class="v"><span id="sp" style="background:#3f7a52"></span></div></div>
+<div id="dead" class="panel" hidden>You are dead.<br><span style="font-size:13px;color:#a89a82">F9 to load your last save, N for a new game.</span></div>
+<div id="keys" class="panel">WASD move &middot; Shift run &middot; Ctrl sneak &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; F5 save &middot; F9 load</div>
 <div id="version" class="panel"></div>
 <script type="module" src="./src/main.ts"></script>
 </body>

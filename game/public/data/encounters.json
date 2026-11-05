@@ -1,0 +1,13 @@
+{
+  "_note": "Fixed encounters. slice is zero-based (x, y); at is the tile within the slice. Each enemy is an actor template from data/game/actors.json wearing an outfit (sprite set) and gear (item editor ids). Dead enemies are remembered per encounter in the save.",
+  "encounters": [
+    {
+      "id": "coastCamp", "slice": [5, 7], "at": [40, 62], "name": "Bandit camp on the Coast Road",
+      "enemies": [
+        { "actor": "bandit1H", "outfit": "bandit", "offset": [-2, 0], "gear": ["IronSword", "ArmorLeatherCuirass", "ArmorLeatherBoots", "ArmorLeatherGauntlets"] },
+        { "actor": "bandit1H", "outfit": "bandit", "offset": [2, -1], "gear": ["IronSword", "ArmorLeatherCuirass", "ArmorLeatherBoots"] },
+        { "actor": "bandit1H", "outfit": "bandit", "offset": [0, 3], "gear": ["IronSword", "ArmorLeatherCuirass"] }
+      ]
+    }
+  ]
+}

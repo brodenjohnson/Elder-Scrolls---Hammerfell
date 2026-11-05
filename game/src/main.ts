@@ -16,6 +16,12 @@ setInterval(() => {
     `<span class="dim">slice ${w.sx + 1},${w.sy + 1} &middot; tile ${Math.floor(p.a)},${Math.floor(p.b)} &middot; ${game.fps} fps</span><br>` +
     `Level ${game.character.s.level} &middot; Armour ${game.character.armourRating()}${game.character.s.pendingLevelUps ? ' &middot; <b>level up (C)</b>' : ''}`;
   msg.textContent = game.currentMessage;
+  const f = game.pf;
+  if (f) {
+    document.getElementById('hp')!.style.width = `${(100 * Math.max(0, f.health)) / f.maxHealth}%`;
+    document.getElementById('sp')!.style.width = `${(100 * Math.max(0, f.stamina)) / f.maxStamina}%`;
+    document.getElementById('dead')!.hidden = f.state !== 'dead';
+  }
 }, 100);
 
 // Newer-version notice: the deployed site publishes version.json; a running copy
@@ -68,5 +74,27 @@ setInterval(checkVersion, 10 * 60 * 1000);
   reputation: () => structuredClone(game.reputation),
   flags: () => [...game.flags],
   npcs: () => game.npcs.map((n) => ({ ...n })),
+  // Combat (Phase 3).
+  fighters: () => [game.pf, ...game.combat.enemies].filter(Boolean).map((f) => ({ id: f!.id, a: f!.a, b: f!.b, state: f!.state, health: f!.health, stamina: f!.stamina, facing: f!.facing })),
+  combatLog: () => [...game.combat.log],
+  timeScale: () => game.combat.timeScale,
+  attackAt: (id: string, power = false) => { const e = game.combat.enemies.find((x) => x.id === id)!; game.combat.faceTowards(game.pf!, e.a, e.b); game.player.facing = game.pf!.facing; return power ? game.combat.powerAttack(game.pf!) : game.combat.quick(game.pf!); },
+  block: (on: boolean) => game.combat.block(game.pf!, on),
+  roll: () => game.combat.roll(game.pf!),
+  // Put one bandit next to the player and have it swing; the others are sent home and calmed.
+  enemySwing: (id: string, power = false) => {
+    const e = game.combat.enemies.find((x) => x.id === id)!, pf = game.pf!;
+    for (const o of game.combat.enemies) if (o !== e) { o.ai!.passive = true; o.a = o.ai!.home[0] + 30; o.b = o.ai!.home[1]; }
+    e.ai!.passive = true;
+    e.a = pf.a - 1.2; e.b = pf.b; e.state = 'idle'; e.stamina = e.maxStamina; e.ai!.cooldown = 99;
+    game.combat.faceTowards(e, pf.a, pf.b); game.combat.faceTowards(pf, e.a, e.b); game.player.facing = pf.facing;
+    if (power) game.combat.powerAttack(e); else game.combat.quick(e);
+    return game.combat.hitMoment(e);
+  },
+  calm: () => { for (const e of game.combat.enemies) e.ai!.passive = true; },
+  rules: (attacker: string, defender: string, power = false, blocking = false) => {
+    const all = [game.pf!, ...game.combat.enemies], a = all.find((x) => x.id === attacker)!, d = all.find((x) => x.id === defender)!;
+    return game.combat.hit(a, d, { power, blocking });
+  },
   ready: true,
 };

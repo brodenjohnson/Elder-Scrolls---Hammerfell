@@ -19,6 +19,9 @@ npm run release -- patch "what changed" --push
 - `src/render/renderer.ts`: PixiJS layers (ground chunks, shadows, depth-sorted things and people), composed character frames, chunk cache (48, least recently used).
 - `src/game.ts`: movement, collision (footprints: boxes for houses and ledges, circles for props; deep water blocks), depth sorting by footprint, smashing, saving.
 - `src/save/save.ts`: versioned saves in localStorage. Bump `SAVE_VERSION` and add a migration for any change to saved data.
+- `src/systems/`: the Phase 2 systems. `character.ts` (skills on Skyrim's curves, levels, perks through entry points, inventory and equipment), `reputation.ts`, `dialogue.ts` (conversations as data in `public/data/dialogue/`), `data.ts` (the data pack in `public/data/game/`, built by `npm run data`).
+- `src/combat/combat.ts`: melee (Phase 3): fighters, the damage rules from the data pack and the player's character, block, parry, roll, perfect dodge, bandit AI, blood. Encounters are data: `public/data/encounters.json`.
+- `src/ui/panels.ts`: character sheet (C), inventory (I), dialogue.
 - `src/main.ts`: HUD, newer-version notice, and `window.__game`, the debug handle tests use.
 
 ## Releasing

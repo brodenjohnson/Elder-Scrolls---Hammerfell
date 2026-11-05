@@ -12,13 +12,17 @@ import type { Rgba } from './render.ts';
 // preview grids, the mirroring test, and index.js for the viewer.
 
 const out = path.join(root, 'out', 'sprites');
-const anims = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(ANIMS);
-const race = 'redguard';
+// Arguments: animation names, and optionally --outfits=a,b to render only those outfits.
+const args = process.argv.slice(2);
+const outfitArg = args.find((a) => a.startsWith('--outfits='))?.slice(10).split(',');
+const anims = args.filter((a) => !a.startsWith('--')).length ? args.filter((a) => !a.startsWith('--')) : Object.keys(ANIMS);
+const outfitList = Object.keys(OUTFITS).filter((o) => !outfitArg || outfitArg.includes(o));
+const raceOf = (outfit: string) => OUTFITS[outfit].race ?? 'redguard';
 const facings = Object.keys(FACINGS) as Facing[];
 
 const jobs: FrameJob[] = [];
-for (const outfit of Object.keys(OUTFITS)) for (const anim of anims.filter((a) => OUTFITS[outfit].anims.includes(a))) for (const facing of facings) {
-  for (let frame = 0; frame < ANIMS[anim].frames; frame++) jobs.push({ race, outfit, anim, frame, facing });
+for (const outfit of outfitList) for (const anim of anims.filter((a) => OUTFITS[outfit].anims.includes(a))) for (const facing of facings) {
+  for (let frame = 0; frame < ANIMS[anim].frames; frame++) jobs.push({ race: raceOf(outfit), outfit, anim, frame, facing });
 }
 
 // ---------- render in parallel ----------
@@ -90,7 +94,7 @@ const shadeAlpha = Math.round((1 - paletteFile.castShadow.multiply) * 255);
 // Preview crop around the figure inside the cell.
 const PV = { x: 46, y: 36, w: 100, h: 140 };
 
-for (const outfit of Object.keys(OUTFITS)) for (const anim of anims.filter((a) => OUTFITS[outfit].anims.includes(a))) {
+for (const outfit of outfitList) for (const anim of anims.filter((a) => OUTFITS[outfit].anims.includes(a))) {
   const name = `${outfit}_${anim}`;
   const frames = facings.flatMap((f) => Array.from({ length: ANIMS[anim].frames }, (_, i) => byKey.get(`${outfit}/${anim}/${f}/${i}`)!));
   const pieces = frames.flatMap((r) => r.pieces.map((p) => ({ r, p })));
@@ -114,7 +118,7 @@ for (const outfit of Object.keys(OUTFITS)) for (const anim of anims.filter((a) =
     sprites[k].pieces[p.id] = { sx: at[i].sx, sy: at[i].sy, w: p.w, h: p.h, x: p.x, y: p.y, kind: p.kind, segment: p.segment, slot: p.slot };
   });
   const atlas = {
-    version: 2, outfit, outfitLabel: OUTFITS[outfit].label, items: OUTFITS[outfit].items, race, anim, frames: ANIMS[anim].frames, fps: ANIMS[anim].fps,
+    version: 2, outfit, outfitLabel: OUTFITS[outfit].label, items: OUTFITS[outfit].items, race: raceOf(outfit), anim, frames: ANIMS[anim].frames, fps: ANIMS[anim].fps,
     facings, cell: { w: cell.w, h: cell.h, ox: cell.ox, oy: cell.oy }, sheet: `${name}.png`, sheetSize: [1024, height],
     shade: { mode: 'source-atop', alpha: shadeAlpha, note: 'Draw each #shade piece just before its layer, composited source-atop.' },
     sprites,
@@ -144,7 +148,7 @@ for (const outfit of Object.keys(OUTFITS)) for (const anim of anims.filter((a) =
 // ---------- mirroring test ----------
 // Is drawing W as a mirrored E good enough? Mirroring flips the light to the top
 // right, swaps the brand and pouch to the wrong side, and moves the parting.
-if (anims.includes('idle')) {
+if (anims.includes('idle') && outfitList.includes('farm')) {
   const e = byKey.get('farm/idle/E/0')!.composite, w = byKey.get('farm/idle/W/0')!.composite;
   const mirrored = new Uint8ClampedArray(e.length);
   // Mirror about the anchor column (ox), so the feet stay in place.

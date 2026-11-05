@@ -1,4 +1,4 @@
-import { Application, Container, Sprite, Texture, TextureSource } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Texture, TextureSource } from 'pixi.js';
 import { CHUNK, toGround, toScreen } from './iso';
 import ChunkWorker from './chunkWorker?worker';
 
@@ -26,6 +26,9 @@ export class Renderer {
   private readonly textures = new Map<object, Texture>();
   private readonly frames = new Map<string, Texture>();
   private shadowPool: Sprite[] = [];
+  private readonly decalLayer = new Graphics();
+  private readonly dropLayer = new Graphics();
+  private decalCount = 0;
   private actorPool: Sprite[] = [];
   readonly stats = { chunksBuilt: 0, chunkMsMax: 0, chunkMsTotal: 0, chunksEvicted: 0, maxChunks: 48 };
   view = { w: 640, h: 360 };
@@ -37,7 +40,7 @@ export class Renderer {
     parent.appendChild(this.app.canvas);
     this.app.canvas.style.imageRendering = 'pixelated';
     this.app.stage.addChild(this.world);
-    this.world.addChild(this.groundLayer, this.shadowLayer, this.actorLayer);
+    this.world.addChild(this.groundLayer, this.decalLayer, this.shadowLayer, this.actorLayer, this.dropLayer);
     addEventListener('resize', () => { this.resize(); this.app.renderer.resize(this.view.w, this.view.h); this.fitCanvas(); });
     this.fitCanvas();
     this.worker.postMessage(workerInit);
@@ -110,6 +113,14 @@ export class Renderer {
     this.streamGround(camX, camY);
     this.fill(this.shadowLayer, this.shadowPool, shadows);
     this.fill(this.actorLayer, this.actorPool, actors);
+  }
+  // Blood: falling drops each frame, and decals added as they land (kept until cleared).
+  blood(decals: { x: number; y: number; dark: boolean }[], drops: { x: number; y: number }[]) {
+    if (decals.length < this.decalCount) { this.decalLayer.clear(); this.decalCount = 0; }
+    for (let i = this.decalCount; i < decals.length; i++) { const d = decals[i]; this.decalLayer.rect(d.x, d.y, 1 + (i % 3 === 0 ? 1 : 0), 1).fill(d.dark ? 0x45090b : 0x640e10); }
+    this.decalCount = decals.length;
+    this.dropLayer.clear();
+    for (const d of drops) this.dropLayer.rect(Math.round(d.x), Math.round(d.y), 1, 1).fill(0x851615);
   }
   private fill(layer: Container, pool: Sprite[], items: Drawable[]) {
     while (pool.length < items.length) { const s = new Sprite(); layer.addChild(s); pool.push(s); }

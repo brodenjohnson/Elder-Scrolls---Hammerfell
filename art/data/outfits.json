@@ -74,5 +74,57 @@
         "source": "data/skyrim/weapons.md"
       }
     ]
+  },
+  "farmSword": {
+    "label": "Farm Clothes, Iron Sword",
+    "items": [
+      {
+        "name": "Farm Clothes",
+        "slot": "body",
+        "stats": "In game \"Belted Tunic\": weight 1, value 2",
+        "source": "data/skyrim/json/armour.json (ClothesFarmClothes01)"
+      },
+      {
+        "name": "Farm Boots",
+        "slot": "feet",
+        "stats": "In game \"Boots\": weight 1, value 2",
+        "source": "data/skyrim/json/armour.json (ClothesFarmBoots01)"
+      },
+      {
+        "name": "Iron Sword",
+        "slot": "main hand",
+        "stats": "Damage 7, weight 9, value 25",
+        "source": "data/skyrim/weapons.md"
+      }
+    ]
+  },
+  "bandit": {
+    "label": "Bandit (Nord): Leather Armor, Iron Sword",
+    "items": [
+      {
+        "name": "Leather Armor",
+        "slot": "body",
+        "stats": "Armour 26, weight 6",
+        "source": "data/skyrim/armour.md"
+      },
+      {
+        "name": "Leather Bracers",
+        "slot": "hands",
+        "stats": "Armour 7, weight 2, value 25",
+        "source": "data/skyrim/json/armour.json (ArmorLeatherGauntlets)"
+      },
+      {
+        "name": "Leather Boots",
+        "slot": "feet",
+        "stats": "Armour 7, weight 2, value 25",
+        "source": "data/skyrim/json/armour.json (ArmorLeatherBoots)"
+      },
+      {
+        "name": "Iron Sword",
+        "slot": "main hand",
+        "stats": "Damage 7, weight 9, value 25",
+        "source": "data/skyrim/weapons.md"
+      }
+    ]
   }
 }
