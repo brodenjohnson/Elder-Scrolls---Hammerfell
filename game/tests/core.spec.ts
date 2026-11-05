@@ -126,3 +126,18 @@ test('only the farm sprite sheets load at start; an outfit loads when it is firs
   await page.waitForFunction(() => (window as any).__game.sheetsLoaded().includes('leather_death'), null, { timeout: 15_000 });
   expect((await call<string[]>(page, 'sheetsLoaded')).filter((n) => n.startsWith('leather_'))).toHaveLength(7);
 });
+
+test('the farm is a hand-placed site: house, well, goat pen with a broken north fence, on dry land', async ({ page }) => {
+  await boot(page);
+  const S = 128, fa = 4 * S + 30, fb = 8 * S + 96;
+  await call(page, 'teleport', fa + 4, fb + 3);
+  await page.waitForTimeout(300);
+  const things = (await call<any[]>(page, 'things')).filter((t) => Math.hypot(t.a - fa, t.b - fb) < 16);
+  const count = (id: string) => things.filter((t) => t.id === id).length;
+  expect(count('house')).toBe(1); expect(count('well')).toBe(1); expect(count('goat')).toBe(3);
+  expect(count('fenceA') + count('fenceB')).toBe(10);
+  expect(things.find((t) => t.tag === 'northFence')?.id).toBe('fenceABroken');
+  // Nothing random grows inside the yard, and the farm stands on dry ground.
+  expect(things.filter((t) => /palm|rock|scrub/.test(t.id))).toEqual([]);
+  for (const t of things) expect(['grass', 'sand', 'beach', 'cracked']).toContain(await call<number>(page, 'material', t.a, t.b).then((m) => ['deep', 'shallow', 'beach', 'sand', 'cracked', 'grass', 'road'][m]));
+});

@@ -101,6 +101,7 @@ export class Panels {
     const cv = this.conversation!;
     const n = cv.current;
     const choices = cv.choices.map((c, i) => `<div><button data-act="choose" data-arg="${i}">${i + 1}. ${esc(c.text)}</button></div>`).join('');
-    return `<h2>${esc(n.speaker)}</h2><p>${esc(n.text)}</p>${choices}`;
+    const said = cv.spoken ? `<p class="dim">You: &ldquo;${esc(cv.spoken)}&rdquo;</p>` : '';
+    return `<h2>${esc(n.speaker)}</h2>${said}<p>${esc(n.text)}</p>${choices}`;
   }
 }

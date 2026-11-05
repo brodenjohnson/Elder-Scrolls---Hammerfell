@@ -13,14 +13,18 @@ export type Effect = {
   give?: Record<string, number>; take?: Record<string, number>;
   train?: { skill: SkillId; amount: number }; setFlag?: string;
   startQuest?: string; questEvent?: string; // start a quest; send a "talk" event to the quests
+  bond?: Partial<Record<BondId, number>>;     // hidden family bond (MAIN_QUEST 0.1), 0 to 5 each
 };
-export type Choice = { text: string; next?: string; if?: Condition; do?: Effect;
+export type BondId = 'wife' | 'child' | 'dog';
+// spoken: the fuller line he says aloud when the short option is picked (MAIN_QUEST 0.2).
+export type Choice = { text: string; spoken?: string; next?: string; if?: Condition; do?: Effect;
   // A Speech check: succeed if Speech is at least `level`, going to `pass` or `fail`.
   check?: { skill: SkillId; level: number; pass: string; fail: string } };
-export type DialogueNode = { speaker: string; text: string; choices: Choice[] };
-export type Dialogue = { id: string; title: string; start: string; nodes: Record<string, DialogueNode> };
+export type DialogueNode = { speaker: string; text: string; id?: string; choices: Choice[] };
+// starts: the first whose condition holds is where the conversation opens; otherwise `start`.
+export type Dialogue = { id: string; title: string; start: string; starts?: { node: string; if?: Condition }[]; nodes: Record<string, DialogueNode> };
 
-export type DialogueContext = { character: Character; reputation: ReputationState; flags: Set<string>; say: (m: string) => void; quests?: Quests };
+export type DialogueContext = { character: Character; reputation: ReputationState; flags: Set<string>; say: (m: string) => void; quests?: Quests; bond?: Record<BondId, number> };
 
 export function allowed(c: Condition | undefined, ctx: DialogueContext): boolean {
   if (!c) return true;
@@ -39,6 +43,7 @@ function apply(e: Effect | undefined, what: string, ctx: DialogueContext) {
   for (const [k, n] of Object.entries(e.take ?? {})) { ctx.character.s.inventory[k] = Math.max(0, (ctx.character.s.inventory[k] ?? 0) - n); }
   if (e.train) ctx.character.useSkill(e.train.skill, e.train.amount);
   if (e.setFlag) ctx.flags.add(e.setFlag);
+  for (const [k, n] of Object.entries(e.bond ?? {})) if (ctx.bond) ctx.bond[k as BondId] = Math.max(0, Math.min(5, ctx.bond[k as BondId] + n));
   if (e.startQuest) { ctx.flags.add(`quest:${e.startQuest}`); ctx.quests?.start(e.startQuest); }
   if (e.questEvent) ctx.quests?.notify({ type: 'talk', target: e.questEvent });
   if (e.setFlag) ctx.quests?.checkFlags();
@@ -48,12 +53,14 @@ function apply(e: Effect | undefined, what: string, ctx: DialogueContext) {
 export class Conversation {
   node: string;
   done = false;
-  constructor(readonly d: Dialogue, readonly ctx: DialogueContext) { this.node = d.start; }
+  spoken = ''; // what he last said
+  constructor(readonly d: Dialogue, readonly ctx: DialogueContext) { this.node = d.starts?.find((s) => allowed(s.if, ctx))?.node ?? d.start; }
   get current() { return this.d.nodes[this.node]; }
   get choices() { return this.current.choices.filter((c) => allowed(c.if, this.ctx)); }
   choose(i: number) {
     const c = this.choices[i];
     if (!c) return;
+    this.spoken = c.spoken ?? '';
     apply(c.do, `${this.d.id}: ${c.text}`, this.ctx);
     let next = c.next;
     if (c.check) {

@@ -48,6 +48,15 @@
   #create input { background: #231d18; border: 1px solid #5a4a36; color: #e0cfa8; padding: 4px 6px; font: inherit; }
   #create-races { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 4px; }
   #create-races button.sel { border-color: #e0a030; color: #f0d090; }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 5; }
+  #scene { position: fixed; inset: 0; pointer-events: none; z-index: 6; }
+  #scene[hidden] { display: none; }
+  #scene .bar { position: absolute; left: 0; right: 0; height: 12vh; background: #000; }
+  #scene .top { top: 0; } #scene .bottom { bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #scene-caption { font-size: 18px; color: #e0cfa8; letter-spacing: 0.04em; text-align: center; padding: 0 16px; }
+  #scene-line { font-size: 16px; color: #e8dcc4; text-align: center; padding: 0 16px; }
+  #scene-line b { color: #e0a030; font-weight: normal; }
+  #scene .skip { position: absolute; right: 14px; bottom: 8px; font-size: 11px; }
   #status { font-size: 12px; color: #e0a090; min-height: 14px; }
   #dead { top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #e0a090; text-align: center; padding: 14px 24px; }
   .bar { display: inline-block; width: 80px; height: 6px; background: #231d18; border: 1px solid #3a322a; vertical-align: middle; }
@@ -65,6 +74,8 @@
 <div id="keys" class="panel">WASD move &middot; Shift run &middot; Ctrl sneak &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; F finisher &middot; Q Fury (Shift+Q choose) &middot; B bandage &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; J journal &middot; O options &middot; F5 save &middot; F9 load</div>
 <div id="version" class="panel"></div>
 <div id="tracker" class="panel" hidden></div>
+<div id="scene" hidden><div class="bar top"></div><div class="bar bottom"><div id="scene-line"></div><div id="scene-caption"></div><div class="dim skip">Esc to skip</div></div></div>
+<div id="fade"></div>
 <div id="create" hidden><div>
   <h2>Who is he?</h2>
   <p class="dim">A farmer on the Sentinel Coast, a husband and a father. Once, long ago, a conscript.</p>

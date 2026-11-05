@@ -6,7 +6,7 @@ import { bodyLayers, farmClothesLayers, hairLayers, makeBody } from './character
 import { ground, renderTile, CORNERS, EDGES, TILE_H, TILE_W, type Side } from './ground.ts';
 import {
   barrel, campfire, chest, cliff, crate, house, iconOre, iconPotion, iconSword, palm, pot, renderObject, rock, scrub, wolf,
-  type Sprite,
+  type Sprite, fence, goat, well,
 } from './objects.ts';
 import { hex, type Rgba } from './render.ts';
 import { hash3, vnoise3, type V3 } from './sdf.ts';
@@ -84,6 +84,12 @@ const OBJECTS: ObjSpec[] = [
   { id: 'chest', label: 'Chest', make: chest },
   { id: 'campfire', label: 'Campfire', make: campfire },
   { id: 'wolf', label: 'Wolf (character camera, 12 degrees)', make: wolf, opts: { pitchDeg: 12, yaw: -1.9, shadow: false } },
+  // The farm (prologue).
+  { id: 'well', label: 'Well', make: well },
+  { id: 'fenceA', label: 'Fence, along a', make: () => fence('a') },
+  { id: 'fenceB', label: 'Fence, along b', make: () => fence('b') },
+  { id: 'fenceABroken', label: 'Fence, along a, broken', make: () => fence('a', true) },
+  { id: 'goat', label: 'Goat (character camera, 12 degrees)', make: goat, opts: { pitchDeg: 12, yaw: -0.6 } },
 ];
 manifest.objects ??= {};
 for (const o of OBJECTS) {

@@ -1,17 +1,99 @@
 {
   "_note": "Quests (src/systems/quests.ts). Objectives are met by events: talk (a dialogue line sends it), interact (a thing used), kill, reach, or flag (a story flag set). The prologue quests (MAIN_QUEST.md section 2) will go here too.",
   "clearRoad": {
-    "id": "clearRoad", "title": "The road east", "giver": "settler",
+    "id": "clearRoad",
+    "title": "The road east",
+    "giver": "settler",
     "stages": [
       {
-        "id": "camp", "text": "The settler by the fire says bandits camp on the Coast Road, east of the settlement. Clear them out.",
-        "objectives": [{ "id": "camp", "text": "Clear the bandit camp on the Coast Road", "on": { "type": "flag", "target": "cleared:coastCamp" } }],
+        "id": "camp",
+        "text": "The settler by the fire says bandits camp on the Coast Road, east of the settlement. Clear them out.",
+        "objectives": [
+          {
+            "id": "camp",
+            "text": "Clear the bandit camp on the Coast Road",
+            "on": {
+              "type": "flag",
+              "target": "cleared:coastCamp"
+            }
+          }
+        ],
         "next": "report"
       },
       {
-        "id": "report", "text": "The camp is quiet. The settler will want to know.",
-        "objectives": [{ "id": "tell", "text": "Tell the settler the road is clear", "on": { "type": "talk", "target": "settler.roadClear" } }],
-        "then": { "give": { "Bandage": 2 }, "setFlag": "road.clear" }
+        "id": "report",
+        "text": "The camp is quiet. The settler will want to know.",
+        "objectives": [
+          {
+            "id": "tell",
+            "text": "Tell the settler the road is clear",
+            "on": {
+              "type": "talk",
+              "target": "settler.roadClear"
+            }
+          }
+        ],
+        "then": {
+          "give": {
+            "Bandage": 2
+          },
+          "setFlag": "road.clear"
+        }
+      }
+    ]
+  },
+  "chores": {
+    "id": "chores",
+    "title": "Morning chores",
+    "giver": "nadira",
+    "stages": [
+      {
+        "id": "chores",
+        "text": "Nadira wants the morning chores done before the day gets away.",
+        "objectives": [
+          {
+            "id": "water",
+            "text": "Draw water from the well",
+            "on": {
+              "type": "interact",
+              "target": "well"
+            }
+          },
+          {
+            "id": "goats",
+            "text": "Feed the goats",
+            "on": {
+              "type": "interact",
+              "target": "goat"
+            }
+          },
+          {
+            "id": "fence",
+            "text": "Mend the north fence of the goat pen",
+            "on": {
+              "type": "interact",
+              "target": "northFence"
+            }
+          }
+        ],
+        "next": "back",
+        "then": {
+          "setFlag": "pro01.choresDone"
+        }
+      },
+      {
+        "id": "back",
+        "text": "The chores are done. Nadira is at the house.",
+        "objectives": [
+          {
+            "id": "tell",
+            "text": "Tell Nadira",
+            "on": {
+              "type": "talk",
+              "target": "nadira.chores"
+            }
+          }
+        ]
       }
     ]
   }

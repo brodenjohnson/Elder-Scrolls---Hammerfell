@@ -13,6 +13,20 @@ document.getElementById('version')!.textContent = `v${VERSION}`;
 
 await game.start(document.getElementById('stage')!);
 
+// Cutscene overlay: fade, letterbox, caption and spoken line, every frame.
+const fade = document.getElementById('fade')!, sceneBox = document.getElementById('scene')!;
+const sceneCaption = document.getElementById('scene-caption')!, sceneLine = document.getElementById('scene-line')!;
+(function frame() {
+  const v = game.scene?.view;
+  fade.style.opacity = String(v?.fade ?? 0);
+  sceneBox.hidden = !game.scene;
+  if (v) {
+    sceneCaption.textContent = v.caption;
+    sceneLine.innerHTML = v.line ? `<b>${v.line.speaker}</b> &ldquo;${v.line.text.replace(/</g, '&lt;')}&rdquo;` : '';
+  }
+  requestAnimationFrame(frame);
+})();
+
 // Character creation: shown for a new game (the first visit, and N after death).
 // Ten races with Skyrim's skill boosts; only those with drawn sprites can be picked yet.
 const DRAWN = ['RedguardRace'];
@@ -151,7 +165,11 @@ setInterval(checkVersion, 10 * 60 * 1000);
   // Pin the dice: 0 makes every chance happen, 0.999 none; null goes back to random.
   settings: () => ({ ...game.settings }),
   time: () => game.time,
+  bond: () => ({ ...game.bond }),
   create: (name: string) => { game.create(name); create.hidden = true; },
+  scene: () => game.scene && { id: game.scene.scene.id, ...game.scene.view },
+  play: (id: string) => game.play(id),
+  skipScene: () => game.scene?.skip(),
   setTime: (t: number) => { game.time = t; },
   light: () => game.renderer.world.tint,
   quests: () => ({ tracker: game.quests.tracker(), done: [...game.quests.s.done] }),

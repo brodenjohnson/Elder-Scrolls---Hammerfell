@@ -1,7 +1,7 @@
 import { Renderer, type Atlas, type Drawable } from './render/renderer';
 import { facingOf, toScreen, toGround, type Facing } from './render/iso';
-import { WorldMap, SLICE } from './world/map';
-import { M, MATERIALS, SHAPES, Terrain, type Thing, type ThingId } from './world/terrain';
+import { WorldMap } from './world/map';
+import { M, MATERIALS, SHAPES, Terrain, type Site, type Thing, type ThingId } from './world/terrain';
 import { Streamer } from './world/streamer';
 import { SAVE_VERSION, readSave, writeSave, type Save } from './save/save';
 import { loadData, type GameData } from './systems/data';
@@ -12,6 +12,7 @@ import { Panels } from './ui/panels';
 import { GORE_LEVELS, loadSettings, saveSettings, type Settings } from './systems/settings';
 import { Quests, newQuestState, type QuestDef } from './systems/quests';
 import { START_TIME, TIMESCALE, daylight } from './systems/clock';
+import { Cutscene, type Scene } from './systems/cutscene';
 import { Combat, FURY, PARTS, WOUNDS, type Encounter, type Fighter, type FuryId } from './combat/combat';
 
 declare const __APP_VERSION__: string;
@@ -24,7 +25,16 @@ type Manifest = {
 
 const PLAYER_RADIUS = 0.3;          // tiles
 const WALK = 3.2, RUN = 5;          // tiles a second (bible: about 5 running)
-const START = { sx: 4, sy: 7, a: 60, b: 61 }; // the Sentinel Coast, by the settlement fire
+// A new game wakes at the farm (MAIN_QUEST PRO_01): slice 4,8, outside the house door.
+const FARM = { a: 4 * 128 + 30, b: 8 * 128 + 96 };
+const START = { a: FARM.a + 1.5, b: FARM.b + 5.6 };
+type Npc = { id: string; outfit: string; dialogue?: string; a: number; b: number; facing: Facing; tint?: number; home: [number, number]; moving?: boolean; follow?: boolean };
+const PEOPLE = (): Npc[] => [
+  { id: 'settler', outfit: 'farm', dialogue: 'settler', a: 4 * 128 + 63.2, b: 7 * 128 + 57.5, facing: 'S', tint: 0xd8b8a0, home: [4 * 128 + 63.2, 7 * 128 + 57.5] },
+  { id: 'nadira', outfit: 'nadira', dialogue: 'nadira', a: FARM.a + 3.4, b: FARM.b + 4.2, facing: 'SW', home: [FARM.a + 3.4, FARM.b + 4.2] },
+  { id: 'tavi', outfit: 'tavi', dialogue: 'tavi', a: FARM.a + 2.6, b: FARM.b + 7.4, facing: 'W', home: [FARM.a + 2.6, FARM.b + 7.4] },
+  { id: 'dune', outfit: 'dune', a: FARM.a + 0.2, b: FARM.b + 6.6, facing: 'E', home: [FARM.a + 0.2, FARM.b + 6.6] },
+];
 // Fury powers unlock one per name crossed off the hunt list (SYSTEMS_SPEC 5). Until the
 // list exists in the game, the first is open from the start so Rage can be tried.
 const FURY_FROM_START: FuryId[] = ['burst'];
@@ -62,19 +72,24 @@ export class Game {
   mouse = { x: 0, y: 0 };
   settings: Settings = loadSettings();
   onNewGame?: () => void; // the page shows character creation
+  scenes: Record<string, Scene> = {};
+  scene: Cutscene | null = null;
   quests!: Quests;
   questDefs: Record<string, QuestDef> = {};
   setSettings(s: Partial<Settings>) { this.settings = { ...this.settings, ...s }; saveSettings(this.settings); }
-  npcs = [{ id: 'settler', dialogue: 'settler', a: START.sx * SLICE + 63.2, b: START.sy * SLICE + 57.5, facing: 'S' as Facing }];
+  npcs: Npc[] = PEOPLE();
+  bond = { wife: 0, child: 0, dog: 0 };
 
   async start(parent: HTMLElement) {
     const base = './assets/';
     const [slices, manifest] = await Promise.all([json<ConstructorParameters<typeof WorldMap>[0]>('./data/slices.json'), json<Manifest>(base + 'manifest.json')]);
     this.manifest = manifest;
     this.data = await loadData();
-    this.dialogues.settler = await json<Dialogue>('./data/dialogue/settler.json');
+    for (const d of ['settler', 'nadira', 'tavi']) this.dialogues[d] = await json<Dialogue>(`./data/dialogue/${d}.json`);
     const { _note, ...defs } = await json<Record<string, QuestDef> & { _note?: string }>('./data/quests.json');
     void _note; this.questDefs = defs as Record<string, QuestDef>;
+    const { _note: _n2, ...scenes } = await json<Record<string, Scene> & { _note?: string }>('./data/scenes.json');
+    void _n2; this.scenes = scenes as Record<string, Scene>;
     this.panels = new Panels(() => this.character, () => this.reputation, () => {}, (edid) => this.useItem(edid), () => this.settings, (s) => this.setSettings(s), () => this.quests);
     const enc = await json<{ encounters: Encounter[] }>('./data/encounters.json');
     this.combat = new Combat(this.data, enc.encounters, {
@@ -84,7 +99,7 @@ export class Game {
       killed: (f) => { if (f.encounter) this.quests.notify({ type: 'kill', target: f.encounter.id }); this.quests.checkFlags(); },
     });
     this.map = new WorldMap(slices);
-    this.terrain = new Terrain(this.map);
+    this.terrain = new Terrain(this.map, (await json<{ sites: Site[] }>('./data/sites.json')).sites);
     this.streamer = new Streamer(this.terrain);
     // Only the farm clothes are needed to start; other outfits load the first time they are seen.
     await this.want('farm');
@@ -136,7 +151,8 @@ export class Game {
     this.streamer.states = {};
     this.streamer.reset();
     this.combat.reset(); this.pf = undefined;
-    this.place(START.sx * SLICE + START.a, START.sy * SLICE + START.b, 'S');
+    this.npcs = PEOPLE(); this.bond = { wife: 0, child: 0, dog: 0 };
+    this.place(START.a, START.b, 'S');
     this.playSeconds = 0;
     this.time = START_TIME;
   }
@@ -151,6 +167,7 @@ export class Game {
   private bindInput() {
     addEventListener('keydown', (e) => {
       if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return; // typing a name is not playing
+      if (this.scene) { if (e.code === 'Escape') this.scene.skip(); return; } // a cutscene: only Escape, to skip
       this.keys.add(e.code);
       if (e.code === 'F5') { e.preventDefault(); this.save('quick'); }
       if (e.code === 'F9') { e.preventDefault(); this.load('quick'); }
@@ -172,7 +189,7 @@ export class Game {
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); this.mouse = { x: (e.clientX - r.left) / 2, y: (e.clientY - r.top) / 2 }; });
     canvas.addEventListener('mousedown', (e) => {
-      if (this.panels.open !== 'none') return;
+      if (this.panels.open !== 'none' || this.scene) return;
       if (e.button === 0) this.leftDown = performance.now();
       if (e.button === 2 && this.pf && this.armed()) this.combat.block(this.pf, true);
     });
@@ -242,6 +259,7 @@ export class Game {
   update(realDt: number) {
     this.pf = this.combat.playerFighter(this.player, this.pf);
     const f = this.pf;
+    if (this.scene) { this.scene.update(realDt); if (this.scene.done) this.scene = null; }
     const dt = realDt * this.combat.timeScale; // a perfect dodge slows everything, the player too
     this.playSeconds += realDt;
     this.time += realDt * TIMESCALE;
@@ -253,7 +271,7 @@ export class Game {
     if (k.has('KeyA') || k.has('ArrowLeft')) sx -= 1;
     if (k.has('KeyD') || k.has('ArrowRight')) sx += 1;
     const p = this.player;
-    if (this.panels.open === 'dialogue' || this.combat.busy(f)) sx = sy = 0; // no walking while talking, swinging, rolling, hurt or dead
+    if (this.panels.open === 'dialogue' || this.combat.busy(f) || this.scene) sx = sy = 0; // no walking while talking, swinging, rolling, hurt or dead
     p.moving = !!(sx || sy);
     if (p.moving) {
       p.facing = facingOf(sx, sy);
@@ -275,7 +293,7 @@ export class Game {
     f.a = p.a; f.b = p.b; if (!this.combat.busy(f)) f.facing = p.facing;
     if (f.state === 'idle' || f.state === 'walk') f.state = p.moving ? 'walk' : 'idle';
     this.combat.sync();
-    this.combat.update(realDt, f);
+    if (!this.scene) this.combat.update(realDt, f); // the world holds still while a scene plays
     if (f.state === 'roll') [p.a, p.b] = this.move(p.a, p.b, f.a - p.a, f.b - p.b);
     // Bandits are kept out of solid things by the same rules as the player.
     const alive = this.combat.enemies.filter((e) => e.state !== 'dead');
@@ -285,7 +303,23 @@ export class Game {
       if (d < r) { const ua = d > 0 ? (x.a - y.a) / d : 1, ub = d > 0 ? (x.b - y.b) / d : 0, push = (r - d) / 2; x.a += ua * push; x.b += ub * push; y.a -= ua * push; y.b -= ub * push; }
     }
     for (const e of alive) [e.a, e.b] = this.resolve(e.a, e.b, true);
+    this.moveNpcs(dt);
     p.facing = f.facing;
+  }
+
+  // A following dog keeps a couple of tiles off, trotting to catch up; if left far behind he catches up at once.
+  private moveNpcs(dt: number) {
+    const p = this.player;
+    for (const n of this.npcs) {
+      n.moving = false;
+      if (!n.follow) continue;
+      const d = Math.hypot(p.a - n.a, p.b - n.b);
+      if (d > 30) { n.a = p.a - 1; n.b = p.b - 1; continue; }
+      if (d < 2) continue;
+      const speed = Math.min(RUN * 1.1, d * 2), ua = (p.a - n.a) / d, ub = (p.b - n.b) / d;
+      n.a += ua * speed * dt; n.b += ub * speed * dt; n.moving = true;
+      const [fx, fy] = toScreen(ua, ub); n.facing = facingOf(fx, fy * 2);
+    }
   }
 
   // Move, then push out of anything solid; deep water stops you outright.
@@ -306,7 +340,7 @@ export class Game {
       if (d < r && d > 0) { a = n.a + ((a - n.a) / d) * r; b = n.b + ((b - n.b) / d) * r; }
     }
     for (const t of this.streamer.things()) {
-      const s = SHAPES[t.id];
+      const s = SHAPES[this.idOf(t)];
       if (!s.solid || Math.abs(t.a - a) > 4 || Math.abs(t.b - b) > 4) continue;
       if (s.box) {
         // Nearest point of the box; push out along it, or along the shallow axis if inside.
@@ -355,13 +389,40 @@ export class Game {
       return;
     }
     const npc = this.npcs.find((n) => Math.hypot(n.a - p.a, n.b - p.b) < 1.8);
-    if (npc) { this.talk(npc.dialogue); return; }
+    if (npc?.id === 'dune') { this.petDog(npc); return; }
+    if (npc?.dialogue) { this.talk(npc.dialogue); return; }
     const chest = [...this.streamer.things()].find((t) => t.id === 'chest' && Math.hypot(t.a - p.a, t.b - p.b) < 1.6);
     if (chest) { this.openChest(chest); return; }
+    if (this.farmChore()) return;
     this.smash();
   }
+  // The farm's chores (PRO_01): the well, the goats, the north fence.
+  private farmChore() {
+    const p = this.player;
+    let best: Thing | null = null, bd = 1.9;
+    for (const t of this.streamer.things()) {
+      if (t.id !== 'well' && t.id !== 'goat' && t.tag !== 'northFence') continue;
+      const d = Math.hypot(t.a - p.a, t.b - p.b);
+      if (d < bd) { bd = d; best = t; }
+    }
+    if (!best) return false;
+    if (best.id === 'well') { this.say(this.quests.isActive('chores') ? 'You draw a bucket of water. Cold, and tasting of stone.' : 'Cold water, tasting of stone.'); this.quests.notify({ type: 'interact', target: 'well' }); }
+    else if (best.id === 'goat') { this.say('You fork hay into the pen. The goats complain anyway.'); this.quests.notify({ type: 'interact', target: 'goat' }); }
+    else if (this.flags.has('fence.mended')) this.say('The fence holds.');
+    else { this.flags.add('fence.mended'); this.say('You lash the rail back up and drive the post straight. Something big did this.'); this.quests.notify({ type: 'interact', target: 'northFence' }); }
+    return true;
+  }
+  // Dune: the first press, he rolls over for a scratch; after that, a press calls him to heel or lets him go.
+  private petDog(d: Npc) {
+    if (!this.flags.has('pro01.petted')) { this.flags.add('pro01.petted'); this.bond.dog = Math.min(5, this.bond.dog + 1); this.say('Dune rolls over. You scratch his belly; one back leg kicks.'); return; }
+    d.follow = !d.follow;
+    if (d.follow) this.flags.add('dune.follow'); else this.flags.delete('dune.follow');
+    this.say(d.follow ? 'Dune falls in at your heel.' : 'Dune flops down where he is.');
+  }
+  // The thing as drawn and as solid: the north fence once mended is a whole section.
+  idOf(t: Thing): ThingId { return t.tag === 'northFence' && this.flags.has('fence.mended') ? 'fenceA' : t.id; }
   talk(id: string) {
-    const c = new Conversation(this.dialogues[id], { character: this.character, reputation: this.reputation, flags: this.flags, say: (m) => this.say(m), quests: this.quests });
+    const c = new Conversation(this.dialogues[id], { character: this.character, reputation: this.reputation, flags: this.flags, say: (m) => this.say(m), quests: this.quests, bond: this.bond });
     this.panels.talk(c);
     return c;
   }
@@ -393,7 +454,7 @@ export class Game {
     const shadows: Drawable[] = [], items: Item[] = [];
     for (const t of this.streamer.things()) {
       if (Math.abs(t.a - p.a) > reach || Math.abs(t.b - p.b) > reach) continue;
-      const m = this.manifest.objects[t.id], o = this.objects[t.id]!, [x, y] = toScreen(t.a, t.b), s = SHAPES[t.id];
+      const id = this.idOf(t), m = this.manifest.objects[id], o = this.objects[id]!, [x, y] = toScreen(t.a, t.b), s = SHAPES[id];
       const [ha, hb] = s.box ?? [s.r, s.r];
       if (o.shadow) shadows.push({ texture: r.texture(o.shadow), x: Math.round(x - m.ox), y: Math.round(y - m.oy) });
       items.push({ texture: r.texture(o.body), x: Math.round(x - m.ox), y: Math.round(y - m.oy), a0: t.a - ha, a1: t.a + ha, b0: t.b - hb, b1: t.b + hb, c: t.a + t.b });
@@ -430,14 +491,15 @@ export class Game {
     }
     for (const n of this.npcs) {
       if (Math.abs(n.a - p.a) > reach || Math.abs(n.b - p.b) > reach) continue;
-      const [nx, ny] = toScreen(n.a, n.b), s2 = this.sheets.farm_idle!, a2 = s2.atlas;
-      // Turn to face the player when he comes close.
-      if (Math.hypot(n.a - p.a, n.b - p.b) < 4) n.facing = facingOf(px - nx, (py - ny) * 2);
-      items.push({ texture: r.frame('farm_idle', a2, s2.image, n.facing, Math.floor(p.t * a2.fps) % a2.frames), x: Math.round(nx - a2.cell.ox), y: Math.round(ny - a2.cell.oy), tint: 0xd8b8a0, a0: n.a, a1: n.a, b0: n.b, b1: n.b, c: n.a + n.b });
+      const [nx, ny] = toScreen(n.a, n.b), [nm, s2] = this.sheet(n.outfit, n.moving ? 'walk' : 'idle'), a2 = s2.atlas;
+      // Turn to face the player when he comes close (a walking dog faces where it goes).
+      if (!n.moving && Math.hypot(n.a - p.a, n.b - p.b) < 4) n.facing = facingOf(px - nx, (py - ny) * 2);
+      items.push({ texture: r.frame(nm, a2, s2.image, n.facing, Math.floor(p.t * a2.fps) % a2.frames), x: Math.round(nx - a2.cell.ox), y: Math.round(ny - a2.cell.oy), tint: n.tint, a0: n.a, a1: n.a, b0: n.b, b1: n.b, c: n.a + n.b });
     }
     items.sort(depthOrder);
     r.light(daylight(this.time));
-    r.draw(p.a, p.b, shadows, items);
+    const cam = this.scene?.view.camera ?? [p.a, p.b];
+    r.draw(cam[0], cam[1], shadows, items);
     r.blood(this.combat.decals, this.combat.drops);
   }
 
@@ -451,7 +513,18 @@ export class Game {
     const clean = name.trim().replace(/\s+/g, ' ').slice(0, 24) || this.character.s.name;
     this.character = new Character(this.data, newCharacter(this.data, race, clean));
     this.pf = undefined;
-    this.say(`${clean} wakes on the Sentinel Coast.`);
+    this.play('opening', 1);
+  }
+  // Start a cutscene; `fade` 1 starts it on a black screen.
+  play(id: string, fade = 0) {
+    const sc = this.scenes[id];
+    if (!sc) return false;
+    this.keys.clear(); this.leftDown = null;
+    this.scene = new Cutscene(sc, {
+      flag: (f) => { this.flags.add(f); this.quests.checkFlags(); }, startQuest: (q) => this.quests.start(q),
+      player: () => [this.player.a, this.player.b], token: (s) => s.replace(/\[PLAYER\]/g, this.character.s.name),
+    }, fade);
+    return true;
   }
 
   // ---------- saving ----------
@@ -461,7 +534,7 @@ export class Game {
       version: SAVE_VERSION, savedAt: new Date().toISOString(), gameVersion: VERSION, playSeconds: Math.round(this.playSeconds),
       player: { a: +this.player.a.toFixed(3), b: +this.player.b.toFixed(3), facing: this.player.facing }, slices: structuredClone(this.streamer.states),
       character: structuredClone(this.character.s), reputation: structuredClone(this.reputation), flags: [...this.flags],
-      quests: structuredClone(this.quests.s), time: Math.round(this.time),
+      quests: structuredClone(this.quests.s), time: Math.round(this.time), bond: { ...this.bond },
       combat: { rage: +this.combat.rage.toFixed(2), bleed: +(this.pf?.bleed ?? 0).toFixed(2), limp: Math.round(this.pf?.limp ?? 0), bodies: structuredClone(this.combat.bodies) },
     };
   }
@@ -475,6 +548,8 @@ export class Game {
     this.reputation = structuredClone(s.reputation);
     this.flags = new Set(s.flags);
     this.quests = this.makeQuests(structuredClone(s.quests));
+    this.bond = { ...s.bond }; this.npcs = PEOPLE();
+    if (this.flags.has('dune.follow')) { const d = this.npcs.find((n) => n.id === 'dune')!; d.follow = true; d.a = s.player.a + 1; d.b = s.player.b + 1; }
     this.panels.close();
     this.combat.reset();
     this.combat.rage = s.combat.rage; this.combat.bodies = structuredClone(s.combat.bodies);

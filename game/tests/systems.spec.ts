@@ -195,3 +195,69 @@ test('the clock runs at timescale 20 and the light follows the hour', async ({ p
   expect(night & 0xff).toBeGreaterThan((night >> 16) & 0xff); // bluer than red at night
   await expect(page.locator('#hud')).toContainText('Day 1, 23:');
 });
+
+test('cutscenes: the opening plays after creation, holds the player still, and Escape skips it with its flags', async ({ page }) => {
+  await boot(page);
+  await call(page, 'create', 'Yusuf');
+  const sc = await call(page, 'scene');
+  expect(sc.id).toBe('opening');
+  expect(sc.caption).toContain('Yusuf');
+  expect(sc.fade).toBe(1);
+  await expect(page.locator('#scene')).toBeVisible();
+  const before = await page.evaluate(() => (window as any).__game.player);
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(400); await page.keyboard.up('KeyD');
+  const after = await page.evaluate(() => (window as any).__game.player);
+  expect(after.a).toBe(before.a);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  expect(await call(page, 'scene')).toBeNull();
+  await expect(page.locator('#scene')).toBeHidden();
+  expect(await call<string[]>(page, 'flags')).toContain('seen:opening');
+  // Played through, it ends by itself.
+  await call(page, 'play', 'opening');
+  await page.waitForTimeout(8000);
+  expect(await call(page, 'scene')).toBeNull();
+});
+
+test('PRO_01 Morning: Nadira sets the chores, they are done at the farm, and the family bond moves', async ({ page }) => {
+  await boot(page);
+  const w = await call(page, 'where');
+  expect([w.sx, w.sy]).toEqual([4, 8]); // a new game wakes at the farm
+  expect(await call(page, 'talk', 'nadira')).toContain('He lives.');
+  await call(page, 'choose', 0); // Morning.
+  expect((await call(page, 'bond')).wife).toBe(1);
+  await call(page, 'choose', 0); // What needs doing?
+  await call(page, 'choose', 0); // I'll see to it.
+  expect((await call(page, 'quests')).tracker[0].title).toBe('Morning chores');
+  // The well, the goats, the north fence.
+  const things = await call<any[]>(page, 'things');
+  for (const pick of [(t: any) => t.id === 'well', (t: any) => t.id === 'goat', (t: any) => t.tag === 'northFence']) {
+    const t = things.find(pick);
+    await call(page, 'teleport', t.a + 0.2, t.b - 1.2);
+    await call(page, 'interact');
+  }
+  expect(await call<string[]>(page, 'flags')).toContain('fence.mended');
+  expect((await call(page, 'quests')).tracker[0].objectives[0].text).toBe('Tell Nadira');
+  expect(await call(page, 'talk', 'nadira')).toContain('All done?');
+  await call(page, 'choose', 0);
+  expect((await call(page, 'quests')).done).toContain('chores');
+  expect((await call(page, 'bond')).wife).toBe(2);
+  // Tavi's bone, and Dune.
+  expect(await call(page, 'talk', 'tavi')).toContain('I found a bone');
+  await call(page, 'choose', 2); // a man's finger
+  expect((await call(page, 'bond')).child).toBe(1);
+  await call(page, 'choose', 0);
+  const dune = (await call<any[]>(page, 'npcs')).find((n) => n.id === 'dune');
+  await call(page, 'teleport', dune.a + 1, dune.b);
+  await call(page, 'interact'); // pet
+  expect((await call(page, 'bond')).dog).toBe(1);
+  await call(page, 'interact'); // to heel
+  await call(page, 'teleport', dune.a + 8, dune.b + 2);
+  await page.waitForTimeout(2500);
+  const d2 = (await call<any[]>(page, 'npcs')).find((n) => n.id === 'dune'), p = await page.evaluate(() => (window as any).__game.player);
+  expect(Math.hypot(d2.a - p.a, d2.b - p.b)).toBeLessThan(3);
+  // Bond survives a save.
+  await call(page, 'save', 'pro'); await page.reload(); await page.waitForFunction(() => (window as any).__game?.ready);
+  await call(page, 'load', 'pro');
+  expect(await call(page, 'bond')).toEqual({ wife: 2, child: 1, dog: 1 });
+});

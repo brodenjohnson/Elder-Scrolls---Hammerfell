@@ -2,14 +2,21 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
-## 0.5.0 (2026-11-06): three enemy types, two-handed combat
+## 0.5.0 (2026-11-06): three enemy types, two-handed combat, quests, the farm and the family
 
 - **Bandit marauder.** A Nord in Fur Armor with an Iron Battleaxe, now in the Coast Road camp. Swings slowly (the battleaxe's Skyrim speed, 0.7) and hard, power-attacks often, hardly ever blocks. Two-handed and axe, so its killing blows take parts off more often.
 - **Alik'r warriors.** Two of them at the edge of the Alik'r Desert, just north of the bandit camp: Hammerfell garb, hoods wrapped to the eyes, curved scimitars. Skyrim's level 6 Alik'r (85 Health, One-handed 36). They circle, guard often, counter straight after a block, and roll away from power attacks.
 - **The Steel set fights.** The Steel Greatsword now has its own two-handed swing and guard, so Steel armour is no longer only for walking.
 - Bodies of the new enemies carry bandages.
 - Wearing looted Fur Armor or Alik'r clothes draws you in the Leather or farm clothes sprites for now.
-- **Saves:** no format change (save version 3).
+- **Morale.** A badly hurt enemy may break and run (bandits most often, marauders hardly ever), more often the more feared you are. Cutting down a runner costs 3 Infamy.
+- **Quests and a journal (J).** The settler by the fire has work: clear the Coast Road camp. The tracker in the top right shows what is left to do.
+- **The clock.** Time runs at Skyrim's rate (a day is 72 real minutes), shown under the region name. Dawn, dusk and night light the world.
+- **Character creation.** Name him on your first visit, or after N for a new game. All ten races are listed with Skyrim's skill bonuses; only the Redguard can be picked until the others are drawn.
+- **Gore setting and warning.** A mature content warning on first launch, and Options (O) to turn gore down: off (no blood), some (blood, nothing cut off), or full.
+- **Cutscenes.** A short opening plays after you name him; Esc skips.
+- **The farm and the family (the prologue begins).** A new game now wakes at the farm on the hill south of the settlement: the house, the well, a goat pen. Nadira, Tavi and Dune are there. Nadira sets the morning chores (water from the well, feed the goats, mend the north fence), Tavi has found a bone, and Dune can be petted, then called to heel (press E again). What you say moves a hidden bond with each of them. The rest of the prologue (the market, Kerrash's visit, the night) comes in later releases.
+- **Saves:** save version 4 (quests, the clock, the character's name and the family bond). Older saves load: no quests, the clock set from time played, the name Kasim, and you stay where you saved.
 
 ## 0.4.0 (2026-11-06): combat, second part
 

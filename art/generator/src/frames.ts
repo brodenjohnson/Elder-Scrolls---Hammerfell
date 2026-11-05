@@ -1,11 +1,15 @@
 import { idlePose, segmentLocal, walkPose, type Pose } from './pose.ts';
 import { attack2HPose, attackPose, block2HPose, blockPose, deathPose, hitPose, rollPose } from './combat.ts';
-import { applyR, bodyLayers, farmClothesLayers, hairLayers, makeBody, moved, type Body, type Fn, type Layer } from './character.ts';
+import {
+  applyBuild, applyR, BUILDS, bodyLayers, farmClothesLayers, hairLayers, makeBody, moved, setBuild, type Body, type Fn, type HairStyle, type Layer,
+} from './character.ts';
 import { colourLayers, composite, renderLayer, shadowLayer, type Rgba } from './render.ts';
 import type { V3 } from './sdf.ts';
 import { attachOccluders, cell, paletteFile, paletteFor, readJson, rig } from './pipeline.ts';
+import { dogLayers } from './creature.ts';
 import {
-  carryGreatsword, furArmourLayers, garbLayers, ironBattleaxeLayers, ironSwordLayers, leatherArmourLayers, scimitarLayers, steelArmourLayers, steelGreatswordLayers,
+  carryGreatsword, furArmourLayers, garbLayers, ironBattleaxeLayers, ironSwordLayers, leatherArmourLayers, nadiraClothesLayers, scimitarLayers, steelArmourLayers,
+  steelGreatswordLayers, taviClothesLayers,
 } from './equipment.ts';
 
 // ---------- one animation frame, in one direction ----------
@@ -34,6 +38,8 @@ const OUTFIT_DATA = readJson('data/outfits.json');
 type Outfit = {
   label: string; items: unknown[]; anims: string[]; race?: string; layers: (p: Pose, body: Body) => Layer[];
   pose?: (p: Pose) => Pose; poses?: Record<string, (t: number) => Pose>;
+  build?: string; hair?: HairStyle; brand?: boolean; // the body: BUILDS key, hair style, the player's brand
+  creature?: (anim: string, t: number) => Layer[];     // an animal: its own body and cycles instead of a person's
 };
 const TWO_HANDED = { attack: attack2HPose, block: block2HPose };
 const COMBAT = ['idle', 'walk', 'attack', 'block', 'roll', 'hit', 'death'];
@@ -47,6 +53,10 @@ export const OUTFITS: Record<string, Outfit> = {
   // The second and third enemies: a Nord marauder in fur with a battleaxe, and an Alik'r warrior.
   marauder: { ...OUTFIT_DATA.marauder, anims: COMBAT, race: 'nord', layers: (p, b) => [...furArmourLayers(p, b), ...ironBattleaxeLayers(p)], pose: carryGreatsword, poses: TWO_HANDED },
   alikr: { ...OUTFIT_DATA.alikr, anims: COMBAT, layers: (p, b) => [...garbLayers(p, b), ...scimitarLayers(p)] },
+  // The family (prologue): Nadira and Tavi. No brand: that is the player's alone.
+  nadira: { label: 'Nadira, in Farm Clothes', items: [], anims: ['idle', 'walk'], build: 'woman', hair: 'long', brand: false, layers: nadiraClothesLayers },
+  tavi: { label: 'Tavi, in Farm Clothes', items: [], anims: ['idle', 'walk'], build: 'girl', hair: 'braids', brand: false, layers: taviClothesLayers },
+  dune: { label: 'Dune, the farm dog', items: [], anims: ['idle', 'walk'], layers: () => [], creature: dogLayers },
 };
 
 export type FrameJob = { race: string; outfit: string; anim: string; frame: number; facing: Facing };
@@ -102,13 +112,19 @@ export function renderFrame(job: FrameJob): FrameResult {
   const t0 = Date.now();
   const anim = ANIMS[job.anim];
   const outfit = OUTFITS[job.outfit];
+  const b = BUILDS[outfit.build ?? 'man'];
+  setBuild(b);
   const base = (outfit.poses?.[job.anim] ?? anim.pose)(job.frame / anim.frames);
-  const p = outfit.pose && (job.anim === 'idle' || job.anim === 'walk') ? outfit.pose(base) : base;
-  const body = makeBody(p);
-  const layers = [...bodyLayers(p, body), ...hairLayers(p, body), ...outfit.layers(p, body)];
-  const local = segmentLocal(p);
-  for (const l of layers) l.local = local[l.segment];
-  attachOccluders(layers, body);
+  const p = applyBuild(outfit.pose && (job.anim === 'idle' || job.anim === 'walk') ? outfit.pose(base) : base, b);
+  let layers: Layer[];
+  if (outfit.creature) layers = outfit.creature(job.anim, job.frame / anim.frames);
+  else {
+    const body = makeBody(p);
+    layers = [...bodyLayers(p, body, { brand: outfit.brand }), ...hairLayers(p, body, outfit.hair), ...outfit.layers(p, body)];
+    const local = segmentLocal(p, applyBuild(idlePose(), b));
+    for (const l of layers) l.local = local[l.segment];
+    attachOccluders(layers, body);
+  }
   // Held weapons are drawn last and hidden wherever anything worn is in front of
   // them, so a blade can pass behind the shoulder and in front of the hip in one frame.
   const worn: Fn[] = layers.filter((l) => l.slot !== 'weapon' && !l.overlay).flatMap((l) => l.pieces.map((pc) => (x: number, y: number, z: number) => Math.max(pc.shape(x, y, z), pc.cut(x, y, z))));

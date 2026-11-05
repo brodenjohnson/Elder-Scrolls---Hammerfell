@@ -19,7 +19,7 @@ export function noise(x: number, y: number, s: number): number {
 }
 
 export class Terrain {
-  constructor(readonly map: WorldMap) {}
+  constructor(readonly map: WorldMap, readonly sites: Site[] = []) {}
 
   // The biome at a point, with slice borders pushed around by noise so they wander.
   biomeAt(a: number, b: number): SliceInfo['biome'] {
@@ -61,10 +61,14 @@ export class Terrain {
     const free = (a: number, b: number, r: number) => out.every((t) => Math.hypot(t.a - a, t.b - b) > r + SHAPES[t.id].r + 0.6);
     const land = (a: number, b: number) => { const m = this.material(a, b); return m !== M.deep && m !== M.shallow && m !== M.road; };
     const place = (id: ThingId, a: number, b: number) => {
-      if (!land(a, b) || !free(a, b, SHAPES[id].r)) return;
+      if (!land(a, b) || !free(a, b, SHAPES[id].r) || cleared(a, b)) return;
       out.push({ uid: `${sx},${sy},${out.length}`, id, a, b });
     };
     const a0 = sx * SLICE, b0 = sy * SLICE;
+    // Hand-placed sites first, exactly where they are put.
+    const here = this.sites.filter((s) => s.slice[0] === sx && s.slice[1] === sy);
+    for (const s of here) for (const t of s.things) out.push({ uid: `${sx},${sy},${s.id},${out.length}`, id: t.id, a: a0 + s.at[0] + t.a, b: b0 + s.at[1] + t.b, tag: t.tag });
+    const cleared = (a: number, b: number) => here.some((s) => Math.hypot(a - (a0 + s.at[0]), b - (b0 + s.at[1])) < s.clear);
     if (info.locations.length) {
       // A settlement: houses around the middle, with yard clutter by each door.
       for (let k = 0; k < 7; k++) {
@@ -85,8 +89,11 @@ export class Terrain {
   }
 }
 
-export type ThingId = 'house' | 'palm1' | 'palm2' | 'rock1' | 'rock2' | 'scrub1' | 'scrub2' | 'barrel' | 'crate' | 'pot' | 'potSmall' | 'chest' | 'cliff' | 'campfire';
-export type Thing = { uid: string; id: ThingId; a: number; b: number };
+export type ThingId = 'house' | 'palm1' | 'palm2' | 'rock1' | 'rock2' | 'scrub1' | 'scrub2' | 'barrel' | 'crate' | 'pot' | 'potSmall' | 'chest' | 'cliff' | 'campfire'
+  | 'well' | 'fenceA' | 'fenceB' | 'fenceABroken' | 'goat';
+// tag: a name a quest or scene can refer to (the north fence, a particular jar).
+export type Thing = { uid: string; id: ThingId; a: number; b: number; tag?: string };
+export type Site = { id: string; name: string; slice: [number, number]; at: [number, number]; clear: number; things: { id: ThingId; a: number; b: number; tag?: string }[] };
 
 // Collision and depth footprints, in tiles. A box gives half-sizes along a and b
 // (the house model is 240 by 300 units; a tile edge is about 51 units). r is the
@@ -100,6 +107,11 @@ export const SHAPES: Record<ThingId, { r: number; box?: [number, number]; solid:
   barrel: { r: 0.35, solid: true, smash: true }, crate: { r: 0.45, solid: true, smash: true },
   pot: { r: 0.3, solid: true, smash: true }, potSmall: { r: 0.22, solid: true, smash: true },
   chest: { r: 0.45, solid: true }, campfire: { r: 0.45, solid: true },
+  // The farm. A fence section is two tiles of rails; the broken one lets things through.
+  well: { r: 0.8, solid: true },
+  fenceA: { r: 1.0, box: [1.0, 0.12], solid: true }, fenceB: { r: 1.0, box: [0.12, 1.0], solid: true },
+  fenceABroken: { r: 1.0, solid: false },
+  goat: { r: 0.4, solid: true },
 };
 
 const DENSITY: Record<SliceInfo['biome'], [ThingId, number][]> = {

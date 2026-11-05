@@ -1,0 +1,23 @@
+{
+  "_note": "Cutscenes (src/systems/cutscene.ts). Steps run in order: fade, caption (letterbox text), say (a spoken line), camera (pan to a ground point or back to the player), wait, setFlag, startQuest. [PLAYER] is the character's name. The prologue scenes (MAIN_QUEST.md section 2) will go here.",
+  "opening": {
+    "id": "opening",
+    "steps": [
+      {
+        "caption": "[PLAYER]. A farmer on the Sentinel Coast, with a wife, a daughter and a dog.",
+        "seconds": 3.2
+      },
+      {
+        "fade": "in",
+        "seconds": 1.8
+      },
+      {
+        "caption": "Dawn. Salt pans glitter below the hill. The goats are complaining.",
+        "seconds": 3.2
+      },
+      {
+        "setFlag": "seen:opening"
+      }
+    ]
+  }
+}

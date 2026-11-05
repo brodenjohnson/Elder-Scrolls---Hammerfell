@@ -1,0 +1,33 @@
+{
+  "id": "tavi",
+  "title": "Tavi",
+  "_note": "PRO_01 Morning, the child beat (MAIN_QUEST.md section 2).",
+  "start": "idle",
+  "starts": [{ "node": "bone", "if": { "notFlag": "pro01.bone" } }],
+  "nodes": {
+    "bone": {
+      "speaker": "Tavi", "id": "PRO01_CHD_003",
+      "text": "Da. I found a bone. Guess what it's from.",
+      "choices": [
+        { "text": "[Warm] A goat.", "spoken": "A goat. A disrespectful one.", "next": "after", "do": { "bond": { "child": 1 }, "setFlag": "pro01.bone" } },
+        { "text": "[Dry] A very old fish.", "spoken": "A fish. A very old, very stubborn one.", "next": "after", "do": { "bond": { "child": 1 }, "setFlag": "pro01.bone" } },
+        { "text": "[Truth] A man's finger.", "spoken": "Don't tell your mother, but it's a man's finger.", "next": "finger", "do": { "bond": { "child": 1 }, "setFlag": "pro01.bone" } }
+      ]
+    },
+    "after": {
+      "speaker": "Tavi", "id": "PRO01_CHD_004 (P)",
+      "text": "I'm keeping it. With the shell and the beetle. Mama says not in the bowl.",
+      "choices": [{ "text": "Leave.", "next": "end" }]
+    },
+    "finger": {
+      "speaker": "Tavi", "id": "PRO01_CHD_005 (P)",
+      "text": "A finger! Mama, Da says it's a man's... Mama's looking at you.",
+      "choices": [{ "text": "Leave.", "next": "end", "do": { "setFlag": "pro01.finger" } }]
+    },
+    "idle": {
+      "speaker": "Tavi", "id": "PRO01_CHD_006 (P)",
+      "text": "Can I hold the nails? I'll hold them really still.",
+      "choices": [{ "text": "Leave.", "next": "end" }]
+    }
+  }
+}

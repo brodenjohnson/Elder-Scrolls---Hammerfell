@@ -22,7 +22,8 @@ const copy = (from, to) => {
 };
 
 const samples = JSON.parse(fs.readFileSync(path.join(art, 'samples/manifest.json'), 'utf8'));
-const objects = ['house', 'palm1', 'palm2', 'rock1', 'rock2', 'scrub1', 'scrub2', 'barrel', 'crate', 'pot', 'potSmall', 'chest', 'cliff', 'campfire'];
+const objects = ['house', 'palm1', 'palm2', 'rock1', 'rock2', 'scrub1', 'scrub2', 'barrel', 'crate', 'pot', 'potSmall', 'chest', 'cliff', 'campfire',
+  'well', 'fenceA', 'fenceB', 'fenceABroken', 'goat'];
 for (const t of samples.tiles) copy(path.join(art, 'samples', t.file), path.join(out, 'assets', t.file));
 for (const o of samples.overlays) for (const f of o.files) copy(path.join(art, 'samples', f.file), path.join(out, 'assets', f.file));
 for (const id of objects) for (const part of ['body', 'shadow']) {

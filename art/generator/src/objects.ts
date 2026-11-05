@@ -373,6 +373,80 @@ export function wolf(): Layer {
   return layerOf('wolf', [group(prims, 4, { paint })]);
 }
 
+// ---------- the farm (prologue) ----------
+
+// The well: a round curb of sandstone blocks, a wooden frame with a windlass and a
+// bucket on the rim. Under one of the curb stones is the tin (MAIN_QUEST plants).
+export function well(): Layer {
+  const R = 30, Hc = 30;
+  const curb = custom(
+    (x, y, z) => Math.max(Math.abs(Math.hypot(x, z) - R) - 7, Math.abs(y - Hc / 2) - Hc / 2),
+    'sandstone', { c: [0, Hc / 2, 0], r: 46 },
+    (x, y, z) => {
+      const ang = Math.atan2(z, x) / (Math.PI * 2);
+      if (frac(y / 10) < 0.12 || frac(ang * 14 + Math.floor(y / 10) * 0.5) < 0.05) return { dt: -1 }; // courses and joints
+      if (Math.hypot(x, z) < R - 6.5 && y > Hc - 1) return { mat: 'void' };
+      return null;
+    },
+  );
+  const water = custom((x, y, z) => Math.max(Math.hypot(x, z) - (R - 7), Math.abs(y - (Hc - 10)) - 0.5), 'water.deep', { c: [0, Hc - 10, 0], r: 26 });
+  const frame = group([
+    box([-R + 2, 48, 0], [3, 48, 3], 'wood.dark', 0.6), box([R - 2, 48, 0], [3, 48, 3], 'wood.dark', 0.6),
+    cone([-R + 2, 84, 0], [R - 2, 84, 0], 3.2, 3.2, 'wood'),                     // the windlass
+    cone([0, 84, 0], [0, 50, 0], 0.7, 0.7, 'leather.dark'),                       // the rope
+    box([0, 96, 0], [R + 6, 2.2, 12], 'wood.dark', 0.8),                           // a little roof
+    cone([R + 3, 84, 0], [R + 3, 74, 6], 1.4, 1.4, 'wood.dark'),                   // the crank
+  ], 0.3);
+  const bucket = group([cone([R - 4, Hc, 9], [R - 4, Hc + 13, 9], 6, 7, 'wood'), cone([R - 4, Hc + 12.5, 9], [R - 4, Hc + 13.5, 9], 7.2, 7.2, 'iron')], 0.3);
+  return layerOf('well', [curb, water, frame, bucket]);
+}
+
+// A fence section two tiles long (about 1.4 m) along the a axis, or along b, of rough
+// posts and two rails. Broken: one rail down and a post leaning (MAIN_QUEST PRO_02).
+export function fence(axis: 'a' | 'b', broken = false): Layer {
+  const L = 51, P = (x: number, y: number, z: number): V3 => (axis === 'a' ? [x, y, z] : [z, y, x]);
+  const prims: Prim[] = [];
+  for (const x of [-L, 0, L]) {
+    const lean = broken && x === L ? 14 : 0;
+    prims.push(cone(P(x, 0, 0), P(x + lean, 44, lean * 0.3), 3.0, 2.5, 'wood.dark'));
+  }
+  prims.push(cone(P(-L, 34, 1.8), P(broken ? 0 : L, 34, 1.8), 1.8, 1.8, 'wood'));
+  if (!broken) prims.push(cone(P(-L, 16, 1.8), P(L, 16, 1.8), 1.8, 1.8, 'wood'));
+  else prims.push(cone(P(-L, 16, 1.8), P(4, 2, 12), 1.8, 1.8, 'wood'), cone(P(12, 2, 10), P(L - 2, 2, 22), 1.8, 1.8, 'wood'));
+  return layerOf(`fence${axis.toUpperCase()}${broken ? 'Broken' : ''}`, [group(prims, 0.4, {
+    paint: (x, y, z, mat) => (mat === 'wood' && frac((axis === 'a' ? x : z) / 9) < 0.1 ? { dt: -1 } : null),
+  })]);
+}
+
+// A coast goat: brown with a pale belly, short horns swept back, a beard. Drawn at
+// the characters' 12 degree camera, like the wolf.
+export function goat(): Layer {
+  const prims: Prim[] = [
+    ell([0, 40, 8], [10, 12, 15], 'wool.brown'),                         // chest and barrel
+    ell([0, 40, -12], [9.5, 11, 12], 'wool.brown'),                      // hips
+    cone([0, 46, 18], [0, 56, 26], 6, 5, 'wool.brown'),                  // neck
+    ell([0, 59, 30], [5.4, 6, 7], 'wool.brown'),                         // skull
+    cone([0, 57, 34], [0, 52, 42], 4.2, 2.6, 'wool.brown'),              // muzzle
+    cone([0, 50, 37], [0, 43, 38], 1.6, 0.6, 'wool.brown'),              // beard
+    cone([0, 46, -22], [0, 50, -27], 2.4, 1.0, 'wool.brown'),            // a short tail, up
+  ];
+  for (const s of [-1, 1]) {
+    prims.push(cone([s * 3, 64, 28], [s * 5, 70, 20], 1.8, 0.7, 'bone'));                                  // horns
+    prims.push(cone([s * 5.6, 61, 27], [s * 10, 58, 25], 1.6, 0.6, 'wool.brown'));                        // ears, out sideways
+    prims.push(cone([s * 5.5, 34, 12], [s * 5.8, 16, 13], 3.6, 2.4, 'wool.brown'), cone([s * 5.8, 16, 13], [s * 5.6, 2, 13], 2.2, 1.8, 'wool.brown'));
+    prims.push(cone([s * 5.8, 34, -14], [s * 6.2, 18, -18], 4.2, 2.4, 'wool.brown'), cone([s * 6.2, 18, -18], [s * 6, 2, -14], 2.2, 1.8, 'wool.brown'));
+  }
+  const paint: Paint = (x, y, z, mat) => {
+    if (mat === 'bone') return null;
+    if (z > 41.5 && y > 51 && y < 54) return { mat: 'void' };                                   // nose
+    if (Math.abs(Math.abs(x) - 4.4) < 1.2 && Math.abs(y - 60.5) < 1.1 && z > 33) return { mat: 'eye', dt: 1 };
+    if (y < 32 && y > 24 && Math.abs(x) < 7.5 && z > -20 && z < 22) return { mat: 'linen', dt: 1 }; // pale belly
+    if (y < 4) return { dt: -1 };                                                                // hooves
+    return null;
+  };
+  return layerOf('goat', [group(prims, 2.4, { paint })]);
+}
+
 // ---------- inventory icons ----------
 
 export function iconSword(): Layer {

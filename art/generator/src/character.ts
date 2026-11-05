@@ -98,9 +98,59 @@ export function ownership(set: PartSet, name: string): Fn {
   };
 }
 
+// ---------- builds ----------
+//
+// The poses and shapes are drawn for a grown man. A build rescales them: the pose's
+// joints (height, shoulder and hip width), the limbs' thickness, and the head, which
+// shrinks less than the body so a child reads as a child. A woman's torso narrows at
+// the ribs, widens at the hips and gains a bust. Set per frame by the renderer.
+
+export type Build = { height: number; shoulders: number; hips: number; limbs: number; head: number; female: boolean; bust: boolean };
+export const BUILDS: Record<string, Build> = {
+  man: { height: 1, shoulders: 1, hips: 1, limbs: 1, head: 1, female: false, bust: false },
+  woman: { height: 0.94, shoulders: 0.86, hips: 1.02, limbs: 0.84, head: 0.96, female: true, bust: true },
+  girl: { height: 0.7, shoulders: 0.66, hips: 0.66, limbs: 0.6, head: 0.86, female: true, bust: false }, // ten years old
+};
+let build: Build = BUILDS.man;
+export const setBuild = (b: Build) => { build = b; };
+export const currentBuild = () => build;
+
+// The pose's joints, rescaled for a build: heights and depths by `height`, arm joints
+// out by `shoulders`, leg joints by `hips`.
+export function applyBuild(p: Pose, b: Build = build): Pose {
+  if (b === BUILDS.man) return p;
+  const q: Pose = JSON.parse(JSON.stringify(p));
+  const at = (v: V3, w: number): V3 => [v[0] * w, v[1] * b.height, v[2] * b.height];
+  for (const k of ['pelvis', 'chest', 'neck', 'head'] as const) q[k] = at(p[k], b.height);
+  for (const s of ['L', 'R'] as const) {
+    for (const k of ['shoulder', 'elbow', 'wrist', 'hand'] as const) q[k][s] = at(p[k][s], b.shoulders);
+    for (const k of ['hip', 'knee', 'ankle'] as const) q[k][s] = at(p[k][s], b.hips);
+  }
+  if (p.root) q.root = { R: p.root.R, pivot: at(p.root.pivot, b.height), to: at(p.root.to, b.height) };
+  return q;
+}
+
+// Rescale shapes: about an origin by k (the head), or thicken in place by k (limbs).
+function scaleAbout(prims: Prim[], o: V3, k: number): Prim[] {
+  if (k === 1) return prims;
+  const m = (v: V3): V3 => [o[0] + (v[0] - o[0]) * k, o[1] + (v[1] - o[1]) * k, o[2] + (v[2] - o[2]) * k];
+  return prims.map((q) => q.kind === 'ell' ? { ...q, c: m(q.c), r: [q.r[0] * k, q.r[1] * k, q.r[2] * k] as V3 }
+    : q.kind === 'cone' ? { ...q, a: m(q.a), b: m(q.b), r1: q.r1 * k, r2: q.r2 * k }
+    : { ...q, c: m(q.c), h: [q.h[0] * k, q.h[1] * k, q.h[2] * k] as V3, round: q.round * k });
+}
+function thicken(prims: Prim[], k: number): Prim[] {
+  if (k === 1) return prims;
+  return prims.map((q) => q.kind === 'ell' ? { ...q, r: [q.r[0] * k, q.r[1] * k, q.r[2] * k] as V3 }
+    : q.kind === 'cone' ? { ...q, r1: q.r1 * k, r2: q.r2 * k }
+    : { ...q, h: [q.h[0] * k, q.h[1] * k, q.h[2] * k] as V3, round: q.round * k });
+}
+
 // ---------- body shapes ----------
 
 export function headPrims(p: Pose): Prim[] {
+  return scaleAbout(manHeadPrims(p), p.head, build.head);
+}
+function manHeadPrims(p: Pose): Prim[] {
   const h = (v: V3): V3 => add(p.head, v);
   return [
     { kind: 'ell', c: h([0, 1.3, -0.8]), r: [6.6, 7.3, 7.5], mat: 'skin' },          // cranium
@@ -117,6 +167,20 @@ export function headPrims(p: Pose): Prim[] {
 }
 
 export function torsoPrims(p: Pose, withNeck: boolean): Prim[] {
+  if (build === BUILDS.man) return manTorsoPrims(p, withNeck);
+  // Each shape keeps its place on the skeleton and is scaled: ribs by the shoulders,
+  // the hips by the hips, all by height up and down and by the limbs front to back.
+  const b = build, c = p.chest, pv = p.pelvis;
+  const out = manTorsoPrims(p, withNeck).map((q, i) => {
+    if (q.kind !== 'ell') return thicken([q], b.limbs)[0];
+    const w = i === 6 ? b.hips : i === 5 ? (b.shoulders + b.hips) / 2 : b.shoulders * (b.female && b.bust ? 0.94 : 1);
+    return { ...q, r: [q.r[0] * w, q.r[1] * b.height, q.r[2] * (b.limbs * 0.5 + 0.5)] as V3 };
+  }).filter((_, i) => !(b.bust && (i === 1 || i === 2)));
+  if (b.bust) for (const s of [1, -1]) out.push({ kind: 'ell', c: add(c, [s * 3.4, 3.2, 4.2]), r: [4.6, 4.2, 4.0], mat: 'skin' });
+  void pv;
+  return out;
+}
+function manTorsoPrims(p: Pose, withNeck: boolean): Prim[] {
   const c = p.chest, pv = p.pelvis;
   const prims: Prim[] = [
     { kind: 'ell', c: add(c, [0, 1, 0]), r: [11.6, 13.2, 8.4], mat: 'skin' },          // ribcage
@@ -132,7 +196,12 @@ export function torsoPrims(p: Pose, withNeck: boolean): Prim[] {
   return prims;
 }
 
-export function upperArmPrims(p: Pose, s: Side): Prim[] {
+export function upperArmPrims(p: Pose, s: Side): Prim[] { return thicken(manUpperArm(p, s), build.limbs); }
+export function forearmPrims(p: Pose, s: Side): Prim[] { return thicken(manForearm(p, s), build.limbs); }
+export function legPrims(p: Pose, s: Side): Prim[] { return thicken(manLeg(p, s), build.female ? build.limbs * 1.04 : build.limbs); }
+export function footPrims(p: Pose, s: Side): Prim[] { return thicken(manFoot(p, s), build.limbs); }
+
+function manUpperArm(p: Pose, s: Side): Prim[] {
   const sh = p.shoulder[s], el = p.elbow[s];
   return [
     { kind: 'cone', a: sh, b: el, r1: 4.3, r2: 3.4, mat: 'skin' },
@@ -140,7 +209,7 @@ export function upperArmPrims(p: Pose, s: Side): Prim[] {
   ];
 }
 
-export function forearmPrims(p: Pose, s: Side): Prim[] {
+function manForearm(p: Pose, s: Side): Prim[] {
   const el = p.elbow[s], wr = p.wrist[s], hd = p.hand[s];
   const knuckle = lerp3(wr, hd, 0.5);
   return [
@@ -152,7 +221,7 @@ export function forearmPrims(p: Pose, s: Side): Prim[] {
   ];
 }
 
-export function legPrims(p: Pose, s: Side): Prim[] {
+function manLeg(p: Pose, s: Side): Prim[] {
   const hp = p.hip[s], kn = p.knee[s], an = p.ankle[s];
   return [
     { kind: 'cone', a: hp, b: kn, r1: 7.2, r2: 4.7, mat: 'skin' },
@@ -162,7 +231,7 @@ export function legPrims(p: Pose, s: Side): Prim[] {
   ];
 }
 
-export function footPrims(p: Pose, s: Side): Prim[] {
+function manFoot(p: Pose, s: Side): Prim[] {
   const an = p.ankle[s], yaw = p.footYaw[s];
   const fwd = (d: number): V3 => [an[0] + Math.sin(yaw) * d, an[1] - 3.9, an[2] + Math.cos(yaw) * d];
   return [
@@ -254,7 +323,7 @@ function headPaint(p: Pose) {
   };
 }
 
-export function bodyLayers(p: Pose, body: Body): Layer[] {
+export function bodyLayers(p: Pose, body: Body, opts: { brand?: boolean } = {}): Layer[] {
   const layers: Layer[] = [];
   for (const seg of body.parts.names) {
     const own = ownership(body.parts, seg);
@@ -269,6 +338,7 @@ export function bodyLayers(p: Pose, body: Body): Layer[] {
       bounds: boundsOf(body.segs[seg].prims, JOIN + 1),
     });
   }
+  if (opts.brand === false) return layers;
   // Brand overlay: the torso surface, kept only where the mark is.
   const cell = 1.05;
   const ox = p.chest[0] + 6.6, oy = p.chest[1] + 9.6;
@@ -292,7 +362,9 @@ export function bodyLayers(p: Pose, body: Body): Layer[] {
 
 // ---------- hair ----------
 
-export function hairLayers(p: Pose, body: Body): Layer[] {
+export type HairStyle = 'cropped' | 'long' | 'braids';
+export function hairLayers(p: Pose, body: Body, style: HairStyle = 'cropped'): Layer[] {
+  if (style !== 'cropped') return longHairLayers(p, style);
   const local = (y: number, z: number) => ({ ly: y - p.head[1], lz: z - p.head[2] });
   const h = (v: V3): V3 => add(p.head, v);
   // Short cropped hair with a little volume on top and at the crown.
@@ -344,6 +416,40 @@ export function hairLayers(p: Pose, body: Body): Layer[] {
       bounds: { c: p.head, r: 13 },
     },
   ];
+}
+
+// Long hair (Nadira: drawn back and tied at the nape, falling between the shoulders) and
+// braids (Tavi: two short plaits). No beard. Scaled with the head.
+function longHairLayers(p: Pose, style: 'long' | 'braids'): Layer[] {
+  const k = build.head, h = (v: V3): V3 => add(p.head, [v[0] * k, v[1] * k, v[2] * k]);
+  const local = (y: number, z: number) => ({ ly: (y - p.head[1]) / k, lz: (z - p.head[2]) / k });
+  const prims: Prim[] = [
+    { kind: 'ell', c: h([0, 1.6, -1.0]), r: [6.9 * k, 7.5 * k, 7.8 * k], mat: 'hair' },
+    { kind: 'ell', c: h([0, 6.0, 0.6]), r: [5.8 * k, 2.6 * k, 6.0 * k], mat: 'hair' },
+  ];
+  if (style === 'long') {
+    prims.push({ kind: 'ell', c: h([0, -3.5, -7.2]), r: [3.4 * k, 3.2 * k, 3.0 * k], mat: 'hair' });           // the knot
+    prims.push({ kind: 'cone', a: h([0, -5, -7.8]), b: h([0, -19, -8.4]), r1: 2.6 * k, r2: 1.4 * k, mat: 'hair' }); // the tail
+  } else {
+    for (const s of [1, -1]) prims.push({ kind: 'cone', a: h([s * 5.6, -2, -2.5]), b: h([s * 6.4, -13, -1]), r1: 1.7 * k, r2: 1.1 * k, mat: 'hair' });
+  }
+  const sdf = primsSdf(prims, 2.2);
+  return [{
+    id: 'head/hair', segment: 'head', slot: 'hair',
+    pieces: [{
+      shape: (x, y, z) => sdf(x, y, z) - 0.9 * k,
+      // A centre parting and a clean hairline: the face, below the brow and forward, stays bare.
+      cut: (_x, y, z) => { const { ly, lz } = local(y, z); return Math.min(lz - 2.2, 3.6 - ly); },
+      mat: () => 'hair',
+      paint: (x, y, z) => {
+        const lx = (x - p.head[0]) / k, { ly, lz } = local(y, z);
+        if (Math.abs(lx) < 0.5 && ly > 4 && lz > -3) return { dt: -2 };                // the parting
+        const w = Math.sin(lx * 1.6 + ly * 0.25 + lz * 0.9);                            // strands, combed back
+        return w > 0.8 ? { dt: 1 } : w < -0.85 ? { dt: -1 } : null;
+      },
+    }],
+    bounds: { c: h([0, -6, -3]), r: 22 * k },
+  }];
 }
 
 // ---------- equipment: Farm Clothes and Farm Boots (Skyrim names) ----------

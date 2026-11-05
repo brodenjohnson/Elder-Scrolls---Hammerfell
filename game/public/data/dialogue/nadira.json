@@ -1,0 +1,48 @@
+{
+  "id": "nadira",
+  "title": "Nadira",
+  "_note": "PRO_01 Morning (MAIN_QUEST.md section 2). Lines keep their IDs for voicing. Options show short text; `spoken` is the fuller line he says.",
+  "start": "idle",
+  "starts": [
+    { "node": "morning", "if": { "notFlag": "pro01.morning" } },
+    { "node": "report", "if": { "flag": "pro01.choresDone", "notFlag": "pro01.reported" } },
+    { "node": "busy", "if": { "flag": "quest:chores", "notFlag": "pro01.choresDone" } }
+  ],
+  "nodes": {
+    "morning": {
+      "speaker": "Nadira", "id": "PRO01_WIF_001",
+      "text": "He lives. Come eat before the goats do it for you.",
+      "choices": [
+        { "text": "[Warm] Morning.", "spoken": "Morning. You've been up for hours.", "next": "bread", "do": { "bond": { "wife": 1 }, "setFlag": "pro01.morning" } },
+        { "text": "[Dry] Is that bread or a brick?", "spoken": "Is that bread, or did you build a wall?", "next": "bread", "do": { "bond": { "wife": 1 }, "setFlag": "pro01.morning" } },
+        { "text": "[Flat] Later.", "spoken": "Later. Water first.", "next": "chores", "do": { "setFlag": "pro01.morning" } }
+      ]
+    },
+    "bread": {
+      "speaker": "Nadira", "id": "PRO01_WIF_002",
+      "text": "Brick, wall, whatever it is. Eat it.",
+      "choices": [{ "text": "What needs doing?", "next": "chores" }]
+    },
+    "chores": {
+      "speaker": "Nadira", "id": "PRO01_WIF_003 (P)",
+      "text": "Water from the well. The goats fed. And the north fence is down again. Something dragged it in the night.",
+      "choices": [{ "text": "I'll see to it.", "spoken": "I'll see to it.", "next": "end", "do": { "startQuest": "chores" } }]
+    },
+    "busy": {
+      "speaker": "Nadira", "id": "PRO01_WIF_004 (P)",
+      "text": "The goats won't feed themselves. Well, they would. Everything we own.",
+      "choices": [{ "text": "Going.", "next": "end" }]
+    },
+    "report": {
+      "speaker": "Nadira", "id": "PRO01_WIF_005 (P)",
+      "text": "All done? And the fence? Good. Now eat, before Tavi gives your bread to the dog.",
+      "choices": [{ "text": "[Warm] Save me some.", "spoken": "Save me the end. The burnt end.", "next": "end", "do": { "bond": { "wife": 1 }, "questEvent": "nadira.chores", "setFlag": "pro01.reported" } },
+        { "text": "[Flat] Done.", "spoken": "Done.", "next": "end", "do": { "questEvent": "nadira.chores", "setFlag": "pro01.reported" } }]
+    },
+    "idle": {
+      "speaker": "Nadira", "id": "PRO01_WIF_006 (P)",
+      "text": "Go on. I'll still be here.",
+      "choices": [{ "text": "Leave.", "next": "end" }]
+    }
+  }
+}

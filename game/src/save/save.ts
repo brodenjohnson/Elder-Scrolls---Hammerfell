@@ -28,6 +28,7 @@ export type Save = {
   // Version 4: quests in progress and finished, and the game clock (game seconds).
   quests: QuestState;
   time: number;
+  bond: { wife: number; child: number; dog: number }; // hidden family bond, 0 to 5
 };
 
 // migrations[n] turns a version n save into version n + 1.
@@ -44,7 +45,7 @@ const migrations: Record<number, (s: any) => any> = {
   // Version 3 (0.4.x, 0.5.x): no quests yet.
   // The clock starts at 07:00 on day 1 plus the time already played, at timescale 20.
   // Characters made before creation existed get the default name.
-  3: (s) => ({ ...s, version: 4, quests: newQuestState(), time: 7 * 3600 + (s.playSeconds ?? 0) * 20, character: s.character && { name: 'Kasim', ...s.character } }),
+  3: (s) => ({ ...s, version: 4, quests: newQuestState(), time: 7 * 3600 + (s.playSeconds ?? 0) * 20, character: s.character && { name: 'Kasim', ...s.character }, bond: { wife: 0, child: 0, dog: 0 } }),
 };
 
 export function migrate(raw: any): Save {

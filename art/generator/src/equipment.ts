@@ -1,7 +1,7 @@
 import { sdPrim, smin, type Prim, type V3 } from './sdf.ts';
 import type { Side } from './pose.ts';
 import {
-  add, along, bootLayers, forearmPrims, garmentLayers, headPrims, lerp3, primsSdf, shirtLayers, SIDES, sx, torsoPrims, trouserLayers, upperArmPrims,
+  add, along, bootLayers, currentBuild, forearmPrims, garmentLayers, headPrims, lerp3, primsSdf, shirtLayers, SIDES, sx, torsoPrims, trouserLayers, upperArmPrims,
   type Body, type Fn, type Layer,
 } from './character.ts';
 import { rotBetween, idlePose, type Pose } from './pose.ts';
@@ -367,35 +367,65 @@ export function furArmourLayers(p: Pose, body: Body): Layer[] {
 // ---------- Hammerfell Garb, Redguard Hood, Redguard Boots (the Alik'r) ----------
 // A long sand-coloured robe to the knee with a red sash, sleeves to the elbow, and a pale hood
 // wrapped over the face to a slit for the eyes.
-export function garbLayers(p: Pose, body: Body): Layer[] {
-  const pv = p.pelvis, c = p.chest, belt = pv[1] + 7, hem = pv[1] - 34;
+// A robe or dress: a fitted top with sleeves to the elbow and a long skirt to `hem`
+// (a height), with a sash at the belt. Optional apron panel down the front.
+function robeLayers(p: Pose, body: Body, o: { hem: number; cloth: string; sash: string; knot?: boolean; apron?: string; flare?: number; aline?: boolean }): Layer[] {
+  const pv = p.pelvis, c = p.chest, belt = pv[1] + 7, hem = o.hem, w = currentBuild().hips, f = o.flare ?? 1;
   const robePrims: Prim[] = [
     ...torsoPrims(p, false), ...upperArmPrims(p, 'L').slice(0, 1), ...upperArmPrims(p, 'R').slice(0, 1),
-    { kind: 'ell', c: [0, belt - 5, 0.3], r: [12.8, 6.5, 9.0], mat: 'r' },
-    { kind: 'ell', c: [0, belt - 17, 0.8], r: [13.8, 8.0, 10.0], mat: 'r' },
-    { kind: 'ell', c: [0, hem + 6, 1.0], r: [14.6, 7.0, 10.8], mat: 'r' },
+    { kind: 'ell', c: [0, belt - 5, 0.3], r: [12.8 * w, 6.5, 9.0 * w], mat: 'r' },
+    ...(o.aline
+      // An A-line skirt: a straight flare from the hips to the hem, flattened front to back.
+      ? [{ kind: 'cone', a: [0, belt - 6, 0.3], b: [0, hem + 1, 1.0], r1: 11.5 * w, r2: 13.5 * w * f, mat: 'r' } as Prim]
+      : [
+        { kind: 'ell', c: [0, (belt - 5 + hem + 6) / 2, 0.8], r: [13.8 * w * f, (belt - hem) * 0.26, 10.0 * w * f], mat: 'r' } as Prim,
+        { kind: 'ell', c: [0, hem + 6, 1.0], r: [14.6 * w * f, 7.0, 10.8 * w * f], mat: 'r' } as Prim,
+      ]),
   ];
   const robeSdf = primsSdf(robePrims, 3.6);
   const robe: Fn = (x, y, z) => smin(robeSdf(x, y, z), body.shape(x, y, z), 2) - 1.0;
-  const sash = primsSdf([
-    { kind: 'ell', c: [0, belt, 0.4], r: [14.0, 2.8, 10.4], mat: 's' },
-    { kind: 'cone', a: [9.5, belt - 1, 7], b: [11.5, belt - 13, 8.5], r1: 1.8, r2: 2.4, mat: 's' }, // the knotted end at the left hip
-  ], 0.8);
+  const sashPrims: Prim[] = [{ kind: 'ell', c: [0, belt, 0.4], r: [14.0 * w, 2.8, 10.4 * w], mat: 's' }];
+  if (o.knot) sashPrims.push({ kind: 'cone', a: [9.5 * w, belt - 1, 7], b: [11.5 * w, belt - 13, 8.5], r1: 1.8, r2: 2.4, mat: 's' }); // the knotted end at the left hip
+  const sash = primsSdf(sashPrims, 0.8);
   const shape: Fn = (x, y, z) => Math.min(robe(x, y, z), sash(x, y, z));
-  const matOf = (x: number, y: number, z: number) => (sash(x, y, z) < robe(x, y, z) + 0.05 ? 'cloth.red' : 'cloth.sand');
+  const apron = (x: number, y: number, z: number) => !!o.apron && Math.abs(x) < 7.5 * w && y < belt - 2 && y > hem + 8 && z > 3;
+  const matOf = (x: number, y: number, z: number) => (sash(x, y, z) < robe(x, y, z) + 0.05 ? o.sash : apron(x, y, z) ? o.apron! : o.cloth);
   const cut: Fn = (x, y) => Math.max(hem - y, Math.min(y - (c[1] + 11.5), 6.0 - Math.abs(x)));
-  const sleeveEnd = (s: Side): Fn => (x, y, z) => { const a = along(x, y, z, p.shoulder[s], p.elbow[s]); return (a.t - 0.95) * a.len; };
-  const robeLayers = garmentLayers('clothes', ['torso', 'upperArm.L', 'upperArm.R'], shape, cut, matOf, body, {
+  const sleeveEnd = (sd: Side): Fn => (x, y, z) => { const a = along(x, y, z, p.shoulder[sd], p.elbow[sd]); return (a.t - 0.95) * a.len; };
+  return garmentLayers('clothes', ['torso', 'upperArm.L', 'upperArm.R'], shape, cut, matOf, body, {
     segCut: { 'upperArm.L': sleeveEnd('L'), 'upperArm.R': sleeveEnd('R') },
-    margin: 22,
+    margin: 22 + Math.max(0, pv[1] - 34 - hem),
     paint: (x, y, z, m) => {
-      if (m === 'cloth.red') return frac(y * 0.7 + x * 0.15) < 0.2 ? { dt: -1 } : null;
+      if (m === o.sash) return frac(y * 0.7 + x * 0.15) < 0.2 ? { dt: -1 } : null;
       if (y < hem + 1.6) return { dt: -1 };                                     // hem
-      if (Math.abs(x) < 0.7 && y > belt + 2 && y < c[1] + 9 && z > 4) return { dt: -1 }; // front opening
+      if (m === o.apron && Math.abs(Math.abs(x) - 7.2 * w) < 0.6) return { dt: -1 }; // apron edges
+      if (!o.apron && Math.abs(x) < 0.7 && y > belt + 2 && y < c[1] + 9 && z > 4) return { dt: -1 }; // front opening
       return null;
     },
     bump: (x, y) => (y < belt - 2 ? [0.7 * Math.sin(x * 0.8 + 0.3), 0, 0] : [0, 0, 0]), // long folds in the skirt
   });
+}
+
+// ---------- the family's clothes (Farm Clothes in Skyrim's lists) ----------
+
+// Nadira: an ankle-length teal dress with a linen apron and a brown sash, house shoes.
+export function nadiraClothesLayers(p: Pose, body: Body): Layer[] {
+  return [
+    ...robeLayers(p, body, { hem: Math.min(p.ankle.L[1], p.ankle.R[1]) + 9, cloth: 'cloth.teal', sash: 'wool.brown', apron: 'linen', flare: 1.1, aline: true }),
+    ...bootLayers(p, body, { height: 0.15, mat: 'leather', cuff: 'leather' }),
+  ];
+}
+// Tavi: a knee-length red tunic with a linen sash over trousers, sandals.
+export function taviClothesLayers(p: Pose, body: Body): Layer[] {
+  return [
+    ...robeLayers(p, body, { hem: p.pelvis[1] - 22 * currentBuild().height, cloth: 'cloth.red', sash: 'linen' }),
+    ...trouserLayers(p, body),
+    ...bootLayers(p, body, { height: 0.08, mat: 'leather', cuff: 'leather' }),
+  ];
+}
+
+export function garbLayers(p: Pose, body: Body): Layer[] {
+  const robe = robeLayers(p, body, { hem: p.pelvis[1] - 34, cloth: 'cloth.sand', sash: 'cloth.red', knot: true });
   // The hood: a wrap over the head and down the back of the neck, open only at the eyes.
   const local = (y: number, z: number) => ({ ly: y - p.head[1], lz: z - p.head[2] });
   const hoodSdf = primsSdf([
@@ -413,7 +443,7 @@ export function garbLayers(p: Pose, body: Body): Layer[] {
     }],
     bounds: { c: add(p.head, [0, -3, 0]), r: 18 },
   };
-  return [...robeLayers, hood, ...trouserLayers(p, body), ...bootLayers(p, body, { height: 0.5, mat: 'leather', cuff: 'leather.dark' })];
+  return [...robe, hood, ...trouserLayers(p, body), ...bootLayers(p, body, { height: 0.5, mat: 'leather', cuff: 'leather.dark' })];
 }
 
 

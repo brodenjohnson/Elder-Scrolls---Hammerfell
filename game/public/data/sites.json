@@ -1,0 +1,18 @@
+{
+  "_note": "Hand-placed sites (src/world/terrain.ts). Each is in one slice (zero-based x, y); at is the tile within the slice that its things are placed around. clear: a radius (tiles) around at where no random props grow. Things are placed exactly, without the spacing rules random props follow.",
+  "sites": [
+    {
+      "id": "farm", "name": "The farm (prologue home, MAIN_QUEST PRO_01)", "slice": [4, 8], "at": [30, 96], "clear": 16,
+      "things": [
+        { "id": "house", "a": 0, "b": 0 },
+        { "id": "well", "a": 6, "b": 4.5 },
+        { "id": "barrel", "a": -1.4, "b": 4.2 }, { "id": "crate", "a": -2.6, "b": 4.0 }, { "id": "pot", "a": 1.8, "b": 4.3 },
+        { "id": "fenceA", "a": -9, "b": 6 }, { "id": "fenceABroken", "a": -7, "b": 6, "tag": "northFence" }, { "id": "fenceA", "a": -5, "b": 6 },
+        { "id": "fenceA", "a": -9, "b": 12 }, { "id": "fenceA", "a": -7, "b": 12 }, { "id": "fenceA", "a": -5, "b": 12 },
+        { "id": "fenceB", "a": -10, "b": 7 }, { "id": "fenceB", "a": -10, "b": 9 }, { "id": "fenceB", "a": -10, "b": 11 },
+        { "id": "fenceB", "a": -4, "b": 7 }, { "id": "fenceB", "a": -4, "b": 11 },
+        { "id": "goat", "a": -7.6, "b": 8.6 }, { "id": "goat", "a": -6.0, "b": 10.4 }, { "id": "goat", "a": -8.6, "b": 10.6 }
+      ]
+    }
+  ]
+}
