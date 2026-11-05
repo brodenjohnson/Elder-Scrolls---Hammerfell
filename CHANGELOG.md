@@ -2,6 +2,12 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.3.1 (2026-11-06): faster loading
+
+- The game starts after loading only the farm clothes. Other outfits and the bandits load the first time they appear (a moment of idle pose at most).
+- Every sprite and ground image is now an 8-bit palette PNG: the same pixels, a quarter of the size. Images went from 12.4 MB to 3.1 MB.
+- **Saves:** no change.
+
 ## 0.3.0 (2026-11-05): combat, first part
 
 - Melee in the world. Left click a quick attack (click again to chain), hold for a power attack, right click to block (a block just before the blow parries), Space to roll (a roll in the last instant is a perfect dodge: time slows and your counter does double).

@@ -4,11 +4,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { indexedPng } from './indexpng.mjs';
 
 const game = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const art = path.resolve(game, '../art/out');
 const out = path.join(game, 'public');
-const copy = (from, to) => { fs.mkdirSync(path.dirname(to), { recursive: true }); fs.copyFileSync(from, to); };
+const { PNG } = createRequire(import.meta.url)('../../art/node_modules/pngjs');
+// PNGs go out as palette images when they have 256 colours or fewer (lossless, about a quarter the size).
+let before = 0, after = 0;
+const copy = (from, to) => {
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  const buf = fs.readFileSync(from);
+  let data = buf;
+  if (from.endsWith('.png')) { const im = PNG.sync.read(buf); data = indexedPng(im.width, im.height, im.data) ?? buf; before += buf.length; after += data.length; }
+  fs.writeFileSync(to, data);
+};
 
 const samples = JSON.parse(fs.readFileSync(path.join(art, 'samples/manifest.json'), 'utf8'));
 const objects = ['house', 'palm1', 'palm2', 'rock1', 'rock2', 'scrub1', 'scrub2', 'barrel', 'crate', 'pot', 'potSmall', 'chest', 'cliff', 'campfire'];
@@ -33,4 +44,4 @@ const manifest = {
 };
 fs.writeFileSync(path.join(out, 'assets/manifest.json'), JSON.stringify(manifest, null, 1));
 copy(path.resolve(game, '../data/world/slices.json'), path.join(out, 'data/slices.json'));
-console.log(`assets: ${samples.tiles.length} tiles, ${objects.length} objects, ${sheets.length} sheets`);
+console.log(`assets: ${samples.tiles.length} tiles, ${objects.length} objects, ${sheets.length} sheets; PNGs ${(before / 1e6).toFixed(1)} MB -> ${(after / 1e6).toFixed(1)} MB`);

@@ -70,10 +70,8 @@ export class Game {
     this.map = new WorldMap(slices);
     this.terrain = new Terrain(this.map);
     this.streamer = new Streamer(this.terrain);
-    for (const name of manifest.sheets) {
-      const atlas = await json<Atlas>(`${base}sprites/${name}.json`);
-      this.sheets[name] = { atlas, image: await load(`${base}sprites/${atlas.sheet}`) };
-    }
+    // Only the farm clothes are needed to start; other outfits load the first time they are seen.
+    await this.want('farm');
     await Promise.all(Object.entries(manifest.objects).map(async ([id, m]) => {
       this.objects[id as ThingId] = { body: await load(`${base}objects/${id}__body.png`), shadow: m.shadow ? await load(`${base}objects/${id}__shadow.png`) : undefined };
     }));
@@ -91,6 +89,28 @@ export class Game {
       this.draw();
     });
   }
+
+  // Load every sheet of an outfit (idle, walk and any combat animations) once, in parallel.
+  private loading = new Map<string, Promise<void>>();
+  want(outfit: string): Promise<void> {
+    let p = this.loading.get(outfit);
+    if (!p) {
+      const base = './assets/sprites/';
+      p = Promise.all(this.manifest.sheets.filter((n) => n.startsWith(`${outfit}_`)).map(async (name) => {
+        const atlas = await json<Atlas>(`${base}${name}.json`);
+        this.sheets[name] = { atlas, image: await load(`${base}${atlas.sheet}`) };
+      })).then(() => {});
+      this.loading.set(outfit, p);
+    }
+    return p;
+  }
+  // A sheet if it has arrived; otherwise ask for it and stand in with the outfit's idle, or the farm idle.
+  private sheet(outfit: string, anim: string): [string, { atlas: Atlas; image: HTMLImageElement }] {
+    void this.want(outfit);
+    for (const n of [`${outfit}_${anim}`, `${outfit}_idle`, 'farm_idle']) if (this.sheets[n]) return [n, this.sheets[n]];
+    throw new Error('farm_idle missing');
+  }
+  sheetsLoaded() { return Object.keys(this.sheets).sort(); }
 
   newGame() {
     this.character = new Character(this.data, newCharacter(this.data));
@@ -315,22 +335,23 @@ export class Game {
     // The player: idle or walking frames, the walk sped up to match the pace.
     const f = this.pf!;
     const [anim, cframe] = this.combat.frame(f);
-    const combatAnim = anim !== 'idle' && anim !== 'walk' && this.sheets[`${this.outfit()}_${anim}`];
-    const name = combatAnim ? `${this.outfit()}_${anim}` : `${this.outfit()}_${p.moving ? 'walk' : 'idle'}`, sheet = this.sheets[name], atlas = sheet.atlas;
+    const combatAnim = anim !== 'idle' && anim !== 'walk' && this.manifest.sheets.includes(`${this.outfit()}_${anim}`);
+    const [name, sheet] = this.sheet(this.outfit(), combatAnim ? anim : p.moving ? 'walk' : 'idle'), atlas = sheet.atlas;
     const fps = p.moving ? atlas.fps * (p.speed / 2.6) : atlas.fps;
-    const frame = combatAnim ? cframe : Math.floor(p.t * fps) % atlas.frames;
+    const frame = combatAnim && name.endsWith(`_${anim}`) ? cframe : Math.floor(p.t * fps) % atlas.frames;
     const [px, py] = toScreen(p.a, p.b);
     items.push({ texture: r.frame(name, atlas, sheet.image, p.facing, frame), x: Math.round(px - atlas.cell.ox), y: Math.round(py - atlas.cell.oy), a0: p.a, a1: p.a, b0: p.b, b1: p.b, c: p.a + p.b });
     for (const e of this.combat.enemies) {
+      void this.want(e.outfit); // enemies spawn with their slice, so their sheets arrive before they are in view
       if (Math.abs(e.a - p.a) > reach || Math.abs(e.b - p.b) > reach) continue;
-      const [anim2, fr2] = this.combat.frame(e), nm = `${e.outfit}_${anim2}`, s2 = this.sheets[nm] ?? this.sheets[`${e.outfit}_idle`];
+      const [anim2, fr0] = this.combat.frame(e), [nm, s2] = this.sheet(e.outfit, anim2), fr2 = nm.endsWith(`_${anim2}`) ? fr0 : 0;
       const [ex, ey] = toScreen(e.a, e.b);
       const flash = e.state === 'hit' && e.t < 0.1;
       items.push({ texture: r.frame(nm, s2.atlas, s2.image, e.facing, fr2), x: Math.round(ex - s2.atlas.cell.ox), y: Math.round(ey - s2.atlas.cell.oy), tint: flash ? 0xff8877 : 0xffffff, a0: e.a, a1: e.a, b0: e.b, b1: e.b, c: e.a + e.b - (e.state === 'dead' ? 0.5 : 0) });
     }
     for (const n of this.npcs) {
       if (Math.abs(n.a - p.a) > reach || Math.abs(n.b - p.b) > reach) continue;
-      const [nx, ny] = toScreen(n.a, n.b), s2 = this.sheets.farm_idle, a2 = s2.atlas;
+      const [nx, ny] = toScreen(n.a, n.b), s2 = this.sheets.farm_idle!, a2 = s2.atlas;
       // Turn to face the player when he comes close.
       if (Math.hypot(n.a - p.a, n.b - p.b) < 4) n.facing = facingOf(px - nx, (py - ny) * 2);
       items.push({ texture: r.frame('farm_idle', a2, s2.image, n.facing, Math.floor(p.t * a2.fps) % a2.frames), x: Math.round(nx - a2.cell.ox), y: Math.round(ny - a2.cell.oy), tint: 0xd8b8a0, a0: n.a, a1: n.a, b0: n.b, b1: n.b, c: n.a + n.b });

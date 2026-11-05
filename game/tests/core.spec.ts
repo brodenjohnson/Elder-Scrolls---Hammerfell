@@ -118,3 +118,11 @@ test('a newer published version shows a notice', async ({ page }) => {
   await expect(page.locator('#notice')).toBeVisible();
   await expect(page.locator('#notice')).toContainText('99.0.0');
 });
+
+test('only the farm sprite sheets load at start; an outfit loads when it is first worn', async ({ page }) => {
+  await boot(page);
+  expect(await call<string[]>(page, 'sheetsLoaded')).toEqual(['farm_idle', 'farm_walk']);
+  await call(page, 'give', 'ArmorLeatherCuirass'); await call(page, 'equip', 'ArmorLeatherCuirass');
+  await page.waitForFunction(() => (window as any).__game.sheetsLoaded().includes('leather_death'), null, { timeout: 15_000 });
+  expect((await call<string[]>(page, 'sheetsLoaded')).filter((n) => n.startsWith('leather_'))).toHaveLength(7);
+});

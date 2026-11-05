@@ -96,5 +96,6 @@ setInterval(checkVersion, 10 * 60 * 1000);
     const all = [game.pf!, ...game.combat.enemies], a = all.find((x) => x.id === attacker)!, d = all.find((x) => x.id === defender)!;
     return game.combat.hit(a, d, { power, blocking });
   },
+  sheetsLoaded: () => game.sheetsLoaded(),
   ready: true,
 };
