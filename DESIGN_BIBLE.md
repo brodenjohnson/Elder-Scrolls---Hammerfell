@@ -476,6 +476,7 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 32. **World scale kept at 12 tiles per Skyrim cell.** At character scale a tile is about 0.69 m, so the world (about 1,428 by 1,128 tiles) is about 1 km by 0.8 km of walkable space: Skyrim's layout, compressed about seven times. Chosen for performance (smaller slices to stream and draw) and so the world can actually be filled with hand-placed content. Towns and dungeons are built at character scale inside it.
 33. **Eight directions are all drawn, none mirrored.** Mirroring moved the light and the asymmetric details (brand, pouch, parting); 79% of pixels differed.
 34. **Renderer: PixiJS 8** with our own world and game logic (tech spike). Slice size 128 by 128 tiles confirmed.
+35. **Lethality multiplier 3 (PROPOSED, tune in play):** Skyrim's damage, armour, block and stamina numbers are used unchanged, then multiplied by Skyrim's own Legendary value (`fDiffMultHPToPCL` = 3) on both sides. This gives "a farmer in leather dies in three or four hits" (combat spike).
 
 ---
 
@@ -484,15 +485,15 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 **Resolved in v0.2 (see the named file):** title placeholder kept, names and the child (`MAIN_QUEST.md`), master map (`WORLD_MAP.md`), guild questlines including the dark Quiet Hand (`GUILDS.md`), Fury powers and Fury perk tree, race adaptation, birthsigns, economy, crime and justice, desert exposure, radiant quests, travel, followers, housing, audio, UI, accessibility, cutscene format, calendar, New Game Plus, voice pipeline (`SYSTEMS_SPEC.md`), Skyrim reference data and the Hammerfell bestiary (`data/skyrim/`).
 
 **Still to cover**
-1. **Skyrim data completion (Phase 0).** Rows marked [X] in `data/skyrim/`: remaining weapons and armour stats, per-skill XP multipliers, power attack and block formulas, full perk effect text, creature stat blocks, NPC spell numbers, standing stone numbers. Best route: export from `Skyrim.esm` with xEdit if Broden owns the game.
-2. **Technology choice** by spike (renderer, streaming, testing).
-3. **Art spike results**, the desert palette, and whether the target fidelity holds.
+1. ~~Skyrim data completion~~ **Done in Phase 0:** exported from Broden's `Skyrim.esm` (with `Update.esm`) to `data/skyrim/json/`, 15 of 15 spot checks match. Still to derive in Phase 2: computed values (an NPC's final health, perk effects as numbers, per-skill XP multipliers).
+2. ~~Technology choice~~ **Done:** PixiJS 8 (`docs/TECH_SPIKE_REPORT.md`). Awaiting Broden's approval.
+3. ~~Art spike results~~ **Done:** code-drawn pipeline, all six gates (`docs/ART_SPIKE_REPORT.md`). Fidelity is simpler than the concept; plan is painted detail over the generated frames later. Awaiting Broden's approval.
 4. **Canon check of the master map** against UESP and ESO maps, and slice-by-slice level design for all 88 land slices.
 5. **Full line-by-line scripts** for every scene, and the side quests per region.
 6. **Named-fight design** for the seven targets and the final duel, including Valaneth as a caster boss.
 7. **Voice licensing review** and the plan for the child's voice. A launch blocker.
 8. **Playtest the Collateral thresholds** and the Quiet Hand's darkest quest.
-9. **Combat feel tuning** after the spike (dodge, parry, finishers, dismemberment chance).
+9. **Combat feel tuning:** the arena exists (`docs/COMBAT_SPIKE_REPORT.md`); needs Broden playing it. Finishers and dismemberment chance not tuned yet.
 10. **Cutscene art** for the massacre night, and the painted stills.
 11. **Legal note** if the game is ever shared: rename trademarked terms and replace borrowed lore before release.
 

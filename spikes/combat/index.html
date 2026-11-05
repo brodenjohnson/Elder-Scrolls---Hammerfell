@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Combat arena</title>
+<style>
+  body { margin: 0; background: #0b0908; color: #c9bba3; font: 13px/1.4 Georgia, serif; display: flex; gap: 16px; padding: 12px; }
+  canvas { image-rendering: pixelated; display: block; cursor: crosshair; }
+  #side { width: 330px; }
+  h1 { font-size: 16px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 8px; color: #d8c9a8; }
+  .bar { height: 10px; background: #231d18; margin: 3px 0 8px; border: 1px solid #3a322a; }
+  .bar div { height: 100%; }
+  #log { font-size: 12px; color: #a89a82; margin-top: 10px; max-height: 470px; overflow: hidden; }
+  #log div { margin-bottom: 4px; }
+  .keys { color: #8a7d68; font-size: 12px; }
+  .banner { color: #d8b46a; min-height: 18px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="side">
+  <h1>COMBAT ARENA</h1>
+  <div>Health</div><div class="bar"><div id="hp" style="background:#8f2a22"></div></div>
+  <div>Stamina</div><div class="bar"><div id="sp" style="background:#3f7a52"></div></div>
+  <div class="banner" id="banner"></div>
+  <div class="keys">WASD move, Shift sprint. Left click quick attack (click again to chain), hold for a power attack. Right click block; tap just before a blow lands to parry. Space dodge roll; roll at the last instant for a perfect dodge. R resets.</div>
+  <div id="log"></div>
+</div>
+<script type="module" src="./arena.js"></script>
+</body>
+</html>
