@@ -1,5 +1,7 @@
 import { Game, VERSION } from './game';
 import { FURY, type FuryId } from './combat/combat';
+import { clockText } from './systems/clock';
+import { DEFAULT_NAME } from './systems/character';
 import { listSaves, readSave } from './save/save';
 import { SLICE } from './world/map';
 
@@ -11,11 +13,42 @@ document.getElementById('version')!.textContent = `v${VERSION}`;
 
 await game.start(document.getElementById('stage')!);
 
+// Character creation: shown for a new game (the first visit, and N after death).
+// Ten races with Skyrim's skill boosts; only those with drawn sprites can be picked yet.
+const DRAWN = ['RedguardRace'];
+const create = document.getElementById('create')!, nameBox = document.getElementById('create-name') as HTMLInputElement;
+let race = 'RedguardRace';
+function showCreate() {
+  nameBox.value = DEFAULT_NAME;
+  const races = [...game.data.races.values()];
+  document.getElementById('create-races')!.innerHTML = races.map((r) => `<button data-race="${r.edid}" ${DRAWN.includes(r.edid) ? '' : 'disabled title="Sprites for this race come in a later release"'} class="${r.edid === race ? 'sel' : ''}">${r.name}</button>`).join('');
+  const r = game.data.races.get(race)!;
+  document.getElementById('create-race-note')!.textContent = `${r.name}: ${r.skillBoosts.filter((b) => ['OneHanded', 'TwoHanded', 'Archery', 'Block', 'Smithing', 'HeavyArmor', 'LightArmor', 'Pickpocket', 'Lockpicking', 'Sneak', 'Alchemy', 'Speech'].includes(b.skill)).map((b) => `${b.skill.replace(/([a-z])([A-Z])/g, '$1 $2')} +${b.boost}`).join(', ')}. Other races open as their sprites are drawn.`;
+  create.hidden = false;
+}
+create.addEventListener('click', (e) => {
+  const t = e.target as HTMLElement;
+  if (t.dataset.race) { race = t.dataset.race; showCreate(); }
+  if (t.id === 'create-go') { game.create(nameBox.value, race); create.hidden = true; }
+});
+game.onNewGame = showCreate;
+if (!listSaves().length) showCreate();
+
+// The mature content warning, once per browser (bible 11.3), with a gore choice.
+const warning = document.getElementById('warning')!;
+warning.hidden = game.settings.warned;
+warning.addEventListener('click', (e) => {
+  const gore = (e.target as HTMLElement).dataset.gore as 'off' | 'some' | 'full' | undefined;
+  if (!gore) return;
+  game.setSettings({ gore, warned: true });
+  warning.hidden = true;
+});
+
 setInterval(() => {
   const w = game.where(), p = game.player;
   hud.innerHTML = `<b>${w.info.region}</b><br>${w.info.biome}${w.info.level_band ? `, levels ${w.info.level_band}` : ''}<br>` +
     `<span class="dim">slice ${w.sx + 1},${w.sy + 1} &middot; tile ${Math.floor(p.a)},${Math.floor(p.b)} &middot; ${game.fps} fps</span><br>` +
-    `Level ${game.character.s.level} &middot; Armour ${game.character.armourRating()}${game.character.s.pendingLevelUps ? ' &middot; <b>level up (C)</b>' : ''}`;
+    `${clockText(game.time)}<br>Level ${game.character.s.level} &middot; Armour ${game.character.armourRating()}${game.character.s.pendingLevelUps ? ' &middot; <b>level up (C)</b>' : ''}`;
   msg.textContent = game.currentMessage;
   const f = game.pf;
   if (f) {
@@ -29,6 +62,9 @@ setInterval(() => {
       c.fury && `${FURY[c.fury.power].name} ${Math.ceil(c.fury.left)}s`, c.exhausted > 0 && `Exhausted ${Math.ceil(c.exhausted)}s`,
       f.bleed > 0 && 'Bleeding', f.limp > 0 && 'Limping',
     ].filter(Boolean);
+    const tr = document.getElementById('tracker')!, quests = game.quests.tracker();
+    tr.hidden = !quests.length;
+    tr.innerHTML = quests.map((t) => `<b>${t.title}</b>${t.objectives.filter((o) => o.have < o.need).map((o) => `<div>&middot; ${o.text}${o.need > 1 ? ` (${o.have}/${o.need})` : ''}</div>`).join('')}`).join('<br>');
     document.getElementById('status')!.textContent = status.join(' \u00b7 ');
   }
 }, 100);
@@ -84,7 +120,7 @@ setInterval(checkVersion, 10 * 60 * 1000);
   flags: () => [...game.flags],
   npcs: () => game.npcs.map((n) => ({ ...n })),
   // Combat (Phase 3).
-  fighters: () => [game.pf, ...game.combat.enemies].filter(Boolean).map((f) => ({ id: f!.id, a: f!.a, b: f!.b, state: f!.state, health: f!.health, stamina: f!.stamina, facing: f!.facing })),
+  fighters: () => [game.pf, ...game.combat.enemies].filter(Boolean).map((f) => ({ id: f!.id, name: f!.name, weapon: f!.weapon.edid, outfit: f!.outfit, a: f!.a, b: f!.b, state: f!.state, health: f!.health, maxHealth: f!.maxHealth, stamina: f!.stamina, facing: f!.facing })),
   combatLog: () => [...game.combat.log],
   timeScale: () => game.combat.timeScale,
   attackAt: (id: string, power = false) => { const e = game.combat.enemies.find((x) => x.id === id)!; game.combat.faceTowards(game.pf!, e.a, e.b); game.player.facing = game.pf!.facing; return power ? game.combat.powerAttack(game.pf!) : game.combat.quick(game.pf!); },
@@ -113,6 +149,17 @@ setInterval(checkVersion, 10 * 60 * 1000);
   parts: () => game.combat.parts.map((p) => ({ owner: p.owner, part: p.part, settled: p.settled, a: p.a, b: p.b })),
   bodies: () => structuredClone(game.combat.bodies),
   // Pin the dice: 0 makes every chance happen, 0.999 none; null goes back to random.
+  settings: () => ({ ...game.settings }),
+  time: () => game.time,
+  create: (name: string) => { game.create(name); create.hidden = true; },
+  setTime: (t: number) => { game.time = t; },
+  light: () => game.renderer.world.tint,
+  quests: () => ({ tracker: game.quests.tracker(), done: [...game.quests.s.done] }),
+  startQuest: (id: string) => game.quests.start(id),
+  morale: (id: string) => { const e = game.combat.enemies.find((x) => x.id === id)!; return { fleeing: e.ai!.fleeing, checked: e.ai!.moraleChecked }; },
+  wake: (id: string) => { const e = game.combat.enemies.find((x) => x.id === id)!; e.ai!.passive = false; e.ai!.aggro = true; },
+  setGore: (gore: 'off' | 'some' | 'full') => game.setSettings({ gore }),
+  decals: () => game.combat.decals.length,
   setRandom: (v: number | null) => { game.combat.rng = v === null ? Math.random : () => v; },
   setHealth: (id: string, h: number) => { const f = [game.pf!, ...game.combat.enemies].find((x) => x.id === id)!; f.health = h; },
   stagger: (id: string) => { const e = game.combat.enemies.find((x) => x.id === id)!; e.state = 'hit'; e.t = 0; e.hitFor = 2; },

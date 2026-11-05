@@ -62,19 +62,23 @@ export type Fighter = {
   outfit: string; gear: string[]; heavy: boolean;
   bleed: number; limp: number; severed: string[]; // seconds of bleeding and limp left; parts cut off
   finisher?: { target: string; kind: FinisherKind };
-  ai?: { home: [number, number]; cooldown: number; blockHold: number; aggro: boolean; style: string; circle: number; passive?: boolean }; // passive: tests switch the AI off
+  ai?: { home: [number, number]; cooldown: number; blockHold: number; aggro: boolean; style: string; circle: number; fleeing: boolean; moraleChecked: boolean; passive?: boolean }; // passive: tests switch the AI off
   encounter?: { id: string; index: number };
 };
 
 // How each kind of enemy fights (ours; Skyrim's combat styles are not exported yet).
 // block: chance to raise a guard when the player swings; power: chance a swing is a power
 // attack; cooldown: seconds between swings (plus up to `jitter`); speed: tiles a second
-// closing in; dodge: chance to roll away from a power attack; circle: side-steps while waiting.
-export const STYLES: Record<string, { block: number; power: number; cooldown: number; jitter: number; speed: number; dodge: number; circle: boolean; counter: boolean }> = {
-  tank: { block: 0.3, power: 0.3, cooldown: 1.3, jitter: 1.2, speed: 2.6, dodge: 0, circle: false, counter: false },
-  berserker: { block: 0.05, power: 0.55, cooldown: 1.6, jitter: 1.0, speed: 2.9, dodge: 0, circle: false, counter: false },
-  duelist: { block: 0.55, power: 0.2, cooldown: 1.0, jitter: 0.8, speed: 2.6, dodge: 0.25, circle: true, counter: true },
+// closing in; dodge: chance to roll away from a power attack; circle: side-steps while waiting;
+// flee: chance to break and run once badly hurt (morale, bible 11.2), raised by the player's Infamy.
+export const STYLES: Record<string, { block: number; power: number; cooldown: number; jitter: number; speed: number; dodge: number; circle: boolean; counter: boolean; flee: number }> = {
+  tank: { block: 0.3, power: 0.3, cooldown: 1.3, jitter: 1.2, speed: 2.6, dodge: 0, circle: false, counter: false, flee: 0.35 },
+  berserker: { block: 0.05, power: 0.55, cooldown: 1.6, jitter: 1.0, speed: 2.9, dodge: 0, circle: false, counter: false, flee: 0.05 },
+  duelist: { block: 0.55, power: 0.2, cooldown: 1.0, jitter: 0.8, speed: 2.6, dodge: 0.25, circle: true, counter: true, flee: 0.15 },
 };
+// Morale: checked once, when Health first drops under a quarter. A runner who is cut down
+// costs Infamy (SYSTEMS_SPEC 6: fleeing kills +3).
+export const MORALE = { below: 0.25, infamyScale: 100, fleeingKillInfamy: 3, safeDistance: 20 };
 
 export type Encounter = { id: string; slice: [number, number]; at: [number, number]; name: string; enemies: { actor: string; outfit: string; offset: [number, number]; gear: string[] }[] };
 
@@ -96,7 +100,8 @@ export class Combat {
 
   constructor(private readonly data: GameData, private readonly encounters: Encounter[], private readonly hooks: {
     character: () => Character; flags: () => Set<string>; say: (m: string) => void; sliceLoaded: (sx: number, sy: number) => boolean;
-    playerOutfit: () => string;
+    playerOutfit: () => string; gore: () => { blood: boolean; dismember: boolean };
+    infamy: () => number; addInfamy: (n: number, why: string) => void; killed: (f: Fighter) => void;
   }) {}
 
   get S() { return this.data.settings; }
@@ -135,7 +140,7 @@ export class Combat {
       blocking: false, blockT: 0, power: false, struck: false, queued: false, counter: false, guardBroken: 0,
       weapon, skills: { weapon: actor.skills[twoHanded ? 'TwoHanded' : 'OneHanded'] ?? 15, block: actor.skills.Block ?? 15, armour: actor.skills[heavy ? 'HeavyArmor' : 'LightArmor'] ?? 15 }, armourBase,
       outfit: spec.outfit, gear: spec.gear, heavy, bleed: 0, limp: 0, severed: body ? [...body.severed] : [],
-      ai: { home: [a, b], cooldown: 1 + i * 0.4, blockHold: 0, aggro: false, style: actor.style, circle: i % 2 ? 1 : -1 }, encounter: { id: e.id, index: i },
+      ai: { home: [a, b], cooldown: 1 + i * 0.4, blockHold: 0, aggro: false, style: actor.style, circle: i % 2 ? 1 : -1, fleeing: false, moraleChecked: false }, encounter: { id: e.id, index: i },
     };
     // Parts cut from a body earlier lie where they fell.
     for (const p of body?.parts ?? []) this.parts.push({ owner: id, outfit: spec.outfit, part: p.part, facing: f.facing, a: p.a, b: p.b, z: 0, va: 0, vb: 0, vz: 0, rot: p.rot, vrot: 0, settled: true });
@@ -324,12 +329,17 @@ export class Combat {
   }
   private kill(att: Fighter, def: Fighter, part?: string) {
     def.health = 0; def.state = 'dead'; def.t = 0; def.blocking = false; def.bleed = 0;
-    if (part) this.dismember(att, def, part);
+    if (part && this.hooks.gore().dismember) this.dismember(att, def, part);
     if (att.isPlayer && !def.isPlayer) this.addRage(RAGE.kill);
+    if (att.isPlayer && def.ai?.fleeing) this.hooks.addInfamy(MORALE.fleeingKillInfamy, `Killed ${def.name} as they ran`);
     if (def.encounter) {
       this.hooks.flags().add(`dead:${def.encounter.id}:${def.encounter.index}`);
       this.bodies[def.id] = { a: +def.a.toFixed(3), b: +def.b.toFixed(3), facing: def.facing, severed: [...def.severed], parts: this.bodies[def.id]?.parts ?? [] };
+      // When the last of an encounter falls, it is cleared.
+      const e = def.encounter, enc = this.encounters.find((x) => x.id === e.id)!;
+      if (enc.enemies.every((_, i) => this.hooks.flags().has(`dead:${e.id}:${i}`))) this.hooks.flags().add(`cleared:${e.id}`);
     }
+    this.hooks.killed(def);
     this.say(def.isPlayer ? 'You are dead.' : `${def.name} is dead.`);
   }
   // Cut a part off and throw it away from the blow, with a gout of blood.
@@ -346,6 +356,7 @@ export class Combat {
     this.spray(def, 40, part === 'head' ? 70 : 50);
   }
   private spray(f: Fighter, n: number, height = 60) {
+    if (!this.hooks.gore().blood) return;
     const [x, y] = toScreen(f.a, f.b);
     for (let i = 0; i < n; i++) this.drops.push({ x, y: y - height, vx: (this.rng() - 0.5) * 120, vy: -40 - this.rng() * 80, floor: y + (this.rng() - 0.5) * 10 });
   }
@@ -384,7 +395,7 @@ export class Combat {
     const e = this.enemies.find((x) => x.id === p.finisher!.target);
     if (!e || e.state === 'dead') return;
     const kind = p.finisher!.kind;
-    if (kind === 'hamstring') this.dismember(p, e, 'legR');
+    if (kind === 'hamstring' && this.hooks.gore().dismember) this.dismember(p, e, 'legR');
     this.wound(p, e, e.health, `You finished ${e.name}: ${kind}.`, { finisher: kind });
     this.addRage(RAGE.finisher);
     this.hooks.character().useSkill(p.weapon.type.startsWith('TwoHand') ? 'TwoHanded' : 'OneHanded', p.weapon.damage * 2);
@@ -470,7 +481,7 @@ export class Combat {
           // Come to rest on a side, a quarter turn at a time, and leave a pool.
           p.settled = true; p.rot = Math.round(p.rot / (Math.PI / 2)) * (Math.PI / 2); p.va = p.vb = p.vz = p.vrot = 0;
           const [x, y] = toScreen(p.a, p.b);
-          for (let i = 0; i < 30; i++) this.decals.push({ x: Math.round(x + (this.rng() - 0.5) * 8), y: Math.round(y + (this.rng() - 0.5) * 4), dark: this.rng() < 0.6 });
+          if (this.hooks.gore().blood) for (let i = 0; i < 30; i++) this.decals.push({ x: Math.round(x + (this.rng() - 0.5) * 8), y: Math.round(y + (this.rng() - 0.5) * 4), dark: this.rng() < 0.6 });
           const body = this.bodies[p.owner];
           if (body) body.parts.push({ part: p.part, a: +p.a.toFixed(3), b: +p.b.toFixed(3), rot: +p.rot.toFixed(3) });
         }
@@ -497,6 +508,19 @@ export class Combat {
     if (!ai.aggro) {
       if (fromHome > 1) { this.faceTowards(e, ai.home[0], ai.home[1]); e.a += ((ai.home[0] - e.a) / fromHome) * 2 * pace * dt; e.b += ((ai.home[1] - e.b) / fromHome) * 2 * pace * dt; e.state = 'walk'; }
       else e.state = 'idle';
+      return;
+    }
+    // Morale: badly hurt, they may break and run, and once running they do not come back.
+    if (!ai.moraleChecked && e.health < MORALE.below * e.maxHealth) {
+      ai.moraleChecked = true;
+      if (this.rng() < st.flee * (1 + this.hooks.infamy() / MORALE.infamyScale)) { ai.fleeing = true; this.say(`${e.name} breaks and runs.`); }
+    }
+    if (ai.fleeing) {
+      if (d < MORALE.safeDistance) {
+        const ua = (e.a - p.a) / (d || 1), ub = (e.b - p.b) / (d || 1);
+        e.a += ua * st.speed * 1.1 * pace * dt; e.b += ub * st.speed * 1.1 * pace * dt; e.state = 'walk';
+        this.faceTowards(e, e.a + ua, e.b + ub);
+      } else e.state = 'idle';
       return;
     }
     this.faceTowards(e, p.a, p.b);

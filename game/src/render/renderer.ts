@@ -131,6 +131,9 @@ export class Renderer {
   get chunksPending() { return this.pending.size; }
   get chunksCached() { return this.chunks.size; }
 
+  // The time of day: the whole world is multiplied by this colour.
+  light(colour: number) { this.world.tint = colour; }
+
   // Draw one frame centred on a ground point.
   draw(centreA: number, centreB: number, shadows: Drawable[], actors: Drawable[]) {
     const [cx, cy] = toScreen(centreA, centreB);

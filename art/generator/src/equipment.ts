@@ -1,6 +1,7 @@
 import { sdPrim, smin, type Prim, type V3 } from './sdf.ts';
+import type { Side } from './pose.ts';
 import {
-  add, along, bootLayers, forearmPrims, garmentLayers, lerp3, primsSdf, shirtLayers, SIDES, sx, torsoPrims, trouserLayers,
+  add, along, bootLayers, forearmPrims, garmentLayers, headPrims, lerp3, primsSdf, shirtLayers, SIDES, sx, torsoPrims, trouserLayers, upperArmPrims,
   type Body, type Fn, type Layer,
 } from './character.ts';
 import { rotBetween, idlePose, type Pose } from './pose.ts';
@@ -213,7 +214,7 @@ export function steelArmourLayers(p: Pose, body: Body): Layer[] {
 
 // ---------- weapons ----------
 
-type Blade = { blade: number; width: number; guard: number; grip: number; mat: string };
+type Blade = { blade: number; width: number; guard: number; grip: number; mat: string; curve?: number };
 
 // A sword held in the right hand: blade, crossguard, wrapped grip and pommel.
 // dir: blade direction from the hand. The flat of the blade faces sideways.
@@ -226,8 +227,20 @@ function swordLayer(hand: V3, dir: V3, b: Blade): Layer {
     return [c[0] / l, c[1] / l, c[2] / l] as V3;
   })();
   const G = 3.2; // guard just above the fist
-  const body = ribbon(at(G), at(G + b.blade * 0.86), b.width, b.width * 0.82, 0.75, flat);
-  const tip = ribbon(at(G + b.blade * 0.86), at(G + b.blade), b.width * 0.82, 0.25, 0.75, flat);
+  let body: Fn, tip: Fn;
+  if (b.curve) {
+    // A curved blade (scimitar): short straight pieces along an arc bending back toward
+    // the spine, widening toward the point before it comes to a tip.
+    const pt = (t: number): V3 => add(at(G + t * b.blade), side.map((v) => -v * b.curve! * t * t * b.blade) as V3);
+    const N = 6, w = (t: number) => b.width * (0.85 + 0.45 * t);
+    const segs: Fn[] = [];
+    for (let i = 0; i < N - 1; i++) segs.push(ribbon(pt(i / N), pt((i + 1) / N), w(i / N), w((i + 1) / N), 0.7, flat));
+    body = (x, y, z) => { let d = Infinity; for (const f of segs) d = Math.min(d, f(x, y, z)); return d; };
+    tip = ribbon(pt((N - 1) / N), pt(1), w((N - 1) / N), 0.25, 0.7, flat);
+  } else {
+    body = ribbon(at(G), at(G + b.blade * 0.86), b.width, b.width * 0.82, 0.75, flat);
+    tip = ribbon(at(G + b.blade * 0.86), at(G + b.blade), b.width * 0.82, 0.25, 0.75, flat);
+  }
   const fittings: Prim[] = [
     { kind: 'cone', a: add(at(G), side.map((v) => v * b.guard) as V3), b: add(at(G), side.map((v) => -v * b.guard) as V3), r1: 1.4, r2: 1.4, mat: b.mat },
     { kind: 'cone', a: at(G - 0.5), b: at(-b.grip), r1: 1.45, r2: 1.35, mat: 'leather' },
@@ -244,7 +257,7 @@ function swordLayer(hand: V3, dir: V3, b: Blade): Layer {
       mat: (x, y, z) => (bladeOnly(x, y, z) < fit(x, y, z) ? b.mat : fitMat(x, y, z)),
       paint: (x, y, z, m) => {
         if (m === 'leather') return frac(along(x, y, z, hand, at(10)).t * 6) < 0.3 ? { dt: -1 } : null; // wrapped grip
-        if (bladeOnly(x, y, z) > fit(x, y, z)) return null;
+        if (bladeOnly(x, y, z) > fit(x, y, z) || b.curve) return null;
         const s = (x - hand[0]) * side[0] + (y - hand[1]) * side[1] + (z - hand[2]) * side[2];
         if (Math.abs(s) < 0.55) return { dt: -1 };          // fuller
         if (Math.abs(s) > b.width * 0.72) return { dt: 1 };  // honed edge
@@ -281,7 +294,126 @@ export function carryGreatsword(p: Pose): Pose {
   return q;
 }
 
+// Two-handers lie on the shoulder walking and standing, and follow the swing (weaponDir) in combat.
+const CARRY: V3 = norm([-0.3, 0.42, -0.86]);
 export function steelGreatswordLayers(p: Pose): Layer[] {
-  return [swordLayer(p.hand.R, norm([-0.3, 0.42, -0.86]), { blade: 92, width: 4.0, guard: 10.5, grip: 15, mat: 'steel' })];
+  return [swordLayer(p.hand.R, p.weaponDir ? norm(p.weaponDir) : CARRY, { blade: 92, width: 4.0, guard: 10.5, grip: 15, mat: 'steel' })];
 }
+
+// Scimitar: the Alik'r blade, curved, single-edged, a little shorter than the Iron Sword.
+export function scimitarLayers(p: Pose): Layer[] {
+  const rest = idlePose();
+  const restFore = norm([rest.hand.R[0] - rest.elbow.R[0], rest.hand.R[1] - rest.elbow.R[1], rest.hand.R[2] - rest.elbow.R[2]]);
+  const curFore = norm([p.hand.R[0] - p.elbow.R[0], p.hand.R[1] - p.elbow.R[1], p.hand.R[2] - p.elbow.R[2]]);
+  const dir = p.weaponDir ? norm(p.weaponDir) : rotate(rotBetween(restFore, curFore), norm([-0.2, -0.62, 0.76]));
+  return [swordLayer(p.hand.R, dir, { blade: 54, width: 2.7, guard: 5.5, grip: 9, mat: 'steel', curve: 0.22 })];
+}
+
+// Iron Battleaxe: a long ash haft, the right hand high on it, a flared iron head.
+export function ironBattleaxeLayers(p: Pose): Layer[] {
+  const hand = p.hand.R, dir = p.weaponDir ? norm(p.weaponDir) : CARRY;
+  const at = (t: number): V3 => [hand[0] + dir[0] * t, hand[1] + dir[1] * t, hand[2] + dir[2] * t];
+  const flat: V3 = [1, 0, 0];
+  const c: V3 = [flat[1] * dir[2] - flat[2] * dir[1], flat[2] * dir[0] - flat[0] * dir[2], flat[0] * dir[1] - flat[1] * dir[0]];
+  const cl = Math.hypot(c[0], c[1], c[2]), side: V3 = [c[0] / cl, c[1] / cl, c[2] / cl];
+  const head = at(44), edge = add(head, side.map((v) => v * 14) as V3), poll = add(head, side.map((v) => -v * 4.5) as V3);
+  const haft = primsSdf([
+    { kind: 'cone', a: at(-24), b: at(52), r1: 2.1, r2: 2.0, mat: 'wood' },
+    { kind: 'ell', c: at(-24.5), r: [1.9, 1.9, 1.9], mat: 'iron' },
+  ], 0.2);
+  const blade = ribbon(head, edge, 5.0, 12.0, 1.0, flat), back = ribbon(head, poll, 4.0, 2.4, 1.8, flat);
+  const metal: Fn = (x, y, z) => Math.min(blade(x, y, z), back(x, y, z));
+  return [{
+    id: 'mainHand/weapon', segment: 'mainHand', slot: 'weapon',
+    pieces: [{
+      shape: (x, y, z) => Math.min(haft(x, y, z), metal(x, y, z)), cut: () => -Infinity,
+      mat: (x, y, z) => (metal(x, y, z) < haft(x, y, z) ? 'iron' : along(x, y, z, at(-24), at(52)).t < 0.01 ? 'iron' : 'wood'),
+      paint: (x, y, z, m) => {
+        if (m === 'iron') {
+          const s = (x - head[0]) * side[0] + (y - head[1]) * side[1] + (z - head[2]) * side[2];
+          return s > 12.4 ? { dt: 1 } : null; // honed edge
+        }
+        const t = along(x, y, z, at(-24), at(52)).t;
+        return t > 0.18 && t < 0.42 && frac(t * 40) < 0.35 ? { mat: 'leather', dt: -1 } : null; // wrapped grip
+      },
+    }],
+    bounds: { c: at(14), r: 48 },
+  }];
+}
+
+// ---------- Fur Armor, Fur Bracers, Fur Shoes (the bandits' set) ----------
+// The Leather Armor shapes with fur over the shoulders and chest and on the bracers,
+// over a grey wool shirt.
+export function furArmourLayers(p: Pose, body: Body): Layer[] {
+  const top = p.chest[1] - 3;
+  return leatherArmourLayers(p, body).map((l) => {
+    const fur = l.id === 'torso/armour' ? (_x: number, y: number) => y > top : l.slot === 'armour' || l.slot === 'gloves' ? () => true : null;
+    const wool = l.slot === 'clothes' && l.segment !== 'leg.L' && l.segment !== 'leg.R';
+    if (!fur && !wool) return l;
+    return {
+      ...l,
+      pieces: l.pieces.map((pc) => ({
+        ...pc,
+        mat: (x: number, y: number, z: number) => { const m = pc.mat(x, y, z); return fur && fur(x, y) && m !== 'brass' ? 'fur.grey' : wool && m === 'linen' ? 'wool.grey' : m; },
+        paint: (x: number, y: number, z: number, m: string) => {
+          if (m === 'fur.grey') { const h = Math.sin(x * 2.7 + y * 1.3) + Math.sin(z * 3.1 - y * 2.2); return h > 1.1 ? { dt: 1 } : h < -1.2 ? { dt: -1 } : null; }
+          return pc.paint ? pc.paint(x, y, z, m) : null;
+        },
+      })),
+    };
+  });
+}
+
+// ---------- Hammerfell Garb, Redguard Hood, Redguard Boots (the Alik'r) ----------
+// A long sand-coloured robe to the knee with a red sash, sleeves to the elbow, and a pale hood
+// wrapped over the face to a slit for the eyes.
+export function garbLayers(p: Pose, body: Body): Layer[] {
+  const pv = p.pelvis, c = p.chest, belt = pv[1] + 7, hem = pv[1] - 34;
+  const robePrims: Prim[] = [
+    ...torsoPrims(p, false), ...upperArmPrims(p, 'L').slice(0, 1), ...upperArmPrims(p, 'R').slice(0, 1),
+    { kind: 'ell', c: [0, belt - 5, 0.3], r: [12.8, 6.5, 9.0], mat: 'r' },
+    { kind: 'ell', c: [0, belt - 17, 0.8], r: [13.8, 8.0, 10.0], mat: 'r' },
+    { kind: 'ell', c: [0, hem + 6, 1.0], r: [14.6, 7.0, 10.8], mat: 'r' },
+  ];
+  const robeSdf = primsSdf(robePrims, 3.6);
+  const robe: Fn = (x, y, z) => smin(robeSdf(x, y, z), body.shape(x, y, z), 2) - 1.0;
+  const sash = primsSdf([
+    { kind: 'ell', c: [0, belt, 0.4], r: [14.0, 2.8, 10.4], mat: 's' },
+    { kind: 'cone', a: [9.5, belt - 1, 7], b: [11.5, belt - 13, 8.5], r1: 1.8, r2: 2.4, mat: 's' }, // the knotted end at the left hip
+  ], 0.8);
+  const shape: Fn = (x, y, z) => Math.min(robe(x, y, z), sash(x, y, z));
+  const matOf = (x: number, y: number, z: number) => (sash(x, y, z) < robe(x, y, z) + 0.05 ? 'cloth.red' : 'cloth.sand');
+  const cut: Fn = (x, y) => Math.max(hem - y, Math.min(y - (c[1] + 11.5), 6.0 - Math.abs(x)));
+  const sleeveEnd = (s: Side): Fn => (x, y, z) => { const a = along(x, y, z, p.shoulder[s], p.elbow[s]); return (a.t - 0.95) * a.len; };
+  const robeLayers = garmentLayers('clothes', ['torso', 'upperArm.L', 'upperArm.R'], shape, cut, matOf, body, {
+    segCut: { 'upperArm.L': sleeveEnd('L'), 'upperArm.R': sleeveEnd('R') },
+    margin: 22,
+    paint: (x, y, z, m) => {
+      if (m === 'cloth.red') return frac(y * 0.7 + x * 0.15) < 0.2 ? { dt: -1 } : null;
+      if (y < hem + 1.6) return { dt: -1 };                                     // hem
+      if (Math.abs(x) < 0.7 && y > belt + 2 && y < c[1] + 9 && z > 4) return { dt: -1 }; // front opening
+      return null;
+    },
+    bump: (x, y) => (y < belt - 2 ? [0.7 * Math.sin(x * 0.8 + 0.3), 0, 0] : [0, 0, 0]), // long folds in the skirt
+  });
+  // The hood: a wrap over the head and down the back of the neck, open only at the eyes.
+  const local = (y: number, z: number) => ({ ly: y - p.head[1], lz: z - p.head[2] });
+  const hoodSdf = primsSdf([
+    ...headPrims(p).slice(0, 3).map((q) => ({ ...q, mat: 'h' }) as Prim),
+    { kind: 'ell', c: add(p.head, [0, -8.5, -2.5]), r: [7.6, 6.0, 6.6], mat: 'h' },   // drape at the neck
+    { kind: 'ell', c: add(p.head, [0, -3.5, 3.4]), r: [6.0, 4.6, 4.6], mat: 'h' },    // the veil over mouth and nose
+  ], 2.4);
+  const hood: Layer = {
+    id: 'head/helmet', segment: 'head', slot: 'helmet',
+    pieces: [{
+      shape: (x, y, z) => hoodSdf(x, y, z) - 1.5,
+      cut: (_x, y, z) => { const { ly, lz } = local(y, z); return Math.min(lz - 3.5, 1.35 - Math.abs(ly - 0.4)); }, // eye slit
+      mat: () => 'linen',
+      paint: (x, y, z) => { const { ly, lz } = local(y, z); return frac((ly + lz * 0.4 + (x - p.head[0]) * 0.1) * 0.55) < 0.18 ? { dt: -1 } : null; }, // wraps
+    }],
+    bounds: { c: add(p.head, [0, -3, 0]), r: 18 },
+  };
+  return [...robeLayers, hood, ...trouserLayers(p, body), ...bootLayers(p, body, { height: 0.5, mat: 'leather', cuff: 'leather.dark' })];
+}
+
 

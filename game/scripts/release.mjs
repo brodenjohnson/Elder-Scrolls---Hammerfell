@@ -31,7 +31,7 @@ try {
   process.exit(1);
 }
 run('git add -A', root);
-run(`git commit -m "Release ${next}${summary && summary !== '--push' ? `: ${summary}` : ''}"`, root);
+run(`git commit -m "Release ${next}${summary && summary !== '--push' ? `: ${summary}` : ''}" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`, root);
 run(`git tag v${next}`, root);
 if (push) { run('git push origin main', root); run(`git push origin v${next}`, root); }
 console.log(`Released ${next}${push ? ' and pushed (GitHub Pages deploys from main)' : '. Push with: git push origin main --tags'}`);

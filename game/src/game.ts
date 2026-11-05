@@ -6,9 +6,12 @@ import { Streamer } from './world/streamer';
 import { SAVE_VERSION, readSave, writeSave, type Save } from './save/save';
 import { loadData, type GameData } from './systems/data';
 import { Character, newCharacter } from './systems/character';
-import { newReputation, type ReputationState } from './systems/reputation';
+import { applyReputation, newReputation, type ReputationState } from './systems/reputation';
 import { Conversation, type Dialogue } from './systems/dialogue';
 import { Panels } from './ui/panels';
+import { GORE_LEVELS, loadSettings, saveSettings, type Settings } from './systems/settings';
+import { Quests, newQuestState, type QuestDef } from './systems/quests';
+import { START_TIME, TIMESCALE, daylight } from './systems/clock';
 import { Combat, FURY, PARTS, WOUNDS, type Encounter, type Fighter, type FuryId } from './combat/combat';
 
 declare const __APP_VERSION__: string;
@@ -39,6 +42,7 @@ export class Game {
   objects: Partial<Record<ThingId, { body: HTMLImageElement; shadow?: HTMLImageElement }>> = {};
   player = { a: 0, b: 0, facing: 'S' as Facing, moving: false, speed: 0, t: 0 };
   playSeconds = 0;
+  time = START_TIME; // game seconds (systems/clock.ts)
   keys = new Set<string>();
   fps = 0;
   private frameTimes: number[] = [];
@@ -56,6 +60,11 @@ export class Game {
   pf: Fighter | undefined;              // the player as a fighter
   private leftDown: number | null = null;
   mouse = { x: 0, y: 0 };
+  settings: Settings = loadSettings();
+  onNewGame?: () => void; // the page shows character creation
+  quests!: Quests;
+  questDefs: Record<string, QuestDef> = {};
+  setSettings(s: Partial<Settings>) { this.settings = { ...this.settings, ...s }; saveSettings(this.settings); }
   npcs = [{ id: 'settler', dialogue: 'settler', a: START.sx * SLICE + 63.2, b: START.sy * SLICE + 57.5, facing: 'S' as Facing }];
 
   async start(parent: HTMLElement) {
@@ -64,11 +73,15 @@ export class Game {
     this.manifest = manifest;
     this.data = await loadData();
     this.dialogues.settler = await json<Dialogue>('./data/dialogue/settler.json');
-    this.panels = new Panels(() => this.character, () => this.reputation, () => {}, (edid) => this.useItem(edid));
+    const { _note, ...defs } = await json<Record<string, QuestDef> & { _note?: string }>('./data/quests.json');
+    void _note; this.questDefs = defs as Record<string, QuestDef>;
+    this.panels = new Panels(() => this.character, () => this.reputation, () => {}, (edid) => this.useItem(edid), () => this.settings, (s) => this.setSettings(s), () => this.quests);
     const enc = await json<{ encounters: Encounter[] }>('./data/encounters.json');
     this.combat = new Combat(this.data, enc.encounters, {
       character: () => this.character, flags: () => this.flags, say: (m) => this.say(m),
-      sliceLoaded: (sx, sy) => this.streamer.loaded.has(`${sx},${sy}`), playerOutfit: () => this.outfit(),
+      sliceLoaded: (sx, sy) => this.streamer.loaded.has(`${sx},${sy}`), playerOutfit: () => this.outfit(), gore: () => GORE_LEVELS[this.settings.gore],
+      infamy: () => this.reputation.infamy, addInfamy: (n, why) => applyReputation(this.reputation, why, { infamy: n }),
+      killed: (f) => { if (f.encounter) this.quests.notify({ type: 'kill', target: f.encounter.id }); this.quests.checkFlags(); },
     });
     this.map = new WorldMap(slices);
     this.terrain = new Terrain(this.map);
@@ -119,11 +132,13 @@ export class Game {
     this.character = new Character(this.data, newCharacter(this.data));
     this.reputation = newReputation();
     this.flags = new Set();
+    this.quests = this.makeQuests(newQuestState());
     this.streamer.states = {};
     this.streamer.reset();
     this.combat.reset(); this.pf = undefined;
     this.place(START.sx * SLICE + START.a, START.sy * SLICE + START.b, 'S');
     this.playSeconds = 0;
+    this.time = START_TIME;
   }
   place(a: number, b: number, facing: Facing = this.player.facing) {
     this.player.a = a; this.player.b = b; this.player.facing = facing;
@@ -135,15 +150,18 @@ export class Game {
 
   private bindInput() {
     addEventListener('keydown', (e) => {
+      if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return; // typing a name is not playing
       this.keys.add(e.code);
       if (e.code === 'F5') { e.preventDefault(); this.save('quick'); }
       if (e.code === 'F9') { e.preventDefault(); this.load('quick'); }
       if (e.code === 'KeyE') this.interact();
       if (e.code === 'KeyC') this.panels.toggle('character');
       if (e.code === 'KeyI') this.panels.toggle('inventory');
+      if (e.code === 'KeyO') this.panels.toggle('options');
+      if (e.code === 'KeyJ') this.panels.toggle('journal');
       if (e.code === 'Escape') this.panels.close();
       if (e.code === 'Space') { e.preventDefault(); this.rollPlayer(); }
-      if (e.code === 'KeyN' && this.pf?.state === 'dead') this.newGame();
+      if (e.code === 'KeyN' && this.pf?.state === 'dead') { this.newGame(); this.onNewGame?.(); }
       if (e.code === 'KeyF') this.finisher();
       if (e.code === 'KeyQ') { if (e.shiftKey) this.cycleFury(); else this.fury(); }
       if (e.code === 'KeyB') this.useItem('Bandage');
@@ -167,12 +185,12 @@ export class Game {
 
   // ---------- update ----------
 
-  // Melee needs a weapon and an outfit that has combat frames (the steel set does not yet).
-  armed() { return !!this.character.weapon() && this.outfit() !== 'steel'; }
+  // Melee needs a weapon. Every player outfit has combat frames now.
+  armed() { return !!this.character.weapon(); }
   attack(power: boolean) {
     const f = this.pf;
     if (!f || f.state === 'dead' || this.panels.open !== 'none') return false;
-    if (!this.armed()) { this.say(this.character.weapon() ? 'No combat moves in Steel armour yet.' : 'You need a weapon. I for inventory.'); return false; }
+    if (!this.armed()) { this.say('You need a weapon. I for inventory.'); return false; }
     // Melee faces the cursor (bible 11.1).
     if (!this.combat.busy(f)) { const v = this.renderer.view; f.facing = facingOf(this.mouse.x - v.w / 2, (this.mouse.y - (v.h / 2 + 30)) * 2); this.player.facing = f.facing; }
     return power ? this.combat.powerAttack(f) : this.combat.quick(f);
@@ -226,6 +244,7 @@ export class Game {
     const f = this.pf;
     const dt = realDt * this.combat.timeScale; // a perfect dodge slows everything, the player too
     this.playSeconds += realDt;
+    this.time += realDt * TIMESCALE;
     if (this.leftDown !== null && (performance.now() - this.leftDown) / 1000 >= 0.3) { this.leftDown = null; this.attack(true); }
     const k = this.keys;
     let sx = 0, sy = 0;
@@ -342,7 +361,7 @@ export class Game {
     this.smash();
   }
   talk(id: string) {
-    const c = new Conversation(this.dialogues[id], { character: this.character, reputation: this.reputation, flags: this.flags, say: (m) => this.say(m) });
+    const c = new Conversation(this.dialogues[id], { character: this.character, reputation: this.reputation, flags: this.flags, say: (m) => this.say(m), quests: this.quests });
     this.panels.talk(c);
     return c;
   }
@@ -360,7 +379,9 @@ export class Game {
   // Which sprite set the player wears follows the body armour.
   outfit(): 'farm' | 'farmSword' | 'leather' | 'steel' {
     const body = this.character.s.equipped.body ?? '';
-    return body.startsWith('ArmorLeather') ? 'leather' : body.startsWith('ArmorSteel') ? 'steel' : this.character.weapon() ? 'farmSword' : 'farm';
+    // Until the player has sprites of his own for them, fur and hide draw as leather and the Alik'r garb as farm clothes.
+    if (/^Armor(Leather|Bandit|Hide)/.test(body)) return 'leather';
+    return body.startsWith('ArmorSteel') ? 'steel' : this.character.weapon() ? 'farmSword' : 'farm';
   }
 
   // ---------- draw ----------
@@ -415,11 +436,23 @@ export class Game {
       items.push({ texture: r.frame('farm_idle', a2, s2.image, n.facing, Math.floor(p.t * a2.fps) % a2.frames), x: Math.round(nx - a2.cell.ox), y: Math.round(ny - a2.cell.oy), tint: 0xd8b8a0, a0: n.a, a1: n.a, b0: n.b, b1: n.b, c: n.a + n.b });
     }
     items.sort(depthOrder);
+    r.light(daylight(this.time));
     r.draw(p.a, p.b, shadows, items);
     r.blood(this.combat.decals, this.combat.drops);
   }
 
+  private makeQuests(s: ReturnType<typeof newQuestState>) {
+    return new Quests(this.questDefs, s, { flags: () => this.flags, give: (e, n) => this.character.give(e, n), say: (m) => this.say(m) });
+  }
   private cut(f: Fighter) { return f.severed.flatMap((s) => PARTS[s]); }
+
+  // Character creation: a name and a race (only races with drawn sprites can be chosen yet).
+  create(name: string, race = 'RedguardRace') {
+    const clean = name.trim().replace(/\s+/g, ' ').slice(0, 24) || this.character.s.name;
+    this.character = new Character(this.data, newCharacter(this.data, race, clean));
+    this.pf = undefined;
+    this.say(`${clean} wakes on the Sentinel Coast.`);
+  }
 
   // ---------- saving ----------
 
@@ -428,6 +461,7 @@ export class Game {
       version: SAVE_VERSION, savedAt: new Date().toISOString(), gameVersion: VERSION, playSeconds: Math.round(this.playSeconds),
       player: { a: +this.player.a.toFixed(3), b: +this.player.b.toFixed(3), facing: this.player.facing }, slices: structuredClone(this.streamer.states),
       character: structuredClone(this.character.s), reputation: structuredClone(this.reputation), flags: [...this.flags],
+      quests: structuredClone(this.quests.s), time: Math.round(this.time),
       combat: { rage: +this.combat.rage.toFixed(2), bleed: +(this.pf?.bleed ?? 0).toFixed(2), limp: Math.round(this.pf?.limp ?? 0), bodies: structuredClone(this.combat.bodies) },
     };
   }
@@ -440,10 +474,12 @@ export class Game {
     this.character = new Character(this.data, s.character ? structuredClone(s.character) : newCharacter(this.data));
     this.reputation = structuredClone(s.reputation);
     this.flags = new Set(s.flags);
+    this.quests = this.makeQuests(structuredClone(s.quests));
     this.panels.close();
     this.combat.reset();
     this.combat.rage = s.combat.rage; this.combat.bodies = structuredClone(s.combat.bodies);
     this.playSeconds = s.playSeconds;
+    this.time = s.time;
     this.place(s.player.a, s.player.b, s.player.facing);
     this.pf = this.combat.playerFighter(this.player);
     this.pf.bleed = s.combat.bleed; this.pf.limp = s.combat.limp;

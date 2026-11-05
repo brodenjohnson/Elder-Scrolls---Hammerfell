@@ -2,6 +2,15 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.5.0 (2026-11-06): three enemy types, two-handed combat
+
+- **Bandit marauder.** A Nord in Fur Armor with an Iron Battleaxe, now in the Coast Road camp. Swings slowly (the battleaxe's Skyrim speed, 0.7) and hard, power-attacks often, hardly ever blocks. Two-handed and axe, so its killing blows take parts off more often.
+- **Alik'r warriors.** Two of them at the edge of the Alik'r Desert, just north of the bandit camp: Hammerfell garb, hoods wrapped to the eyes, curved scimitars. Skyrim's level 6 Alik'r (85 Health, One-handed 36). They circle, guard often, counter straight after a block, and roll away from power attacks.
+- **The Steel set fights.** The Steel Greatsword now has its own two-handed swing and guard, so Steel armour is no longer only for walking.
+- Bodies of the new enemies carry bandages.
+- Wearing looted Fur Armor or Alik'r clothes draws you in the Leather or farm clothes sprites for now.
+- **Saves:** no format change (save version 3).
+
 ## 0.4.0 (2026-11-06): combat, second part
 
 - **Rage.** The amber bar under Stamina fills as you take and deal damage, more for kills and finishers, and cools after ten quiet seconds. It glows when you can spend it.

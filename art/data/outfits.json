@@ -126,5 +126,63 @@
         "source": "data/skyrim/weapons.md"
       }
     ]
+  },
+  "marauder": {
+    "label": "Fur Armor, Iron Battleaxe",
+    "items": [
+      {
+        "name": "Fur Armor",
+        "slot": "body",
+        "stats": "Armour 23, weight 6",
+        "source": "data/skyrim/json/armour.json (ArmorBanditCuirass)"
+      },
+      {
+        "name": "Fur Bracers",
+        "slot": "hands",
+        "stats": "Armour 6, weight 1",
+        "source": "data/skyrim/json/armour.json (ArmorBanditGauntlets)"
+      },
+      {
+        "name": "Fur Shoes",
+        "slot": "feet",
+        "stats": "Armour 6, weight 2",
+        "source": "data/skyrim/json/armour.json (ArmorBanditBoots)"
+      },
+      {
+        "name": "Iron Battleaxe",
+        "slot": "both hands",
+        "stats": "Damage 16, weight 20, speed 0.7",
+        "source": "data/skyrim/json/weapons.json (IronBattleaxe)"
+      }
+    ]
+  },
+  "alikr": {
+    "label": "Hammerfell Garb, Redguard Hood, Scimitar",
+    "items": [
+      {
+        "name": "Hammerfell Garb",
+        "slot": "body",
+        "stats": "Clothing, weight 1",
+        "source": "data/skyrim/json/armour.json (ClothesRedguardClothes)"
+      },
+      {
+        "name": "Redguard Hood",
+        "slot": "head",
+        "stats": "Clothing, weight 0.5",
+        "source": "data/skyrim/json/armour.json (DBClothesRedguardHood)"
+      },
+      {
+        "name": "Redguard Boots",
+        "slot": "feet",
+        "stats": "Clothing",
+        "source": "data/skyrim/json/armour.json (ClothesRedguardBoots)"
+      },
+      {
+        "name": "Scimitar",
+        "slot": "main hand",
+        "stats": "Damage 11, weight 10, speed 1",
+        "source": "data/skyrim/json/weapons.json (Scimitar)"
+      }
+    ]
   }
 }

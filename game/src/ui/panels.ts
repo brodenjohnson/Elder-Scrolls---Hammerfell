@@ -2,6 +2,8 @@ import type { Character } from '../systems/character';
 import type { Conversation } from '../systems/dialogue';
 import type { ReputationState } from '../systems/reputation';
 import type { SkillId } from '../systems/data';
+import { GORE_LEVELS, type Gore, type Settings } from '../systems/settings';
+import type { Quests } from '../systems/quests';
 
 // Plain DOM panels over the game: character sheet (C), inventory (I), the level-up
 // choice and dialogue. Kept dumb: they read state and call back.
@@ -11,9 +13,10 @@ const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt
 const bar = (v: number, max: number, colour: string) => `<span class="bar"><span style="width:${Math.max(0, Math.min(100, (100 * v) / max))}%;background:${colour}"></span></span>`;
 
 export class Panels {
-  open: 'none' | 'character' | 'inventory' | 'dialogue' = 'none';
+  open: 'none' | 'character' | 'inventory' | 'dialogue' | 'options' | 'journal' = 'none';
   private skill: SkillId = 'OneHanded';
-  constructor(private readonly ch: () => Character, private readonly rep: () => ReputationState, private readonly changed: () => void, private readonly use: (edid: string) => void) {
+  constructor(private readonly ch: () => Character, private readonly rep: () => ReputationState, private readonly changed: () => void, private readonly use: (edid: string) => void,
+    private readonly settings: () => Settings, private readonly setSettings: (s: Partial<Settings>) => void, private readonly quests: () => Quests) {
     el('panel').addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest('[data-act]') as HTMLElement | null;
       if (!t) return;
@@ -23,6 +26,7 @@ export class Panels {
       if (act === 'perk') c.takePerk(arg);
       if (act === 'equip') c.equip(arg);
       if (act === 'use') this.use(arg);
+      if (act === 'gore') this.setSettings({ gore: arg as Gore });
       if (act === 'unequip') c.unequip(arg as never);
       if (act === 'levelup') c.chooseLevelUp(arg as 'health' | 'stamina');
       if (act === 'choose') this.conversation?.choose(+arg);
@@ -32,7 +36,7 @@ export class Panels {
   }
   conversation: Conversation | null = null;
 
-  toggle(which: 'character' | 'inventory') { this.open = this.open === which ? 'none' : which; this.render(); }
+  toggle(which: 'character' | 'inventory' | 'options' | 'journal') { this.open = this.open === which ? 'none' : which; this.render(); }
   talk(c: Conversation) { this.conversation = c; this.open = 'dialogue'; this.render(); }
   close() { this.open = 'none'; this.conversation = null; this.render(); }
 
@@ -43,6 +47,21 @@ export class Panels {
     if (this.open === 'character') p.innerHTML = this.characterHtml();
     if (this.open === 'inventory') p.innerHTML = this.inventoryHtml();
     if (this.open === 'dialogue') p.innerHTML = this.dialogueHtml();
+    if (this.open === 'options') p.innerHTML = this.optionsHtml();
+    if (this.open === 'journal') p.innerHTML = this.journalHtml();
+  }
+
+  private journalHtml() {
+    const q = this.quests();
+    const active = q.tracker().map((t) => `<div class="quest"><b>${esc(t.title)}</b><div>${esc(t.text)}</div>${t.objectives.map((o) => `<div class="${o.have >= o.need ? 'dim' : ''}">${o.have >= o.need ? '&#10003;' : '&middot;'} ${esc(o.text)}${o.need > 1 ? ` (${o.have}/${o.need})` : ''}${o.optional ? ' <span class="dim">(optional)</span>' : ''}</div>`).join('')}</div>`).join('') || '<div class="dim">No quests in hand.</div>';
+    const done = q.s.done.map((id) => `<div class="dim">${esc(q.defs[id]?.title ?? id)}</div>`).join('');
+    return `<h2>Journal</h2>${active}${done ? `<h3>Done</h3>${done}` : ''}<div class="dim">J to close</div>`;
+  }
+
+  private optionsHtml() {
+    const g = this.settings().gore;
+    const gore = (Object.keys(GORE_LEVELS) as Gore[]).map((k) => `<div><button data-act="gore" data-arg="${k}" ${k === g ? 'class="sel" disabled' : ''}>${esc(GORE_LEVELS[k].label)}</button></div>`).join('');
+    return `<h2>Options</h2><h3>Gore</h3>${gore}<div class="dim">Kept in this browser for every save. O to close</div>`;
   }
 
   private characterHtml() {

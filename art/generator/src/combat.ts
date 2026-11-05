@@ -175,3 +175,43 @@ export function deathPose(t: number): Pose {
   }
   return p;
 }
+
+// ---------- two-handed (greatsword, battleaxe) ----------
+// Both hands on the grip: the right at the guard, the left 8 units further down.
+function grip2(p: Pose, hand: V3, dir: V3) {
+  reach(p, 'R', hand);
+  reach(p, 'L', sub(hand, dir.map((v) => v * 8) as V3));
+  p.weaponDir = dir;
+}
+
+// Two-handed attack (6 frames): from a high guard, wound back over the right
+// shoulder, brought over the top and down across the body, and back to guard.
+const ATTACK2H: Key[] = [
+  { t: 0, hand: [-6, 90, 18], dir: [0.1, 0.7, 0.7], off: [0, 0, 0], twist: 0 },
+  { t: 0.2, hand: [-13, 116, -2], dir: [-0.1, 0.45, -0.89], off: [0, 0, 0], twist: -0.5 },
+  { t: 0.4, hand: [-6, 120, 12], dir: [0.15, 0.97, 0.2], off: [0, 0, 0], twist: -0.25 },
+  { t: 0.6, hand: [2, 98, 28], dir: [0.4, -0.2, 0.9], off: [0, 0, 0], twist: 0.35 },
+  { t: 0.8, hand: [8, 76, 22], dir: [0.68, -0.65, 0.33], off: [0, 0, 0], twist: 0.55 },
+  { t: 1, hand: [-6, 90, 18], dir: [0.1, 0.7, 0.7], off: [0, 0, 0], twist: 0 },
+];
+export function attack2HPose(t: number): Pose {
+  const p = stance(5, 2);
+  const k = keyed(ATTACK2H, t);
+  twist(p, k.twist);
+  grip2(p, k.hand, k.dir);
+  return p;
+}
+
+// Two-handed block (4 frames): the haft or blade raised across the body, high on the left.
+const BLOCK2H: Key[] = [
+  { t: 0, hand: [-6, 90, 18], dir: [0.1, 0.7, 0.7], off: [0, 0, 0], twist: 0 },
+  { t: 0.5, hand: [-9, 100, 19], dir: [0.7, 0.6, 0.35], off: [0, 0, 0], twist: 0.1 },
+  { t: 1, hand: [-10, 104, 18], dir: [0.9, 0.4, 0.15], off: [0, 0, 0], twist: 0.15 },
+];
+export function block2HPose(t: number): Pose {
+  const p = stance(6, 3);
+  const k = keyed(BLOCK2H, Math.min(1, t * 1.6));
+  twist(p, k.twist);
+  grip2(p, k.hand, k.dir);
+  return p;
+}

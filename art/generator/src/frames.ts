@@ -1,10 +1,12 @@
 import { idlePose, segmentLocal, walkPose, type Pose } from './pose.ts';
-import { attackPose, blockPose, deathPose, hitPose, rollPose } from './combat.ts';
+import { attack2HPose, attackPose, block2HPose, blockPose, deathPose, hitPose, rollPose } from './combat.ts';
 import { applyR, bodyLayers, farmClothesLayers, hairLayers, makeBody, moved, type Body, type Fn, type Layer } from './character.ts';
 import { colourLayers, composite, renderLayer, shadowLayer, type Rgba } from './render.ts';
 import type { V3 } from './sdf.ts';
 import { attachOccluders, cell, paletteFile, paletteFor, readJson, rig } from './pipeline.ts';
-import { carryGreatsword, ironSwordLayers, leatherArmourLayers, steelArmourLayers, steelGreatswordLayers } from './equipment.ts';
+import {
+  carryGreatsword, furArmourLayers, garbLayers, ironBattleaxeLayers, ironSwordLayers, leatherArmourLayers, scimitarLayers, steelArmourLayers, steelGreatswordLayers,
+} from './equipment.ts';
 
 // ---------- one animation frame, in one direction ----------
 
@@ -27,16 +29,24 @@ export const ANIMS: Record<string, { frames: number; fps: number; pose: (t: numb
 
 // Outfit labels and item stats come from data/outfits.json; the shapes are code.
 const OUTFIT_DATA = readJson('data/outfits.json');
-type Outfit = { label: string; items: unknown[]; anims: string[]; race?: string; layers: (p: Pose, body: Body) => Layer[]; pose?: (p: Pose) => Pose };
+// pose: adjusts idle and walk (a two-hander carried on the shoulder); poses: replaces an
+// animation's poses (two-handed swings and guards).
+type Outfit = {
+  label: string; items: unknown[]; anims: string[]; race?: string; layers: (p: Pose, body: Body) => Layer[];
+  pose?: (p: Pose) => Pose; poses?: Record<string, (t: number) => Pose>;
+};
+const TWO_HANDED = { attack: attack2HPose, block: block2HPose };
 const COMBAT = ['idle', 'walk', 'attack', 'block', 'roll', 'hit', 'death'];
-// Combat animations are drawn for the one-handed sword set only, so far.
 export const OUTFITS: Record<string, Outfit> = {
   farm: { ...OUTFIT_DATA.farm, anims: ['idle', 'walk'], layers: farmClothesLayers },
   leather: { ...OUTFIT_DATA.leather, anims: COMBAT, layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
   // The farmer with a sword in his own clothes, and a Nord bandit in leather: the first fight.
   farmSword: { ...OUTFIT_DATA.farmSword, anims: COMBAT, layers: (p, b) => [...farmClothesLayers(p, b), ...ironSwordLayers(p)] },
   bandit: { ...OUTFIT_DATA.bandit, anims: COMBAT, race: 'nord', layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
-  steel: { ...OUTFIT_DATA.steel, anims: ['idle', 'walk'], layers: (p, b) => [...steelArmourLayers(p, b), ...steelGreatswordLayers(p)], pose: carryGreatsword },
+  steel: { ...OUTFIT_DATA.steel, anims: COMBAT, layers: (p, b) => [...steelArmourLayers(p, b), ...steelGreatswordLayers(p)], pose: carryGreatsword, poses: TWO_HANDED },
+  // The second and third enemies: a Nord marauder in fur with a battleaxe, and an Alik'r warrior.
+  marauder: { ...OUTFIT_DATA.marauder, anims: COMBAT, race: 'nord', layers: (p, b) => [...furArmourLayers(p, b), ...ironBattleaxeLayers(p)], pose: carryGreatsword, poses: TWO_HANDED },
+  alikr: { ...OUTFIT_DATA.alikr, anims: COMBAT, layers: (p, b) => [...garbLayers(p, b), ...scimitarLayers(p)] },
 };
 
 export type FrameJob = { race: string; outfit: string; anim: string; frame: number; facing: Facing };
@@ -92,7 +102,8 @@ export function renderFrame(job: FrameJob): FrameResult {
   const t0 = Date.now();
   const anim = ANIMS[job.anim];
   const outfit = OUTFITS[job.outfit];
-  const p = outfit.pose ? outfit.pose(anim.pose(job.frame / anim.frames)) : anim.pose(job.frame / anim.frames);
+  const base = (outfit.poses?.[job.anim] ?? anim.pose)(job.frame / anim.frames);
+  const p = outfit.pose && (job.anim === 'idle' || job.anim === 'walk') ? outfit.pose(base) : base;
   const body = makeBody(p);
   const layers = [...bodyLayers(p, body), ...hairLayers(p, body), ...outfit.layers(p, body)];
   const local = segmentLocal(p);

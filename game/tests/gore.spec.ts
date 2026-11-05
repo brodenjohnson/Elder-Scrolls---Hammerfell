@@ -129,7 +129,7 @@ test('finishers: only on a staggered or badly hurt enemy; it kills, beheads and 
   expect((await fighter(page, 'player')).state).not.toBe('finisher');
 });
 
-test('a version 2 save (0.3.x) migrates to version 3 with no Rage or wounds', async ({ page }) => {
+test('a version 2 save (0.3.x) migrates to the current version with no Rage, wounds or quests', async ({ page }) => {
   await boot(page);
   await page.evaluate(() => localStorage.setItem('hammerfell.save.v2', JSON.stringify({
     version: 2, savedAt: '2026-11-05T00:00:00Z', gameVersion: '0.3.1', playSeconds: 10, player: { a: 572, b: 958, facing: 'E' }, slices: {},
@@ -137,7 +137,38 @@ test('a version 2 save (0.3.x) migrates to version 3 with no Rage or wounds', as
   })));
   expect(await call(page, 'load', 'v2')).toBe(true);
   const s = await call(page, 'readSave', 'v2');
-  expect(s.version).toBe(3);
+  expect(s.version).toBe(4);
+  expect(s.quests).toEqual({ active: {}, done: [] });
   expect(s.combat).toEqual({ rage: 0, bleed: 0, limp: 0, bodies: {} });
   expect(await call<number>(page, 'rage')).toBe(0);
+});
+
+test('first launch shows the mature content warning; the gore choice is remembered', async ({ page }) => {
+  await boot(page);
+  await expect(page.locator('#warning')).toBeVisible();
+  await page.locator('#warning button[data-gore="some"]').click();
+  await expect(page.locator('#warning')).toBeHidden();
+  await page.reload(); await page.waitForFunction(() => (window as any).__game?.ready);
+  await expect(page.locator('#warning')).toBeHidden();
+  expect((await call(page, 'settings')).gore).toBe('some');
+});
+
+test('gore off: no blood and no dismemberment; some: blood but nothing cut off', async ({ page }) => {
+  await toCamp(page);
+  await call(page, 'setRandom', 0);
+  await call(page, 'setGore', 'off');
+  await call(page, 'placeEnemy', 'coastCamp:0', 1.2, 0);
+  await call(page, 'setHealth', 'coastCamp:0', 1);
+  await call(page, 'attackAt', 'coastCamp:0', true);
+  await wait(page, 1.2);
+  expect((await fighter(page, 'coastCamp:0')).state).toBe('dead');
+  expect((await call(page, 'wounds', 'coastCamp:0')).severed).toEqual([]);
+  expect(await call<number>(page, 'decals')).toBe(0);
+  await call(page, 'setGore', 'some');
+  await call(page, 'placeEnemy', 'coastCamp:1', 1.2, 0);
+  await call(page, 'setHealth', 'coastCamp:1', 1);
+  await call(page, 'attackAt', 'coastCamp:1', true);
+  await wait(page, 1.2);
+  expect((await call(page, 'wounds', 'coastCamp:1')).severed).toEqual([]);
+  expect(await call<number>(page, 'decals')).toBeGreaterThan(0);
 });

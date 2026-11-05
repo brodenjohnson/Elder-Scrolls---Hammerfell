@@ -1,0 +1,18 @@
+{
+  "_note": "Quests (src/systems/quests.ts). Objectives are met by events: talk (a dialogue line sends it), interact (a thing used), kill, reach, or flag (a story flag set). The prologue quests (MAIN_QUEST.md section 2) will go here too.",
+  "clearRoad": {
+    "id": "clearRoad", "title": "The road east", "giver": "settler",
+    "stages": [
+      {
+        "id": "camp", "text": "The settler by the fire says bandits camp on the Coast Road, east of the settlement. Clear them out.",
+        "objectives": [{ "id": "camp", "text": "Clear the bandit camp on the Coast Road", "on": { "type": "flag", "target": "cleared:coastCamp" } }],
+        "next": "report"
+      },
+      {
+        "id": "report", "text": "The camp is quiet. The settler will want to know.",
+        "objectives": [{ "id": "tell", "text": "Tell the settler the road is clear", "on": { "type": "talk", "target": "settler.roadClear" } }],
+        "then": { "give": { "Bandage": 2 }, "setFlag": "road.clear" }
+      }
+    ]
+  }
+}

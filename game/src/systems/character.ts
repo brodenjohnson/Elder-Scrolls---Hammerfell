@@ -5,7 +5,7 @@ import type { ArmourDef, GameData, PerkDef, SkillId, WeaponDef } from './data';
 // and an inventory with equipment. Plain data plus rules, so saves are simple.
 
 export type CharacterState = {
-  race: string;
+  name: string; race: string;
   level: number; xp: number;
   skills: Record<SkillId, { level: number; xp: number }>;
   perks: string[]; perkPoints: number;
@@ -18,11 +18,13 @@ export type CharacterState = {
 export const SKILL_START = 15;   // Skyrim: every skill starts at 15, plus the race's boosts
 const SKILL_CAP = 100;
 
-export function newCharacter(data: GameData, race = 'RedguardRace'): CharacterState {
+export const DEFAULT_NAME = 'Kasim'; // (P) until the player names him at creation
+
+export function newCharacter(data: GameData, race = 'RedguardRace', name = DEFAULT_NAME): CharacterState {
   const r = data.races.get(race)!;
   const skills = Object.fromEntries(data.skills.map((s) => [s.skill, { level: SKILL_START + (r.skillBoosts.find((b) => b.skill === s.skill)?.boost ?? 0), xp: 0 }])) as CharacterState['skills'];
   return {
-    race, level: 1, xp: 0, skills, perks: [], perkPoints: 0, pendingLevelUps: 0,
+    name, race, level: 1, xp: 0, skills, perks: [], perkPoints: 0, pendingLevelUps: 0,
     baseHealth: 100, baseStamina: 100, // bible: Health 100 and Stamina 100 for every race
     inventory: { ClothesFarmClothes01: 1, ClothesFarmBoots01: 1 },
     equipped: { mainHand: null, body: 'ClothesFarmClothes01', hands: null, feet: 'ClothesFarmBoots01', head: null, shield: null },
