@@ -6,12 +6,14 @@
       {
         "name": "Farm Clothes",
         "slot": "body",
-        "stats": "[X]"
+        "stats": "In game \"Belted Tunic\": weight 1, value 2",
+        "source": "data/skyrim/json/armour.json (ClothesFarmClothes01)"
       },
       {
         "name": "Farm Boots",
         "slot": "feet",
-        "stats": "[X]"
+        "stats": "In game \"Boots\": weight 1, value 2",
+        "source": "data/skyrim/json/armour.json (ClothesFarmBoots01)"
       }
     ]
   },
@@ -27,12 +29,14 @@
       {
         "name": "Leather Bracers",
         "slot": "hands",
-        "stats": "[X]"
+        "stats": "Armour 7, weight 2, value 25",
+        "source": "data/skyrim/json/armour.json (ArmorLeatherGauntlets)"
       },
       {
         "name": "Leather Boots",
         "slot": "feet",
-        "stats": "[X]"
+        "stats": "Armour 7, weight 2, value 25",
+        "source": "data/skyrim/json/armour.json (ArmorLeatherBoots)"
       },
       {
         "name": "Iron Sword",
@@ -52,14 +56,16 @@
         "source": "data/skyrim/armour.md"
       },
       {
-        "name": "Steel Gauntlets",
+        "name": "Steel Nordic Gauntlets",
         "slot": "hands",
-        "stats": "[X]"
+        "stats": "Armour 12, weight 4, value 55",
+        "source": "data/skyrim/json/armour.json (ArmorSteelGauntletsA)"
       },
       {
         "name": "Steel Shin Boots",
         "slot": "feet",
-        "stats": "[X]"
+        "stats": "Armour 12, weight 8, value 55",
+        "source": "data/skyrim/json/armour.json (ArmorSteelBootsB)"
       },
       {
         "name": "Steel Greatsword",

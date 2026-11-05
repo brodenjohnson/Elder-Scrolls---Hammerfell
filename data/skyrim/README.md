@@ -19,6 +19,15 @@ Alteration, Conjuration, Destruction, Illusion, Restoration and Enchanting are r
 4. Spot-check ten random rows against the wiki before trusting the import. List the checks in the Phase 0 report.
 5. Write a loader and a test that fails if any item used in game content is missing from the pack.
 
+## Export from the game (done in Phase 0)
+`data/skyrim/json/` is exported from Broden's own Skyrim Special Edition (`Skyrim.esm` with `Update.esm` applied, English strings from `Skyrim - Interface.bsa`). It supersedes the hand-typed tables below wherever they differ, and fills the [X] rows: every weapon, armour piece, ammo, perk (with description text), race, class, NPC and creature, NPC spell, magic effect, leveled list and game setting.
+- Re-export: `node data/skyrim/extract/export.mjs "C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition"` (about 2 s, no tools to install).
+- Check: `node data/skyrim/extract/check.mjs` compares 15 rows with the [V] values here and confirms every item the art uses exists.
+- Load in code: `loadSkyrim()` in `data/skyrim/loader.mjs`.
+- **The JSON is kept out of git** (`.gitignore`) while the GitHub repo is public. Make the repo private before committing it.
+- Each row has `source` (Skyrim.esm or Update.esm) and `verified: "export"`.
+- Field offsets follow UESP's "Skyrim Mod:Mod File Format" pages. Derived values (an NPC's final health, perk effects as numbers) are not computed yet: the raw fields are exported and the formulas are still in `formulas.md`.
+
 ## Files
 - `formulas.md` leveling, perks, armour, damage and other formulas.
 - `weapons.md` weapons by class and material.

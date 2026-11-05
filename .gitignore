@@ -1,3 +1,6 @@
 new-game.zip
 node_modules/
 art/out/
+
+# Exported from Skyrim.esm: keep out of git while the repo is public.
+data/skyrim/json/
