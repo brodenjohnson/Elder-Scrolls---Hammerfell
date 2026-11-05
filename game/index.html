@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hammerfell</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #071116; overflow: hidden; font: 13px/1.4 Georgia, serif; color: #d8c9a8; }
+  #stage canvas { display: block; }
+  .panel { position: fixed; background: rgba(12, 9, 8, 0.72); border: 1px solid #3a322a; padding: 6px 10px; pointer-events: none; }
+  #hud { top: 10px; left: 10px; }
+  #hud .dim { color: #8a7d68; font-size: 12px; }
+  #msg { bottom: 34px; left: 50%; transform: translateX(-50%); border: none; background: none; text-shadow: 0 1px 2px #000; font-size: 15px; }
+  #keys { bottom: 10px; left: 10px; color: #8a7d68; font-size: 12px; }
+  #version { bottom: 10px; right: 10px; color: #8a7d68; font-size: 12px; }
+  #notice { top: 10px; left: 50%; transform: translateX(-50%); color: #e6c27a; border-color: #8a6a2a; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hud" class="panel"></div>
+<div id="msg" class="panel"></div>
+<div id="notice" class="panel" hidden></div>
+<div id="keys" class="panel">WASD move &middot; Shift run &middot; E smash &middot; F5 save &middot; F9 load</div>
+<div id="version" class="panel"></div>
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>

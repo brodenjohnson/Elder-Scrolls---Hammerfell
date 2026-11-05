@@ -34,3 +34,9 @@ Four spikes, then a short report with numbers and screenshots:
 3. **Combat feel:** a bare arena with attack, dodge and block, using the numbers in section 11 of the bible as starting values.
 4. **Data:** finish `data/skyrim/`. First ask Broden whether you may export records from his copy of `Skyrim.esm` with xEdit (best accuracy). If not, extract from UESP or its mirrors. Import to JSON in `data/skyrim/json/`, write a loader, and spot-check ten rows. Report any numbers you could not confirm.
 Then ask Broden the blocking questions in section 16 of the bible before Phase 1.
+
+## Status (keep current)
+- Phase 0 done and approved (2026-11-05): reports in `docs/` (PHASE0, ART_SPIKE, TECH_SPIKE, COMBAT_SPIKE).
+- Phase 1 engine core: `game/` (TypeScript, Vite, PixiJS 8), released as 0.1.0. Run `npm test` in `game/` before every release; release with `npm run release`.
+- Art pipeline: `art/` (code-drawn sprites). The game reads only exported PNG and JSON, copied in by `game/scripts/assets.mjs`.
+- Skyrim numbers: `data/skyrim/json/`, exported from Broden's game (`data/skyrim/extract/`). Not in git yet; commit when the game first reads them.

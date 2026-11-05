@@ -1,0 +1,385 @@
+{
+ "tiles": [
+  {
+   "id": "sand.desert_0",
+   "file": "tiles/sand.desert_0.png"
+  },
+  {
+   "id": "sand.desert_1",
+   "file": "tiles/sand.desert_1.png"
+  },
+  {
+   "id": "sand.desert_2",
+   "file": "tiles/sand.desert_2.png"
+  },
+  {
+   "id": "earth.cracked_0",
+   "file": "tiles/earth.cracked_0.png"
+  },
+  {
+   "id": "road_0",
+   "file": "tiles/road_0.png"
+  },
+  {
+   "id": "sand.beach_0",
+   "file": "tiles/sand.beach_0.png"
+  },
+  {
+   "id": "sand.beach_1",
+   "file": "tiles/sand.beach_1.png"
+  },
+  {
+   "id": "grass.coast_0",
+   "file": "tiles/grass.coast_0.png"
+  },
+  {
+   "id": "grass.coast_1",
+   "file": "tiles/grass.coast_1.png"
+  },
+  {
+   "id": "water.shallow_0",
+   "file": "tiles/water.shallow_0.png"
+  },
+  {
+   "id": "water.deep_0",
+   "file": "tiles/water.deep_0.png"
+  }
+ ],
+ "overlays": [
+  {
+   "material": "water.shallow",
+   "files": [
+    {
+     "side": "a0",
+     "file": "overlays/water.shallow__a0.png"
+    },
+    {
+     "side": "a1",
+     "file": "overlays/water.shallow__a1.png"
+    },
+    {
+     "side": "b0",
+     "file": "overlays/water.shallow__b0.png"
+    },
+    {
+     "side": "b1",
+     "file": "overlays/water.shallow__b1.png"
+    },
+    {
+     "side": "a0b0",
+     "file": "overlays/water.shallow__a0b0.png"
+    },
+    {
+     "side": "a0b1",
+     "file": "overlays/water.shallow__a0b1.png"
+    },
+    {
+     "side": "a1b0",
+     "file": "overlays/water.shallow__a1b0.png"
+    },
+    {
+     "side": "a1b1",
+     "file": "overlays/water.shallow__a1b1.png"
+    }
+   ]
+  },
+  {
+   "material": "sand.beach",
+   "files": [
+    {
+     "side": "a0",
+     "file": "overlays/sand.beach__a0.png"
+    },
+    {
+     "side": "a1",
+     "file": "overlays/sand.beach__a1.png"
+    },
+    {
+     "side": "b0",
+     "file": "overlays/sand.beach__b0.png"
+    },
+    {
+     "side": "b1",
+     "file": "overlays/sand.beach__b1.png"
+    },
+    {
+     "side": "a0b0",
+     "file": "overlays/sand.beach__a0b0.png"
+    },
+    {
+     "side": "a0b1",
+     "file": "overlays/sand.beach__a0b1.png"
+    },
+    {
+     "side": "a1b0",
+     "file": "overlays/sand.beach__a1b0.png"
+    },
+    {
+     "side": "a1b1",
+     "file": "overlays/sand.beach__a1b1.png"
+    }
+   ]
+  },
+  {
+   "material": "sand.desert",
+   "files": [
+    {
+     "side": "a0",
+     "file": "overlays/sand.desert__a0.png"
+    },
+    {
+     "side": "a1",
+     "file": "overlays/sand.desert__a1.png"
+    },
+    {
+     "side": "b0",
+     "file": "overlays/sand.desert__b0.png"
+    },
+    {
+     "side": "b1",
+     "file": "overlays/sand.desert__b1.png"
+    },
+    {
+     "side": "a0b0",
+     "file": "overlays/sand.desert__a0b0.png"
+    },
+    {
+     "side": "a0b1",
+     "file": "overlays/sand.desert__a0b1.png"
+    },
+    {
+     "side": "a1b0",
+     "file": "overlays/sand.desert__a1b0.png"
+    },
+    {
+     "side": "a1b1",
+     "file": "overlays/sand.desert__a1b1.png"
+    }
+   ]
+  },
+  {
+   "material": "earth.cracked",
+   "files": [
+    {
+     "side": "a0",
+     "file": "overlays/earth.cracked__a0.png"
+    },
+    {
+     "side": "a1",
+     "file": "overlays/earth.cracked__a1.png"
+    },
+    {
+     "side": "b0",
+     "file": "overlays/earth.cracked__b0.png"
+    },
+    {
+     "side": "b1",
+     "file": "overlays/earth.cracked__b1.png"
+    },
+    {
+     "side": "a0b0",
+     "file": "overlays/earth.cracked__a0b0.png"
+    },
+    {
+     "side": "a0b1",
+     "file": "overlays/earth.cracked__a0b1.png"
+    },
+    {
+     "side": "a1b0",
+     "file": "overlays/earth.cracked__a1b0.png"
+    },
+    {
+     "side": "a1b1",
+     "file": "overlays/earth.cracked__a1b1.png"
+    }
+   ]
+  },
+  {
+   "material": "grass.coast",
+   "files": [
+    {
+     "side": "a0",
+     "file": "overlays/grass.coast__a0.png"
+    },
+    {
+     "side": "a1",
+     "file": "overlays/grass.coast__a1.png"
+    },
+    {
+     "side": "b0",
+     "file": "overlays/grass.coast__b0.png"
+    },
+    {
+     "side": "b1",
+     "file": "overlays/grass.coast__b1.png"
+    },
+    {
+     "side": "a0b0",
+     "file": "overlays/grass.coast__a0b0.png"
+    },
+    {
+     "side": "a0b1",
+     "file": "overlays/grass.coast__a0b1.png"
+    },
+    {
+     "side": "a1b0",
+     "file": "overlays/grass.coast__a1b0.png"
+    },
+    {
+     "side": "a1b1",
+     "file": "overlays/grass.coast__a1b1.png"
+    }
+   ]
+  },
+  {
+   "material": "road",
+   "files": [
+    {
+     "side": "a0",
+     "file": "overlays/road__a0.png"
+    },
+    {
+     "side": "a1",
+     "file": "overlays/road__a1.png"
+    },
+    {
+     "side": "b0",
+     "file": "overlays/road__b0.png"
+    },
+    {
+     "side": "b1",
+     "file": "overlays/road__b1.png"
+    },
+    {
+     "side": "a0b0",
+     "file": "overlays/road__a0b0.png"
+    },
+    {
+     "side": "a0b1",
+     "file": "overlays/road__a0b1.png"
+    },
+    {
+     "side": "a1b0",
+     "file": "overlays/road__a1b0.png"
+    },
+    {
+     "side": "a1b1",
+     "file": "overlays/road__a1b1.png"
+    }
+   ]
+  }
+ ],
+ "priority": [
+  "water.deep",
+  "water.shallow",
+  "sand.beach",
+  "sand.desert",
+  "earth.cracked",
+  "grass.coast",
+  "road"
+ ],
+ "objects": {
+  "house": {
+   "w": 433,
+   "h": 435,
+   "ox": 170,
+   "oy": 327,
+   "shadow": true
+  },
+  "palm1": {
+   "w": 285,
+   "h": 301,
+   "ox": 78,
+   "oy": 245,
+   "shadow": true
+  },
+  "palm2": {
+   "w": 285,
+   "h": 305,
+   "ox": 73,
+   "oy": 248,
+   "shadow": true
+  },
+  "rock1": {
+   "w": 53,
+   "h": 39,
+   "ox": 22,
+   "oy": 27,
+   "shadow": true
+  },
+  "rock2": {
+   "w": 59,
+   "h": 45,
+   "ox": 25,
+   "oy": 31,
+   "shadow": true
+  },
+  "scrub1": {
+   "w": 41,
+   "h": 34,
+   "ox": 17,
+   "oy": 24,
+   "shadow": true
+  },
+  "scrub2": {
+   "w": 41,
+   "h": 33,
+   "ox": 19,
+   "oy": 22,
+   "shadow": true
+  },
+  "barrel": {
+   "w": 66,
+   "h": 75,
+   "ox": 21,
+   "oy": 59,
+   "shadow": true
+  },
+  "crate": {
+   "w": 77,
+   "h": 69,
+   "ox": 29,
+   "oy": 49,
+   "shadow": true
+  },
+  "pot": {
+   "w": 48,
+   "h": 54,
+   "ox": 17,
+   "oy": 43,
+   "shadow": true
+  },
+  "potSmall": {
+   "w": 34,
+   "h": 39,
+   "ox": 12,
+   "oy": 31,
+   "shadow": true
+  },
+  "chest": {
+   "w": 69,
+   "h": 61,
+   "ox": 28,
+   "oy": 43,
+   "shadow": true
+  },
+  "cliff": {
+   "w": 157,
+   "h": 125,
+   "ox": 65,
+   "oy": 85,
+   "shadow": true
+  },
+  "campfire": {
+   "w": 49,
+   "h": 39,
+   "ox": 23,
+   "oy": 27,
+   "shadow": true
+  }
+ },
+ "sheets": [
+  "farm_idle",
+  "farm_walk"
+ ]
+}

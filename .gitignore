@@ -4,3 +4,6 @@ art/out/
 
 # Exported from Skyrim.esm: keep out of git while the repo is public.
 data/skyrim/json/
+game/dist/
+game/test-results/
+game/playwright-report/
