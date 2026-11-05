@@ -13,7 +13,8 @@ await game.start(document.getElementById('stage')!);
 setInterval(() => {
   const w = game.where(), p = game.player;
   hud.innerHTML = `<b>${w.info.region}</b><br>${w.info.biome}${w.info.level_band ? `, levels ${w.info.level_band}` : ''}<br>` +
-    `<span class="dim">slice ${w.sx + 1},${w.sy + 1} &middot; tile ${Math.floor(p.a)},${Math.floor(p.b)} &middot; ${game.fps} fps</span>`;
+    `<span class="dim">slice ${w.sx + 1},${w.sy + 1} &middot; tile ${Math.floor(p.a)},${Math.floor(p.b)} &middot; ${game.fps} fps</span><br>` +
+    `Level ${game.character.s.level} &middot; Armour ${game.character.armourRating()}${game.character.s.pendingLevelUps ? ' &middot; <b>level up (C)</b>' : ''}`;
   msg.textContent = game.currentMessage;
 }, 100);
 
@@ -48,5 +49,24 @@ setInterval(checkVersion, 10 * 60 * 1000);
   checkVersion,
   stats: () => ({ fps: game.fps, streamer: { ...game.streamer.stats }, chunks: { ...game.renderer.stats, cached: game.renderer.chunksCached, pending: game.renderer.chunksPending }, frameLog: game.frameLog.slice(-600) }),
   SLICE,
+  // Systems (Phase 2).
+  character: () => structuredClone(game.character.s),
+  useSkill: (skill: string, amount: number) => game.character.useSkill(skill as never, amount),
+  skillXpToNext: (skill: string) => game.character.skillXpToNext(skill as never),
+  xpToNext: () => game.character.xpToNext(),
+  canTake: (perk: string) => game.character.canTake(perk),
+  takePerk: (perk: string) => game.character.takePerk(perk),
+  perkValue: (entryPoint: string, base: number, keywords: string[]) => game.character.perkValue(entryPoint, base, keywords),
+  give: (edid: string, n = 1) => game.character.give(edid, n),
+  equip: (edid: string) => game.character.equip(edid),
+  armourRating: () => game.character.armourRating(),
+  outfit: () => game.outfit(),
+  interact: () => game.interact(),
+  talk: (id: string) => { game.talk(id); return game.panels.conversation!.current.text; },
+  choices: () => game.panels.conversation?.choices.map((c) => c.text) ?? [],
+  choose: (i: number) => { game.panels.conversation?.choose(i); game.panels.render(); return game.panels.conversation?.done ? null : game.panels.conversation?.current.text; },
+  reputation: () => structuredClone(game.reputation),
+  flags: () => [...game.flags],
+  npcs: () => game.npcs.map((n) => ({ ...n })),
   ready: true,
 };

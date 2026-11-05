@@ -10,7 +10,7 @@ export type Atlas = {
   cell: { w: number; h: number; ox: number; oy: number }; frames: number; fps: number; sheet: string;
   sprites: Record<string, { drawOrder: string[]; pieces: Record<string, { sx: number; sy: number; w: number; h: number; x: number; y: number; kind: string }> }>;
 };
-export type Drawable = { texture: Texture; x: number; y: number; alpha?: number };
+export type Drawable = { texture: Texture; x: number; y: number; alpha?: number; tint?: number };
 
 export const SCALE = 2; // integer scaling, nearest-neighbour (bible)
 
@@ -117,7 +117,7 @@ export class Renderer {
       const d = items[i];
       s.visible = !!d;
       if (!d) return;
-      s.texture = d.texture; s.x = d.x; s.y = d.y; s.alpha = d.alpha ?? 1;
+      s.texture = d.texture; s.x = d.x; s.y = d.y; s.alpha = d.alpha ?? 1; s.tint = d.tint ?? 0xffffff;
     });
   }
 }

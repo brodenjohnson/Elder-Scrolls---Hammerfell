@@ -14,7 +14,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(here, '../json');
 const game = process.argv[2] ?? 'C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition';
 const DATA = path.join(game, 'Data');
-const TYPES = ['WEAP', 'ARMO', 'AMMO', 'PERK', 'RACE', 'NPC_', 'SPEL', 'MGEF', 'LVLI', 'LVLN', 'GMST', 'CLAS', 'KYWD'];
+const TYPES = ['WEAP', 'ARMO', 'AMMO', 'PERK', 'RACE', 'NPC_', 'SPEL', 'MGEF', 'LVLI', 'LVLN', 'GMST', 'CLAS', 'KYWD', 'AVIF'];
 
 // ---------- load and merge ----------
 
@@ -195,13 +195,81 @@ const spells = of('SPEL').map((r) => {
   });
 });
 
-// PERK: name, description, flags in DATA (u8 trait, level, ranks, playable, hidden), next perk in NNAM.
+// Condition functions this export names (others are kept as numbers).
+const CONDITION = { 277: 'GetBaseActorValue', 448: 'HasPerk', 560: 'HasKeyword', 599: 'WornHasKeyword', 72: 'GetIsID', 682: 'WornApparelHasKeywordCount' };
+const OPS = ['==', '!=', '>', '>=', '<', '<='];
+// CTDA: type u8 (operator in the top 3 bits, 0x01 = OR with the next), value f32 @4,
+// function u16 @8, parameter 1 u32 @12. GetBaseActorValue's parameter is an actor value index.
+const condition = (c) => {
+  const fn = c.readUInt16LE(8), p1 = c.readUInt32LE(12);
+  return {
+    fn: CONDITION[fn] ?? fn, op: OPS[c[0] >> 5], or: (c[0] & 1) === 1, value: round(c.readFloatLE(4)),
+    param: fn === 277 ? av(p1) : ref(p1),
+  };
+};
+// Perk entry points by index (UESP "Skyrim:Perk Entry Point"); function 1 set, 2 add, 3 multiply...
+const ENTRY = ['CalculateWeaponDamage', 'CalculateMyCriticalHitChance', 'CalculateMyCriticalHitDamage', 'CalculateMineExplodeChance', 'AdjustLimbDamage',
+  'AdjustBookSkillPoints', 'ModRecoveredHealth', 'GetShouldAttack', 'ModBuyPrices', 'AddLeveledListOnDeath', 'GetMaxCarryWeight', 'ModAddictionChance',
+  'ModAddictionDuration', 'ModPositiveChemDuration', 'Activate', 'IgnoreRunningDuringDetection', 'IgnoreBrokenLock', 'ModEnemyCriticalHitChance',
+  'ModSneakAttackMult', 'ModMaxPlaceableMines', 'ModBowZoom', 'ModRecoverArrowChance', 'ModSkillUse', 'ModTelekinesisDistance',
+  'ModTelekinesisDamageMult', 'ModTelekinesisDamage', 'ModBashingDamage', 'ModPowerAttackStamina', 'ModPowerAttackDamage', 'ModSpellMagnitude',
+  'ModSpellDuration', 'ModSecondaryValueWeight', 'ModArmorWeight', 'ModIncomingStagger', 'ModTargetStagger', 'ModAttackDamage', 'ModIncomingDamage',
+  'ModTargetDamageResistance', 'ModSpellCost', 'ModPercentBlocked', 'ModShieldDeflectArrowChance', 'ModIncomingSpellMagnitude',
+  'ModIncomingSpellDuration', 'ModPlayerIntimidation', 'ModPlayerReputation', 'ModFavorPoints', 'ModBribeAmount', 'ModDetectionLight',
+  'ModDetectionMovement', 'ModSoulGemRecharge', 'SetSweepAttack', 'ApplyCombatHitSpell', 'ApplyBashingSpell', 'ApplyReanimateSpell',
+  'SetBooleanGraphVariable', 'ModSpellCastingSoundEvent', 'ModPickpocketChance', 'ModDetectionSneakSkill', 'ModFallingDamage',
+  'ModLockpickSweetSpot', 'ModSellPrices', 'CanPickpocketEquippedItem', 'SetLockpickStartingArc', 'SetProgressionPicking', 'Unknown64', // 64: not named on UESP; checked by perk indices around it
+  'MakeLockpicksUnbreakable', 'ModAlchemyEffectiveness', 'ApplyWeaponSwingSpell', 'ModCommandedActorLimit', 'ApplySneakingSpell',
+  'ModPlayerMagicSlowdown', 'ModWardMagickaAbsorptionPct', 'ModInitialIngredientEffectsLearned', 'PurifyAlchemyIngredients',
+  'FilterActivation', 'CanDualCastSpell', 'ModTemperingHealth', 'ModEnchantmentPower', 'ModSoulPctCapturedToWeapon',
+  'ModSoulGemEnchanting', 'ModAppliedEnchantmentsAllowed', 'SetActivateLabel', 'ModShoutOK', 'ModPoisonDoseCount', 'ShouldApplyPlacedItem',
+  'ModArmorRating', 'ModLockpickingCrimeChance', 'ModIngredientsHarvested', 'ModSpellRange', 'ModPotionsCreated',
+  'ModLockpickingKeyRewardChance', 'AllowMountActor'];
+const FUNCTION = { 1: 'set', 2: 'add', 3: 'multiply', 4: 'addRange', 5: 'addActorValueMult', 6: 'absolute', 7: 'negativeAbsolute', 8: 'addLeveledList',
+  9: 'addActivateChoice', 10: 'selectSpell', 11: 'selectText', 12: 'setToActorValueMult', 13: 'multiplyActorValueMult', 14: 'multiplyOnePlusActorValueMult', 15: 'setText' };
+
+// PERK: name, description, DATA (trait, level, ranks, playable, hidden), next rank (NNAM),
+// requirements from the conditions before the first PRKE, then effects: each PRKE
+// (type 0 quest, 1 ability, 2 entry point) with its DATA, conditions, EPFT and EPFD.
 const perks = of('PERK').map((r) => {
   const d = sub(r, 'DATA');
+  const conditions = [], effects = [];
+  let cur = null;
+  for (const x of r.subs) {
+    if (x.type === 'PRKE') { cur = { type: ['quest', 'ability', 'entryPoint'][x.data[0]] ?? x.data[0], rank: x.data[1], conditions: [] }; effects.push(cur); continue; }
+    if (!cur) { if (x.type === 'CTDA') conditions.push(condition(x.data)); continue; }
+    if (x.type === 'DATA') {
+      if (cur.type === 'entryPoint') { cur.entryIndex = x.data[0]; cur.entryPoint = ENTRY[x.data[0]] ?? x.data[0]; cur.function = FUNCTION[x.data[1]] ?? x.data[1]; }
+      else if (cur.type === 'ability') cur.spell = ref(x.data.readUInt32LE(0));
+      else cur.quest = ref(x.data.readUInt32LE(0));
+    } else if (x.type === 'CTDA') cur.conditions.push(condition(x.data));
+    else if (x.type === 'EPFT') cur.paramType = x.data[0];
+    else if (x.type === 'EPFD') {
+      if (cur.paramType === 1 || cur.paramType === 2) { cur.value = round(x.data.readFloatLE(0)); if (x.data.length >= 8) cur.value2 = round(x.data.readFloatLE(4)); }
+      else if (x.data.length >= 4) cur.ref = ref(x.data.readUInt32LE(0));
+    } else if (x.type === 'PRKF') cur = null;
+  }
+  const requires = conditions.filter((c) => c.fn === 'HasPerk' && c.value === 1).map((c) => c.param);
+  const skillReq = conditions.filter((c) => c.fn === 'GetBaseActorValue').map((c) => ({ skill: c.param, level: c.value }));
   return row(r, {
     name: lstr(r, 'FULL'), description: lstr(r, 'DESC', descs),
     playable: d ? d[3] === 1 : null, hidden: d ? d[4] === 1 : null, ranks: d ? d[2] : null,
     nextPerk: ref(sub(r, 'NNAM')?.readUInt32LE(0)),
+    requires, skillReq, conditions, effects,
+  });
+});
+
+// AVIF (skills): AVSK use mult, use offset, improve mult, improve offset; the perk tree's perks (PNAM).
+const SKILL_AVIF = { AVOneHanded: 'OneHanded', AVTwoHanded: 'TwoHanded', AVMarksman: 'Archery', AVBlock: 'Block', AVSmithing: 'Smithing',
+  AVHeavyArmor: 'HeavyArmor', AVLightArmor: 'LightArmor', AVPickpocket: 'Pickpocket', AVLockpicking: 'Lockpicking', AVSneak: 'Sneak',
+  AVAlchemy: 'Alchemy', AVSpeechcraft: 'Speech', AVAlteration: 'Alteration', AVConjuration: 'Conjuration', AVDestruction: 'Destruction',
+  AVMysticism: 'Illusion', AVRestoration: 'Restoration', AVEnchanting: 'Enchanting' };
+const skills = of('AVIF').filter((r) => SKILL_AVIF[edidOf.get(r.formId)]).map((r) => {
+  const k = sub(r, 'AVSK');
+  return row(r, {
+    skill: SKILL_AVIF[edidOf.get(r.formId)], name: lstr(r, 'FULL'), description: lstr(r, 'DESC', descs),
+    useMult: round(k?.readFloatLE(0)), useOffset: round(k?.readFloatLE(4)), improveMult: round(k?.readFloatLE(8)), improveOffset: round(k?.readFloatLE(12)),
+    perks: [...new Set(subs(r, 'PNAM').map((x) => ref(x.readUInt32LE(0))).filter((e) => e && !/^0+$/.test(e)))],
   });
 });
 
@@ -215,7 +283,7 @@ const leveled = (type) => of(type).map((r) => row(r, {
 
 fs.mkdirSync(OUT, { recursive: true });
 const sets = {
-  weapons, armour, ammo, perks, races, classes, npcs, spells, magicEffects,
+  weapons, armour, ammo, perks, skills, races, classes, npcs, spells, magicEffects,
   leveledItems: leveled('LVLI'), leveledNpcs: leveled('LVLN'), gameSettings,
 };
 for (const [name, rows] of Object.entries(sets)) {

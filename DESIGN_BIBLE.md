@@ -478,6 +478,7 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 34. **Renderer: PixiJS 8** with our own world and game logic (tech spike). Slice size 128 by 128 tiles confirmed.
 35. **Lethality multiplier 3 (PROPOSED, tune in play):** Skyrim's damage, armour, block and stamina numbers are used unchanged, then multiplied by Skyrim's own Legendary value (`fDiffMultHPToPCL` = 3) on both sides. This gives "a farmer in leather dies in three or four hits" (combat spike).
 36. **Phase 0 approved by Broden (2026-11-05):** PixiJS 8 stack and the code-drawn art direction. Phase 1 (engine core) released as 0.1.0: `game/`.
+37. **Phase 2 systems core released as 0.2.0.** Skills level on Skyrim's curves from the export; perks apply through Skyrim's entry points (highest owned rank only). Armour rating per piece is base x (1 + 0.4 x (skill + 15) / 100), PROPOSED until checked in game.
 
 ---
 

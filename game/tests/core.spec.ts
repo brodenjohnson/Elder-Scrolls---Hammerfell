@@ -108,7 +108,7 @@ test('an old version 0 save migrates and loads', async ({ page }) => {
   const p = await page.evaluate(() => (window as any).__game.player);
   expect(Math.round(p.a)).toBe(601);
   const s = await call<{ version: number; playSeconds: number }>(page, 'readSave', 'old');
-  expect(s.version).toBe(1);
+  expect(s.version).toBe(2); // version 0 migrates through 1 to the current version
   expect(s.playSeconds).toBe(42);
 });
 

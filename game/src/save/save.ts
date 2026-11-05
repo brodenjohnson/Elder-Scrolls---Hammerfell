@@ -1,11 +1,13 @@
 import type { Facing } from '../render/iso';
 import type { SliceState } from '../world/streamer';
+import type { CharacterState } from '../systems/character';
+import { newReputation, type ReputationState } from '../systems/reputation';
 
 // Versioned saves. Every change to saved data bumps SAVE_VERSION and adds a
 // migration from the version before, so an old save always loads (CLAUDE.md:
 // never break an old save without saying so first).
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type Save = {
   version: typeof SAVE_VERSION;
@@ -14,16 +16,22 @@ export type Save = {
   playSeconds: number;
   player: { a: number; b: number; facing: Facing };
   slices: Record<string, SliceState>;
+  // Version 2: the character, reputation and story flags. A null character means
+  // "make the default character" (saves from before characters existed).
+  character: CharacterState | null;
+  reputation: ReputationState;
+  flags: string[];
 };
 
 // migrations[n] turns a version n save into version n + 1.
-// Version 0 is the pre-release layout used before the save system existed: the
-// player position as tile x and y, play time as `time`, no slice state.
 const migrations: Record<number, (s: any) => any> = {
+  // Version 0: the pre-release layout, position as tile x and y, play time as `time`.
   0: (s) => ({
     version: 1, savedAt: s.savedAt ?? new Date(0).toISOString(), gameVersion: s.gameVersion ?? 'unknown',
     playSeconds: s.time ?? 0, player: { a: s.player.x, b: s.player.y, facing: 'S' }, slices: {},
   }),
+  // Version 1 (0.1.0): no character yet. The player starts with the default one.
+  1: (s) => ({ ...s, version: 2, character: null, reputation: newReputation(), flags: [] }),
 };
 
 export function migrate(raw: any): Save {

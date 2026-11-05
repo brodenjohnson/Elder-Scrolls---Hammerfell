@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'json');
-const SETS = ['weapons', 'armour', 'ammo', 'perks', 'races', 'classes', 'npcs', 'spells', 'magicEffects', 'leveledItems', 'leveledNpcs', 'gameSettings'];
+const SETS = ['weapons', 'armour', 'ammo', 'perks', 'skills', 'races', 'classes', 'npcs', 'spells', 'magicEffects', 'leveledItems', 'leveledNpcs', 'gameSettings'];
 
 export function loadSkyrim() {
   if (!fs.existsSync(path.join(dir, 'manifest.json'))) {

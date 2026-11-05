@@ -380,6 +380,10 @@
  },
  "sheets": [
   "farm_idle",
-  "farm_walk"
+  "farm_walk",
+  "leather_idle",
+  "leather_walk",
+  "steel_idle",
+  "steel_walk"
  ]
 }
