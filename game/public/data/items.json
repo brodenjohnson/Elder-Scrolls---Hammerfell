@@ -1,0 +1,4 @@
+{
+  "_note": "Items with no Skyrim record. Skyrim has no bandage; ours is in SYSTEMS_SPEC section 4 (stops bleeding, binds a limp; made by Alchemy later). Weight and value follow Skyrim's Linen Wrap.",
+  "Bandage": { "name": "Bandage", "weight": 0.1, "value": 3, "use": "bandage" }
+}

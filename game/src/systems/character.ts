@@ -143,7 +143,7 @@ export class Character {
   }
   carried(): number {
     let w = 0;
-    for (const [e, n] of Object.entries(this.s.inventory)) w += n * (this.data.weapons.get(e)?.weight ?? this.data.armour.get(e)?.weight ?? 0);
+    for (const [e, n] of Object.entries(this.s.inventory)) w += n * (this.data.weapons.get(e)?.weight ?? this.data.armour.get(e)?.weight ?? this.data.items[e]?.weight ?? 0);
     return +w.toFixed(1);
   }
   get maxHealth() { return this.s.baseHealth; }

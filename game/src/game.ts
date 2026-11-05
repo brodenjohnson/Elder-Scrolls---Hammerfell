@@ -9,7 +9,7 @@ import { Character, newCharacter } from './systems/character';
 import { newReputation, type ReputationState } from './systems/reputation';
 import { Conversation, type Dialogue } from './systems/dialogue';
 import { Panels } from './ui/panels';
-import { Combat, type Encounter, type Fighter } from './combat/combat';
+import { Combat, FURY, PARTS, WOUNDS, type Encounter, type Fighter, type FuryId } from './combat/combat';
 
 declare const __APP_VERSION__: string;
 export const VERSION = __APP_VERSION__;
@@ -22,6 +22,9 @@ type Manifest = {
 const PLAYER_RADIUS = 0.3;          // tiles
 const WALK = 3.2, RUN = 5;          // tiles a second (bible: about 5 running)
 const START = { sx: 4, sy: 7, a: 60, b: 61 }; // the Sentinel Coast, by the settlement fire
+// Fury powers unlock one per name crossed off the hunt list (SYSTEMS_SPEC 5). Until the
+// list exists in the game, the first is open from the start so Rage can be tried.
+const FURY_FROM_START: FuryId[] = ['burst'];
 
 const load = (src: string) => new Promise<HTMLImageElement>((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => err(new Error(src)); i.src = src; });
 const json = <T>(src: string): Promise<T> => fetch(src).then((r) => r.json());
@@ -61,11 +64,11 @@ export class Game {
     this.manifest = manifest;
     this.data = await loadData();
     this.dialogues.settler = await json<Dialogue>('./data/dialogue/settler.json');
-    this.panels = new Panels(() => this.character, () => this.reputation, () => {});
+    this.panels = new Panels(() => this.character, () => this.reputation, () => {}, (edid) => this.useItem(edid));
     const enc = await json<{ encounters: Encounter[] }>('./data/encounters.json');
     this.combat = new Combat(this.data, enc.encounters, {
       character: () => this.character, flags: () => this.flags, say: (m) => this.say(m),
-      sliceLoaded: (sx, sy) => this.streamer.loaded.has(`${sx},${sy}`),
+      sliceLoaded: (sx, sy) => this.streamer.loaded.has(`${sx},${sy}`), playerOutfit: () => this.outfit(),
     });
     this.map = new WorldMap(slices);
     this.terrain = new Terrain(this.map);
@@ -141,6 +144,9 @@ export class Game {
       if (e.code === 'Escape') this.panels.close();
       if (e.code === 'Space') { e.preventDefault(); this.rollPlayer(); }
       if (e.code === 'KeyN' && this.pf?.state === 'dead') this.newGame();
+      if (e.code === 'KeyF') this.finisher();
+      if (e.code === 'KeyQ') { if (e.shiftKey) this.cycleFury(); else this.fury(); }
+      if (e.code === 'KeyB') this.useItem('Bandage');
       if (this.panels.open === 'dialogue' && /^Digit[1-9]$/.test(e.code)) { this.panels.conversation?.choose(+e.code.slice(5) - 1); this.panels.render(); }
     });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
@@ -170,6 +176,43 @@ export class Game {
     // Melee faces the cursor (bible 11.1).
     if (!this.combat.busy(f)) { const v = this.renderer.view; f.facing = facingOf(this.mouse.x - v.w / 2, (this.mouse.y - (v.h / 2 + 30)) * 2); this.player.facing = f.facing; }
     return power ? this.combat.powerAttack(f) : this.combat.quick(f);
+  }
+  // F: finish a staggered or badly hurt enemy in front.
+  finisher() {
+    const f = this.pf;
+    if (!f || this.panels.open !== 'none' || !this.armed()) return false;
+    if (!this.combat.finish(f)) { if (!this.combat.busy(f)) this.say('No one to finish: they must be staggered or badly hurt, and in reach.'); return false; }
+    this.player.facing = f.facing;
+    return true;
+  }
+  // Q: spend Rage on the chosen Fury power; Shift+Q picks the next one unlocked.
+  furyPower: FuryId = 'burst';
+  furyUnlocked(): FuryId[] { return (Object.keys(FURY) as FuryId[]).filter((k) => FURY_FROM_START.includes(k) || this.flags.has(`fury:${k}`)); }
+  cycleFury() {
+    const u = this.furyUnlocked();
+    this.furyPower = u[(u.indexOf(this.furyPower) + 1) % u.length] ?? 'burst';
+    this.say(`Fury power: ${FURY[this.furyPower].name} (${FURY[this.furyPower].cost} Rage).`);
+  }
+  fury(power: FuryId = this.furyPower) {
+    const f = this.pf;
+    if (!f || this.panels.open !== 'none') return false;
+    if (!this.furyUnlocked().includes(power)) { this.say(`${FURY[power].name} is not unlocked.`); return false; }
+    if ((power === 'sweep' || power === 'execution') && !this.armed()) return false;
+    const ok = this.combat.useFury(f, power);
+    if (!ok && !this.combat.fury) this.say(`${FURY[power].name} needs ${FURY[power].cost} Rage.`);
+    return ok;
+  }
+  // Use an item from the inventory (for now only bandages).
+  useItem(edid: string) {
+    const item = this.data.items[edid], f = this.pf;
+    if (!item?.use || !f || f.state === 'dead') return false;
+    if (!this.character.s.inventory[edid]) { this.say(`No ${item.name.toLowerCase()}s left.`); return false; }
+    if (item.use === 'bandage') {
+      if (!this.combat.bandage(f)) { this.say('Nothing to bandage.'); return false; }
+      this.character.s.inventory[edid]--;
+      this.say('Bandaged: the bleeding stops and the leg is bound.');
+    }
+    return true;
   }
   rollPlayer() {
     const f = this.pf; if (!f || !this.armed()) return false;
@@ -201,7 +244,8 @@ export class Game {
       if (this.terrain.material(p.a, p.b) === M.shallow) speed *= 0.6;
       if (f.blocking) speed *= 0.5;
       // Sneaking (Ctrl) is slower and trains Sneak while moving.
-      const sneaking = k.has('ControlLeft') || k.has('ControlRight');
+      const sneaking = (k.has('ControlLeft') || k.has('ControlRight')) && !this.combat.fury; // no sneaking in Fury
+      if (f.limp > 0) speed *= WOUNDS.limpSpeed;
       if (sneaking) { speed *= 0.55; this.character.useSkill('Sneak', 0.5 * dt); }
       p.speed = speed;
       [p.a, p.b] = this.move(p.a, p.b, (ga / l) * speed * dt, (gb / l) * speed * dt);
@@ -288,7 +332,7 @@ export class Game {
     if (body) {
       this.flags.add(`looted:${body.id}`);
       for (const g of body.gear) this.character.give(g);
-      this.say(`Searched the body: ${body.gear.map((g) => this.data.weapons.get(g)?.name ?? this.data.armour.get(g)?.name ?? g).join(', ')}.`);
+      this.say(`Searched the body: ${body.gear.map((g) => this.data.weapons.get(g)?.name ?? this.data.armour.get(g)?.name ?? this.data.items[g]?.name ?? g).join(', ')}.`);
       return;
     }
     const npc = this.npcs.find((n) => Math.hypot(n.a - p.a, n.b - p.b) < 1.8);
@@ -309,8 +353,9 @@ export class Game {
     this.flags.add(flag);
     const loot = ['ArmorLeatherCuirass', 'ArmorLeatherBoots', 'ArmorLeatherGauntlets', 'ArmorSteelCuirassA', 'ArmorSteelBootsB', 'ArmorSteelGauntletsA', 'SteelGreatsword'];
     for (const e of loot) this.character.give(e);
+    this.character.give('Bandage', 3);
     this.character.useSkill('Lockpicking', 1);
-    this.say('Opened the chest: Leather and Steel armour, a Steel Greatsword. I for inventory.');
+    this.say('Opened the chest: Leather and Steel armour, a Steel Greatsword, three bandages. I for inventory.');
   }
   // Which sprite set the player wears follows the body armour.
   outfit(): 'farm' | 'farmSword' | 'leather' | 'steel' {
@@ -340,14 +385,27 @@ export class Game {
     const fps = p.moving ? atlas.fps * (p.speed / 2.6) : atlas.fps;
     const frame = combatAnim && name.endsWith(`_${anim}`) ? cframe : Math.floor(p.t * fps) % atlas.frames;
     const [px, py] = toScreen(p.a, p.b);
-    items.push({ texture: r.frame(name, atlas, sheet.image, p.facing, frame), x: Math.round(px - atlas.cell.ox), y: Math.round(py - atlas.cell.oy), a0: p.a, a1: p.a, b0: p.b, b1: p.b, c: p.a + p.b });
+    const furyTint = this.combat.fury ? 0xffa898 : 0xffffff;
+    items.push({ texture: r.frame(name, atlas, sheet.image, p.facing, frame, this.cut(f)), x: Math.round(px - atlas.cell.ox), y: Math.round(py - atlas.cell.oy), tint: furyTint, a0: p.a, a1: p.a, b0: p.b, b1: p.b, c: p.a + p.b });
     for (const e of this.combat.enemies) {
       void this.want(e.outfit); // enemies spawn with their slice, so their sheets arrive before they are in view
       if (Math.abs(e.a - p.a) > reach || Math.abs(e.b - p.b) > reach) continue;
       const [anim2, fr0] = this.combat.frame(e), [nm, s2] = this.sheet(e.outfit, anim2), fr2 = nm.endsWith(`_${anim2}`) ? fr0 : 0;
       const [ex, ey] = toScreen(e.a, e.b);
       const flash = e.state === 'hit' && e.t < 0.1;
-      items.push({ texture: r.frame(nm, s2.atlas, s2.image, e.facing, fr2), x: Math.round(ex - s2.atlas.cell.ox), y: Math.round(ey - s2.atlas.cell.oy), tint: flash ? 0xff8877 : 0xffffff, a0: e.a, a1: e.a, b0: e.b, b1: e.b, c: e.a + e.b - (e.state === 'dead' ? 0.5 : 0) });
+      items.push({ texture: r.frame(nm, s2.atlas, s2.image, e.facing, fr2, this.cut(e)), x: Math.round(ex - s2.atlas.cell.ox), y: Math.round(ey - s2.atlas.cell.oy), tint: flash ? 0xff8877 : 0xffffff, a0: e.a, a1: e.a, b0: e.b, b1: e.b, c: e.a + e.b - (e.state === 'dead' ? 0.5 : 0) });
+    }
+    // Severed parts: cut from the owner's first death frame, thrown, then lying where they land.
+    for (const q of this.combat.parts) {
+      if (Math.abs(q.a - p.a) > reach || Math.abs(q.b - p.b) > reach) continue;
+      void this.want(q.outfit);
+      const sh = this.sheets[`${q.outfit}_death`];
+      if (!sh) continue;
+      const pt = r.part(`${q.outfit}_death`, sh.atlas, sh.image, q.facing, 0, PARTS[q.part]), lift = Math.min(pt.w, pt.h) / 2;
+      const cx = pt.x + pt.w / 2 - sh.atlas.cell.ox, cy = pt.y + pt.h / 2 - sh.atlas.cell.oy;
+      if (q.z === null) q.z = -cy - lift; // start where it sat on the body
+      const [qx, qy] = toScreen(q.a, q.b);
+      items.push({ texture: pt.texture, x: Math.round(qx + cx), y: Math.round(qy - q.z - lift), rotation: q.rot, a0: q.a, a1: q.a, b0: q.b, b1: q.b, c: q.a + q.b + (q.settled ? -0.3 : 0.3) });
     }
     for (const n of this.npcs) {
       if (Math.abs(n.a - p.a) > reach || Math.abs(n.b - p.b) > reach) continue;
@@ -361,6 +419,8 @@ export class Game {
     r.blood(this.combat.decals, this.combat.drops);
   }
 
+  private cut(f: Fighter) { return f.severed.flatMap((s) => PARTS[s]); }
+
   // ---------- saving ----------
 
   snapshot(): Save {
@@ -368,6 +428,7 @@ export class Game {
       version: SAVE_VERSION, savedAt: new Date().toISOString(), gameVersion: VERSION, playSeconds: Math.round(this.playSeconds),
       player: { a: +this.player.a.toFixed(3), b: +this.player.b.toFixed(3), facing: this.player.facing }, slices: structuredClone(this.streamer.states),
       character: structuredClone(this.character.s), reputation: structuredClone(this.reputation), flags: [...this.flags],
+      combat: { rage: +this.combat.rage.toFixed(2), bleed: +(this.pf?.bleed ?? 0).toFixed(2), limp: Math.round(this.pf?.limp ?? 0), bodies: structuredClone(this.combat.bodies) },
     };
   }
   save(slot: string) { writeSave(slot, this.snapshot()); this.say(`Saved (${slot}).`); }
@@ -380,9 +441,12 @@ export class Game {
     this.reputation = structuredClone(s.reputation);
     this.flags = new Set(s.flags);
     this.panels.close();
-    this.combat.reset(); this.pf = undefined;
+    this.combat.reset();
+    this.combat.rage = s.combat.rage; this.combat.bodies = structuredClone(s.combat.bodies);
     this.playSeconds = s.playSeconds;
     this.place(s.player.a, s.player.b, s.player.facing);
+    this.pf = this.combat.playerFighter(this.player);
+    this.pf.bleed = s.combat.bleed; this.pf.limp = s.combat.limp;
     this.say(`Loaded (${slot}).`);
     return true;
   }

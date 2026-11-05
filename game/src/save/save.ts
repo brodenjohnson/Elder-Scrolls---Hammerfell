@@ -2,12 +2,13 @@ import type { Facing } from '../render/iso';
 import type { SliceState } from '../world/streamer';
 import type { CharacterState } from '../systems/character';
 import { newReputation, type ReputationState } from '../systems/reputation';
+import type { BodyState } from '../combat/combat';
 
 // Versioned saves. Every change to saved data bumps SAVE_VERSION and adds a
 // migration from the version before, so an old save always loads (CLAUDE.md:
 // never break an old save without saying so first).
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export type Save = {
   version: typeof SAVE_VERSION;
@@ -21,6 +22,8 @@ export type Save = {
   character: CharacterState | null;
   reputation: ReputationState;
   flags: string[];
+  // Version 3: the player's Rage and wounds, and where each body lies with what was cut off.
+  combat: { rage: number; bleed: number; limp: number; bodies: Record<string, BodyState> };
 };
 
 // migrations[n] turns a version n save into version n + 1.
@@ -32,6 +35,8 @@ const migrations: Record<number, (s: any) => any> = {
   }),
   // Version 1 (0.1.0): no character yet. The player starts with the default one.
   1: (s) => ({ ...s, version: 2, character: null, reputation: newReputation(), flags: [] }),
+  // Version 2 (0.2.0 to 0.3.1): no Rage or wounds; bodies lie where their camp put them.
+  2: (s) => ({ ...s, version: 3, combat: { rage: 0, bleed: 0, limp: 0, bodies: {} } }),
 };
 
 export function migrate(raw: any): Save {

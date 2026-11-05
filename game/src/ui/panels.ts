@@ -13,7 +13,7 @@ const bar = (v: number, max: number, colour: string) => `<span class="bar"><span
 export class Panels {
   open: 'none' | 'character' | 'inventory' | 'dialogue' = 'none';
   private skill: SkillId = 'OneHanded';
-  constructor(private readonly ch: () => Character, private readonly rep: () => ReputationState, private readonly changed: () => void) {
+  constructor(private readonly ch: () => Character, private readonly rep: () => ReputationState, private readonly changed: () => void, private readonly use: (edid: string) => void) {
     el('panel').addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest('[data-act]') as HTMLElement | null;
       if (!t) return;
@@ -22,6 +22,7 @@ export class Panels {
       if (act === 'skill') this.skill = arg as SkillId;
       if (act === 'perk') c.takePerk(arg);
       if (act === 'equip') c.equip(arg);
+      if (act === 'use') this.use(arg);
       if (act === 'unequip') c.unequip(arg as never);
       if (act === 'levelup') c.chooseLevelUp(arg as 'health' | 'stamina');
       if (act === 'choose') this.conversation?.choose(+arg);
@@ -65,10 +66,11 @@ export class Panels {
 
   private inventoryHtml() {
     const c = this.ch(), s = c.s;
-    const name = (e: string) => c.data.weapons.get(e)?.name ?? c.data.armour.get(e)?.name ?? e;
+    const name = (e: string) => c.data.weapons.get(e)?.name ?? c.data.armour.get(e)?.name ?? c.data.items[e]?.name ?? e;
     const equipped = Object.entries(s.equipped).map(([slot, e]) => `<div>${slot}: ${e ? `${esc(name(e))} <button data-act="unequip" data-arg="${slot}">Remove</button>` : '<span class="dim">nothing</span>'}</div>`).join('');
     const items = Object.entries(s.inventory).filter(([, n]) => n > 0).map(([e, n]) => {
-      const w = c.data.weapons.get(e), a = c.data.armour.get(e);
+      const w = c.data.weapons.get(e), a = c.data.armour.get(e), it = c.data.items[e];
+      if (it) return `<div>${esc(it.name)}${n > 1 ? ` x${n}` : ''} <span class="dim">weight ${it.weight}</span> ${it.use ? `<button data-act="use" data-arg="${e}">Use</button>` : ''}</div>`;
       const stat = w ? `damage ${w.damage}` : a ? (a.rating ? `armour ${a.rating}` : 'clothing') : '';
       const worn = Object.values(s.equipped).includes(e);
       return `<div>${esc(name(e))}${n > 1 ? ` x${n}` : ''} <span class="dim">${stat}, weight ${w?.weight ?? a?.weight ?? 0}</span> ${worn ? '<span class="dim">worn</span>' : `<button data-act="equip" data-arg="${e}">Equip</button>`}</div>`;

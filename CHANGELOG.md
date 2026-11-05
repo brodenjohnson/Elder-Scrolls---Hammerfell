@@ -2,6 +2,18 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.4.0 (2026-11-06): combat, second part
+
+- **Rage.** The amber bar under Stamina fills as you take and deal damage, more for kills and finishers, and cools after ten quiet seconds. It glows when you can spend it.
+- **Fury (Q).** Pain-ignoring burst for 30 Rage: eight seconds where blows do not stagger you and hurt 15 percent less. While Fury burns you cannot parry or sneak and your block is halved; afterwards you are Exhausted (Stamina returns at half rate for 30 s). The other Fury powers unlock as names come off the list; Shift+Q chooses between those you have.
+- **Wounds.** A hit of 30 percent of your Health or more bleeds (1 Health a second for 10 s). Some land on the legs and leave a limp (25 percent slower) until bandaged or a game day passes. Enemies bleed and limp too.
+- **Bandages (B, or Use in the inventory).** Stop bleeding and bind a limp. Three in the settlement chest.
+- **Dismemberment.** A power attack that kills can take off a head, an arm or a leg (a one in four chance with a one-handed sword; more with two-handers and axes, less against heavy armour). The part flies off and stays where it lands, through saving and loading. It can happen to you too.
+- **Finishers (F).** On an enemy who is staggered or under a quarter Health, in front of you and in reach: behead them, take the sword arm after a parry, or hamstring and behead from behind. You are open for about a second and a half. Finishers feed Rage.
+- Bodies now stay where they fell after loading, instead of going back to their camp.
+- Two-handed weapons and axes swing at their Skyrim speed (slower than a sword).
+- **Saves:** save version 3. Older saves load and migrate: Rage and wounds start at none, and bodies killed before this version lie at their camp.
+
 ## 0.3.1 (2026-11-06): faster loading
 
 - The game starts after loading only the farm clothes. Other outfits and the bandits load the first time they appear (a moment of idle pose at most).

@@ -1,4 +1,5 @@
 import { Game, VERSION } from './game';
+import { FURY, type FuryId } from './combat/combat';
 import { listSaves, readSave } from './save/save';
 import { SLICE } from './world/map';
 
@@ -21,6 +22,14 @@ setInterval(() => {
     document.getElementById('hp')!.style.width = `${(100 * Math.max(0, f.health)) / f.maxHealth}%`;
     document.getElementById('sp')!.style.width = `${(100 * Math.max(0, f.stamina)) / f.maxStamina}%`;
     document.getElementById('dead')!.hidden = f.state !== 'dead';
+    const c = game.combat, rp = document.getElementById('rp')!;
+    rp.style.width = `${c.rage}%`;
+    rp.parentElement!.classList.toggle('ready', c.rage >= FURY[game.furyPower].cost && !c.fury);
+    const status = [
+      c.fury && `${FURY[c.fury.power].name} ${Math.ceil(c.fury.left)}s`, c.exhausted > 0 && `Exhausted ${Math.ceil(c.exhausted)}s`,
+      f.bleed > 0 && 'Bleeding', f.limp > 0 && 'Limping',
+    ].filter(Boolean);
+    document.getElementById('status')!.textContent = status.join(' \u00b7 ');
   }
 }, 100);
 
@@ -92,6 +101,22 @@ setInterval(checkVersion, 10 * 60 * 1000);
     return game.combat.hitMoment(e);
   },
   calm: () => { for (const e of game.combat.enemies) e.ai!.passive = true; },
+  // Phase 3, second part: Rage and Fury, wounds, gore and finishers.
+  rage: () => game.combat.rage,
+  setRage: (n: number) => { game.combat.rage = n; },
+  fury: (power?: FuryId) => game.fury(power),
+  furyState: () => ({ fury: game.combat.fury, exhausted: game.combat.exhausted, unlocked: game.furyUnlocked() }),
+  unlockFury: (power: FuryId) => game.flags.add(`fury:${power}`),
+  finish: () => game.finisher(),
+  bandage: () => game.useItem('Bandage'),
+  wounds: (id = 'player') => { const f = [game.pf!, ...game.combat.enemies].find((x) => x.id === id)!; return { bleed: f.bleed, limp: f.limp, severed: [...f.severed] }; },
+  parts: () => game.combat.parts.map((p) => ({ owner: p.owner, part: p.part, settled: p.settled, a: p.a, b: p.b })),
+  bodies: () => structuredClone(game.combat.bodies),
+  // Pin the dice: 0 makes every chance happen, 0.999 none; null goes back to random.
+  setRandom: (v: number | null) => { game.combat.rng = v === null ? Math.random : () => v; },
+  setHealth: (id: string, h: number) => { const f = [game.pf!, ...game.combat.enemies].find((x) => x.id === id)!; f.health = h; },
+  stagger: (id: string) => { const e = game.combat.enemies.find((x) => x.id === id)!; e.state = 'hit'; e.t = 0; e.hitFor = 2; },
+  placeEnemy: (id: string, da: number, db: number) => { const e = game.combat.enemies.find((x) => x.id === id)!, pf = game.pf!; e.a = pf.a + da; e.b = pf.b + db; e.state = 'idle'; game.combat.faceTowards(pf, e.a, e.b); game.player.facing = pf.facing; game.combat.faceTowards(e, pf.a, pf.b); },
   rules: (attacker: string, defender: string, power = false, blocking = false) => {
     const all = [game.pf!, ...game.combat.enemies], a = all.find((x) => x.id === attacker)!, d = all.find((x) => x.id === defender)!;
     return game.combat.hit(a, d, { power, blocking });

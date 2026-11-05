@@ -38,7 +38,7 @@ Then ask Broden the blocking questions in section 16 of the bible before Phase 1
 ## Status (keep current)
 - Phase 0 done and approved (2026-11-05): reports in `docs/` (PHASE0, ART_SPIKE, TECH_SPIKE, COMBAT_SPIKE).
 - Phase 1 engine core: `game/` (TypeScript, Vite, PixiJS 8), released as 0.1.0. Run `npm test` in `game/` before every release; release with `npm run release`.
-- Phase 3 combat, first part, released as 0.3.0: melee against the Coast Road bandit camp (`game/src/combat/`). Still to do in Phase 3: Rage and Fury, more enemy types, wounds and limp, dismemberment in the world, finishers.
+- Phase 3 combat: melee against the Coast Road bandit camp (0.3.0, `game/src/combat/`); Rage and Fury, bleeding and limps, dismemberment in the world and three finishers (0.4.0). Still to do in Phase 3: the second and third enemy types in the world (Bandit marauder with a battleaxe, Alik'r warrior with a scimitar; their stats and AI styles are in, their art is not), two-handed combat frames (also needed for the Steel set), finisher animations of their own.
 - Phase 2 systems core released as 0.2.0: skills, perks, inventory and equipment, reputation, dialogue (`game/src/systems/`). Game data pack: `game/public/data/game/`, built by `npm run data` from the Skyrim export.
 - Art pipeline: `art/` (code-drawn sprites). The game reads only exported PNG and JSON, copied in by `game/scripts/assets.mjs`.
 - Skyrim numbers: `data/skyrim/json/`, exported from Broden's game (`data/skyrim/extract/`), kept out of git; the game's subset (`game/public/data/game/`) is committed (Broden is fine with the repo being public).

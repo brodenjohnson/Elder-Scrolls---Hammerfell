@@ -11,8 +11,8 @@
   .panel { position: fixed; background: rgba(12, 9, 8, 0.72); border: 1px solid #3a322a; padding: 6px 10px; pointer-events: none; }
   #hud { top: 10px; left: 10px; }
   #hud .dim { color: #8a7d68; font-size: 12px; }
-  #msg { bottom: 34px; left: 50%; transform: translateX(-50%); border: none; background: none; text-shadow: 0 1px 2px #000; font-size: 15px; }
-  #keys { bottom: 10px; left: 10px; color: #8a7d68; font-size: 12px; }
+  #msg { bottom: 64px; left: 50%; transform: translateX(-50%); border: none; background: none; text-shadow: 0 1px 2px #000; font-size: 15px; }
+  #keys { bottom: 10px; left: 10px; right: 90px; color: #8a7d68; font-size: 12px; }
   #version { bottom: 10px; right: 10px; color: #8a7d68; font-size: 12px; }
   #notice { top: 10px; left: 50%; transform: translateX(-50%); color: #e6c27a; border-color: #8a6a2a; }
   #panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(820px, 92vw); max-height: 84vh; overflow: auto;
@@ -29,9 +29,12 @@
   #panel .perk { margin-bottom: 6px; }
   #panel .perk.have b { color: #d8b46a; }
   #panel .levelup { margin: 8px 0; color: #e6c27a; }
-  #vitals { bottom: 34px; left: 10px; width: 220px; }
+  #vitals { bottom: 54px; left: 10px; width: 220px; }
   #vitals .v { height: 7px; background: #231d18; border: 1px solid #3a322a; margin: 3px 0; }
   #vitals .v span { display: block; height: 100%; }
+  #vitals .v.rage { height: 4px; }
+  #vitals .v.rage.ready span { box-shadow: 0 0 6px #f0b040; background: #e0a030 !important; }
+  #status { font-size: 12px; color: #e0a090; min-height: 14px; }
   #dead { top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #e0a090; text-align: center; padding: 14px 24px; }
   .bar { display: inline-block; width: 80px; height: 6px; background: #231d18; border: 1px solid #3a322a; vertical-align: middle; }
   .bar span { display: block; height: 100%; }
@@ -43,9 +46,9 @@
 <div id="msg" class="panel"></div>
 <div id="notice" class="panel" hidden></div>
 <div id="panel" hidden></div>
-<div id="vitals" class="panel"><div class="v"><span id="hp" style="background:#8f2a22"></span></div><div class="v"><span id="sp" style="background:#3f7a52"></span></div></div>
+<div id="vitals" class="panel"><div class="v"><span id="hp" style="background:#8f2a22"></span></div><div class="v"><span id="sp" style="background:#3f7a52"></span></div><div class="v rage"><span id="rp" style="background:#b07a24"></span></div><div id="status"></div></div>
 <div id="dead" class="panel" hidden>You are dead.<br><span style="font-size:13px;color:#a89a82">F9 to load your last save, N for a new game.</span></div>
-<div id="keys" class="panel">WASD move &middot; Shift run &middot; Ctrl sneak &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; F5 save &middot; F9 load</div>
+<div id="keys" class="panel">WASD move &middot; Shift run &middot; Ctrl sneak &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; F finisher &middot; Q Fury (Shift+Q choose) &middot; B bandage &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; F5 save &middot; F9 load</div>
 <div id="version" class="panel"></div>
 <script type="module" src="./src/main.ts"></script>
 </body>

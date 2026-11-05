@@ -118,14 +118,14 @@ test('the character, reputation and flags survive save, reload and load', async 
   expect(await call(page, 'outfit')).toBe('leather');
 });
 
-test('a version 1 save (0.1.0) migrates to version 2 with the default character', async ({ page }) => {
+test('a version 1 save (0.1.0) migrates to the current version with the default character', async ({ page }) => {
   await boot(page);
   await page.evaluate(() => localStorage.setItem('hammerfell.save.v1', JSON.stringify({
     version: 1, savedAt: '2026-11-05T00:00:00Z', gameVersion: '0.1.0', playSeconds: 10, player: { a: 572, b: 958, facing: 'E' }, slices: {},
   })));
   expect(await call(page, 'load', 'v1')).toBe(true);
   const s = await call(page, 'readSave', 'v1');
-  expect(s.version).toBe(2);
+  expect(s.version).toBe(3);
   expect(s.character).toBeNull();
   expect((await call(page, 'character')).skills.OneHanded.level).toBe(25);
 });

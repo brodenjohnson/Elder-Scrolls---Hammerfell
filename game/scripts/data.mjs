@@ -51,11 +51,17 @@ const races = load('races').filter((r) => r.playable && !/Vampire|Child/.test(r.
   .map(({ edid, name, skillBoosts, startingHealth, startingStamina, carryWeight, regen, unarmedDamage }) => ({ edid, name, skillBoosts, startingHealth, startingStamina, carryWeight, regen, unarmedDamage }));
 
 // Enemy templates: Skyrim's own NPC records (level, base health and stamina, combat skills).
-const ACTORS = { bandit1H: 'EncBandit01Melee1HTankRedguardM' };
+// The name and fighting style (how the AI behaves, see combat.ts STYLES) are ours.
+const ACTORS = {
+  bandit1H: { edid: 'EncBandit01Melee1HTankRedguardM', name: 'Bandit', style: 'tank' },
+  bandit2H: { edid: 'EncBandit01Melee2HBerserkNordM', name: 'Bandit marauder', style: 'berserker' },
+  alikr: { edid: 'EncAlikr02Melee1HRedguardM01', name: "Alik'r warrior", style: 'duelist' },
+};
 const npcs = load('npcs');
-const actors = Object.fromEntries(Object.entries(ACTORS).map(([id, edid]) => {
+const actors = Object.fromEntries(Object.entries(ACTORS).map(([id, { edid, name, style }]) => {
   const n = npcs.find((x) => x.edid === edid);
-  return [id, { edid, level: n.level, health: n.base.health, stamina: n.base.stamina, skills: { OneHanded: n.skills.OneHanded, Block: n.skills.Block, LightArmor: n.skills.LightArmor } }];
+  const skills = Object.fromEntries(['OneHanded', 'TwoHanded', 'Block', 'LightArmor', 'HeavyArmor'].map((k) => [k, n.skills[k]]));
+  return [id, { edid, name, style, level: n.level, health: n.base.health, stamina: n.base.stamina, skills }];
 }));
 write('actors', actors);
 write('skills', skills); write('perks', perks); write('weapons', weapons); write('armour', armour); write('settings', settings); write('races', races);

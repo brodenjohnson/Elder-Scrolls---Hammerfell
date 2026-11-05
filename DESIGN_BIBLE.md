@@ -479,6 +479,7 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 35. **Lethality multiplier 3 (PROPOSED, tune in play):** Skyrim's damage, armour, block and stamina numbers are used unchanged, then multiplied by Skyrim's own Legendary value (`fDiffMultHPToPCL` = 3) on both sides. This gives "a farmer in leather dies in three or four hits" (combat spike).
 36. **Phase 0 approved by Broden (2026-11-05):** PixiJS 8 stack and the code-drawn art direction. Phase 1 (engine core) released as 0.1.0: `game/`.
 37. **Phase 2 systems core released as 0.2.0.** Skills level on Skyrim's curves from the export; perks apply through Skyrim's entry points (highest owned rank only). Armour rating per piece is base x (1 + 0.4 x (skill + 15) / 100), PROPOSED until checked in game.
+38. **Phase 3 second part released as 0.4.0 (PROPOSED numbers, tune in play):** a serious wound is a hit of 30 percent of max Health or more; it bleeds (SYSTEMS_SPEC numbers), and a quarter of serious wounds land on the legs and lame. Dismemberment takes the head half the time, an arm 30 percent, a leg 20 percent. Finishers pick by situation: a broken guard takes the sword arm, a turned back is hamstrung then beheaded, otherwise the head. The first Fury power (Pain-ignoring burst) is open from the start until the hunt list is in the game. Enemy fighting styles (tank, berserker, duelist) are ours, as Skyrim's combat style records are not exported yet. Attack speed follows the weapon's Skyrim speed.
 
 ---
 

@@ -10,7 +10,8 @@ export type Atlas = {
   cell: { w: number; h: number; ox: number; oy: number }; frames: number; fps: number; sheet: string;
   sprites: Record<string, { drawOrder: string[]; pieces: Record<string, { sx: number; sy: number; w: number; h: number; x: number; y: number; kind: string }> }>;
 };
-export type Drawable = { texture: Texture; x: number; y: number; alpha?: number; tint?: number };
+// x, y place the top left corner, or the centre when the drawable is rotated.
+export type Drawable = { texture: Texture; x: number; y: number; alpha?: number; tint?: number; rotation?: number };
 
 export const SCALE = 2; // integer scaling, nearest-neighbour (bible)
 
@@ -25,6 +26,7 @@ export class Renderer {
   private readonly worker = new ChunkWorker();
   private readonly textures = new Map<object, Texture>();
   private readonly frames = new Map<string, Texture>();
+  private readonly parts = new Map<string, { texture: Texture; x: number; y: number; w: number; h: number }>();
   private shadowPool: Sprite[] = [];
   private readonly decalLayer = new Graphics();
   private readonly dropLayer = new Graphics();
@@ -65,15 +67,17 @@ export class Renderer {
   }
 
   // One character frame: its layers drawn in atlas order, cast shadows source-atop,
-  // composed once on a canvas and kept as a texture.
-  frame(name: string, atlas: Atlas, sheet: HTMLImageElement, facing: string, frame: number): Texture {
-    const key = `${name}/${facing}/${frame}`;
+  // composed once on a canvas and kept as a texture. Segments in `omit` (a severed head
+  // or limb) are left out.
+  frame(name: string, atlas: Atlas, sheet: HTMLImageElement, facing: string, frame: number, omit: string[] = []): Texture {
+    const key = `${name}/${facing}/${frame}/${omit.join(',')}`;
     let t = this.frames.get(key);
     if (t) return t;
     const s = atlas.sprites[`${facing}/${frame}`];
     const c = document.createElement('canvas'); c.width = atlas.cell.w; c.height = atlas.cell.h;
     const g = c.getContext('2d')!;
     for (const id of s.drawOrder) {
+      if (omit.includes(id.split('/')[0])) continue;
       const p = s.pieces[id];
       g.globalCompositeOperation = p.kind === 'shade' ? 'source-atop' : 'source-over';
       g.drawImage(sheet, p.sx, p.sy, p.w, p.h, p.x, p.y, p.w, p.h);
@@ -81,6 +85,28 @@ export class Renderer {
     t = Texture.from(c);
     this.frames.set(key, t);
     return t;
+  }
+  // Only the given segments of a frame, cropped: a severed part to throw. x, y is where
+  // the crop sat in the cell.
+  part(name: string, atlas: Atlas, sheet: HTMLImageElement, facing: string, frame: number, segments: string[]) {
+    const key = `part:${name}/${facing}/${frame}/${segments.join(',')}`;
+    const hit = this.parts.get(key);
+    if (hit) return hit;
+    const s = atlas.sprites[`${facing}/${frame}`];
+    const ids = s.drawOrder.filter((id) => segments.includes(id.split('/')[0]));
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const id of ids) { const p = s.pieces[id]; if (p.kind === 'shade') continue; x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x + p.w); y1 = Math.max(y1, p.y + p.h); }
+    if (!isFinite(x0)) { x0 = y0 = 0; x1 = y1 = 1; }
+    const c = document.createElement('canvas'); c.width = x1 - x0; c.height = y1 - y0;
+    const g = c.getContext('2d')!;
+    for (const id of ids) {
+      const p = s.pieces[id];
+      g.globalCompositeOperation = p.kind === 'shade' ? 'source-atop' : 'source-over';
+      g.drawImage(sheet, p.sx, p.sy, p.w, p.h, p.x - x0, p.y - y0, p.w, p.h);
+    }
+    const out = { texture: Texture.from(c), x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    this.parts.set(key, out);
+    return out;
   }
 
   // Ask the worker for every chunk in view, plus a ring around it so ground is ready
@@ -129,6 +155,7 @@ export class Renderer {
       s.visible = !!d;
       if (!d) return;
       s.texture = d.texture; s.x = d.x; s.y = d.y; s.alpha = d.alpha ?? 1; s.tint = d.tint ?? 0xffffff;
+      if (d.rotation === undefined) { s.anchor.set(0); s.rotation = 0; } else { s.anchor.set(0.5); s.rotation = d.rotation; }
     });
   }
 }
