@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Asset samples</title>
+<style>
+  body { margin: 0; padding: 24px; background: #121010; color: #c9bba3; font: 13px/1.4 Georgia, serif; }
+  h1 { font-size: 20px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 4px; color: #d8c9a8; }
+  .sub { color: #8a7d68; margin-bottom: 18px; max-width: 1100px; }
+  .row { display: flex; align-items: flex-end; gap: 22px; margin-bottom: 26px; flex-wrap: wrap; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  figcaption { color: #8a7d68; font-size: 12px; text-align: center; max-width: 260px; }
+  h2 { font-size: 14px; font-weight: normal; color: #b3a283; border-bottom: 1px solid #3a322a; padding-bottom: 4px; margin: 0 0 12px; letter-spacing: 0.05em; }
+  canvas { image-rendering: pixelated; display: block; }
+  .slot { background: #1d1915; border: 2px solid #4a3d2c; box-shadow: inset 0 0 0 2px #0c0a08; padding: 4px; }
+</style>
+</head>
+<body>
+<h1>ASSET SAMPLES</h1>
+<div class="sub">Everything here is drawn by the same generator as the player, with the same light, ramps and outlines. The scene is put together only from the exported tiles, overlays and sprites, the way the game would draw it. Placeholder content, not final art.</div>
+
+<h2>Sample scene at 1x (game size), 18 by 18 tiles</h2>
+<div class="row" id="scene"></div>
+
+<h2>The same scene at 2x, around the house</h2>
+<div class="row" id="scene2"></div>
+
+<h2>Concept scenes, at their own size, for comparison</h2>
+<div class="row" id="concept"></div>
+
+<h2>Ground tiles, 64 by 32, at 2x. Each tiles with itself and its neighbours.</h2>
+<div class="row" id="tiles"></div>
+
+<h2>Transitions at 2x: eight overlays per material cover every edge and corner. Shown: beach over sea, grass over sand.</h2>
+<div class="row" id="overlays"></div>
+
+<h2>Town building at 1x and 2x</h2>
+<div class="row" id="house"></div>
+
+<h2>Props at 2x</h2>
+<div class="row" id="props"></div>
+
+<h2>Figures at 2x: the player, a palette swap of the same rig, and a creature</h2>
+<div class="row" id="figures"></div>
+
+<h2>Inventory icons, 64 by 64, at 1x and 2x</h2>
+<div class="row" id="icons"></div>
+
+<script src="../out/samples/manifest.js"></script>
+<script>
+const S = window.SAMPLES, base = '../out/samples/';
+const load = (src) => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+function crop(img, r, scale) {
+  const c = document.createElement('canvas');
+  c.width = Math.round(r.w * scale); c.height = Math.round(r.h * scale);
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+  return c;
+}
+const whole = (img, scale) => crop(img, { x: 0, y: 0, w: img.width, h: img.height }, scale);
+function fig(parent, el, caption) {
+  const f = document.createElement('figure');
+  f.appendChild(el);
+  const c = document.createElement('figcaption'); c.textContent = caption; f.appendChild(c);
+  document.getElementById(parent).appendChild(f);
+}
+// Diamonds tiled 3 by 3, so seams would show if there were any.
+function tiled(img, scale) {
+  const c = document.createElement('canvas');
+  c.width = img.width * 2 * scale; c.height = img.height * 2 * scale;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    g.drawImage(img, ((i - j) * 32 + 32) * scale, (i + j) * 16 * scale, img.width * scale, img.height * scale);
+  }
+  return c;
+}
+
+(async () => {
+  const scene = await load(base + S.scene.file);
+  fig('scene', whole(scene, 1), `${S.scene.tiles} tiles, ${S.scene.overlays} transition overlays, ${S.scene.objects} objects, ${S.scene.colours} colours`);
+  fig('scene2', crop(scene, { x: 420, y: 150, w: 560, h: 480 }, 2), 'Nearest-neighbour 2x');
+
+  const c07 = await load('../../reference/concept-art/concept-07.jpeg');
+  const c03 = await load('../../reference/concept-art/concept-03.jpeg');
+  fig('concept', whole(c07, 1), 'concept-07');
+  fig('concept', whole(c03, 1), 'concept-03');
+
+  for (const t of S.tiles) fig('tiles', tiled(await load(base + t.file), 2), t.id.replace('_', ' variant '));
+
+  for (const m of ['sand.beach', 'grass.coast']) {
+    const ov = S.overlays.find((o) => o.material === m);
+    const under = m === 'sand.beach' ? 'water.shallow_0' : 'sand.desert_0';
+    const bg = await load(base + S.tiles.find((t) => t.id === under).file);
+    for (const f of ov.files) {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+      const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+      g.drawImage(bg, 0, 0, 128, 64); g.drawImage(await load(base + f.file), 0, 0, 128, 64);
+      fig('overlays', c, `${m} ${f.side}`);
+    }
+  }
+
+  const house = S.objects.house, hImg = await load(base + house.file);
+  fig('house', whole(hImg, 1), `1x, ${house.w} by ${house.h}`);
+  fig('house', whole(hImg, 2), `2x, ${house.colours} colours, ${(house.ms / 1000).toFixed(0)} s to render`);
+
+  for (const id of ['palm1', 'palm2', 'cliff', 'rock1', 'rock2', 'scrub1', 'scrub2', 'barrel', 'crate', 'pot', 'potSmall', 'chest', 'campfire']) {
+    const o = S.objects[id];
+    fig('props', whole(await load(base + o.file), 2), o.label);
+  }
+
+  const CHAR = { x: 66, y: 44, w: 60, h: 128 };
+  for (const id of ['farmer', 'bandit']) {
+    const ch = S.characters[id];
+    fig('figures', crop(await load(base + ch.file), CHAR, 2), ch.label);
+  }
+  fig('figures', whole(await load(base + S.objects.wolf.file), 2), S.objects.wolf.label);
+
+  for (const ic of S.icons) {
+    const img = await load(base + ic.file);
+    for (const s of [1, 2]) { const c = whole(img, s); c.className = 'slot'; fig('icons', c, `${ic.label}, ${s}x`); }
+  }
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

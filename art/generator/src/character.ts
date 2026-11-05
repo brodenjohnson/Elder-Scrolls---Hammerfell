@@ -19,6 +19,7 @@ export type Piece = {
   mat: (x: number, y: number, z: number) => string;
   paint?: (x: number, y: number, z: number, mat: string) => PaintResult | null;
   bump?: (x: number, y: number, z: number) => V3; // normal nudge for folds
+  bounds?: { c: V3; r: number }; // optional: lets the renderer skip this piece when far away
 };
 
 export type Layer = {
@@ -42,7 +43,7 @@ function along(x: number, y: number, z: number, a: V3, b: V3) {
   return { t: ((x - a[0]) * bx + (y - a[1]) * by + (z - a[2]) * bz) / l2, len: Math.sqrt(l2) };
 }
 
-function primsSdf(prims: Prim[], k: number): Fn {
+export function primsSdf(prims: Prim[], k: number): Fn {
   const pos = prims.filter((p) => !p.sub), neg = prims.filter((p) => p.sub);
   return (x, y, z) => {
     let d = sdPrim(pos[0], x, y, z);
@@ -52,7 +53,7 @@ function primsSdf(prims: Prim[], k: number): Fn {
   };
 }
 
-function boundsOf(prims: Prim[], margin: number): { c: V3; r: number } {
+export function boundsOf(prims: Prim[], margin: number): { c: V3; r: number } {
   const bs = prims.filter((p) => !p.sub).map(primBounds);
   const c: V3 = [0, 0, 0];
   for (const b of bs) for (let i = 0; i < 3; i++) c[i] += b.c[i] / bs.length;
@@ -414,27 +415,4 @@ export function farmClothesLayers(p: Pose, body: Body): Layer[] {
     }));
   }
   return [...shirt, ...trousers, ...boots];
-}
-
-// ---------- material texture ----------
-// Tone nudges in character space. Kept sparse: the brief asks for rich texture without noise.
-export function materialTexture(mat: string, x: number, y: number, z: number): number {
-  const f = Math.floor;
-  switch (mat) {
-    case 'linen': {
-      const h = hash3(f(x / 1.6), f(y / 3.4), f(z / 1.6));
-      return h < 0.13 ? -1 : h > 0.95 ? 1 : 0;
-    }
-    case 'wool': {
-      const h = hash3(f(x / 1.3), f(y / 1.3), f(z / 1.3));
-      return h < 0.12 ? -1 : 0;
-    }
-    case 'leather':
-    case 'leather.dark': {
-      const h = hash3(f(x / 2.2), f(y / 1.6), f(z / 2.2));
-      return h > 0.86 ? 1 : h < 0.08 ? -1 : 0;
-    }
-    default:
-      return 0;
-  }
 }

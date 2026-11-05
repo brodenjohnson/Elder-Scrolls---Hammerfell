@@ -91,3 +91,28 @@ export function hash3(x: number, y: number, z: number): number {
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
+
+// Smooth value noise in [0, 1), for large soft patches (plaster stains, sand drifts).
+export function vnoise3(x: number, y: number, z: number): number {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  const fx = x - ix, fy = y - iy, fz = z - iz;
+  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy), uz = fz * fz * (3 - 2 * fz);
+  const l = (a: number, b: number, t: number) => a + (b - a) * t;
+  const h = (dx: number, dy: number, dz: number) => hash3(ix + dx, iy + dy, iz + dz);
+  return l(
+    l(l(h(0, 0, 0), h(1, 0, 0), ux), l(h(0, 1, 0), h(1, 1, 0), ux), uy),
+    l(l(h(0, 0, 1), h(1, 0, 1), ux), l(h(0, 1, 1), h(1, 1, 1), ux), uy),
+    uz,
+  );
+}
+
+// Value noise on a 2D lattice that wraps every `period` cells, so ground tiles repeat seamlessly.
+export function pnoise2(u: number, v: number, period: number, seed = 0): number {
+  const iu = Math.floor(u), iv = Math.floor(v);
+  const fu = u - iu, fv = v - iv;
+  const su = fu * fu * (3 - 2 * fu), sv = fv * fv * (3 - 2 * fv);
+  const m = (a: number) => ((a % period) + period) % period;
+  const h = (du: number, dv: number) => hash3(m(iu + du), m(iv + dv), seed);
+  const l = (a: number, b: number, t: number) => a + (b - a) * t;
+  return l(l(h(0, 0), h(1, 0), su), l(h(0, 1), h(1, 1), su), sv);
+}

@@ -1,5 +1,6 @@
 import type { V3 } from './sdf.ts';
-import { materialTexture, type Layer, type Piece } from './character.ts';
+import type { Layer, Piece } from './character.ts';
+import { materialTexture } from './textures.ts';
 
 export type Palette = {
   light: { dir: V3; ambient: number };
@@ -9,8 +10,9 @@ export type Palette = {
 };
 
 // scale: screen pixels per character unit. characterPitchDeg: how far the camera
-// looks down when drawing characters. The ground grid always uses 30 degrees.
-export type Cell = { w: number; h: number; ox: number; oy: number; scale: number; characterPitchDeg: number };
+// looks down when drawing characters. The ground grid, buildings and props use 30.
+// ss: supersamples per axis (default 4); large static objects can use fewer.
+export type Cell = { w: number; h: number; ox: number; oy: number; scale: number; characterPitchDeg: number; ss?: number };
 
 // One rendered layer before colouring. Indexed by y * w + x.
 export type Raw = {
@@ -24,12 +26,17 @@ export type Raw = {
 
 // True isometric ground: the camera looks down 30 degrees, so a ground square becomes a 2:1 diamond.
 const PITCH = Math.PI / 6;
-const SS = 4; // supersamples per axis
 
-// Distance to the layer: the nearest piece, each trimmed by its cut.
+// Distance to the layer: the nearest piece, each trimmed by its cut. A piece with
+// bounds is skipped while the point is well outside them; the distance to its
+// bounding sphere is a safe step, so big models with many parts stay quick.
 function layerDist(pieces: Piece[], x: number, y: number, z: number): { d: number; piece: Piece } {
   let best = Infinity, piece = pieces[0];
   for (const p of pieces) {
+    if (p.bounds) {
+      const bd = Math.hypot(x - p.bounds.c[0], y - p.bounds.c[1], z - p.bounds.c[2]) - p.bounds.r;
+      if (bd > 1) { if (bd < best) { best = bd; piece = p; } continue; }
+    }
     const d = Math.max(p.shape(x, y, z), p.cut(x, y, z));
     if (d < best) { best = d; piece = p; }
   }
@@ -58,6 +65,8 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const L = norm(palette.light.dir);
   const bc = layer.bounds.c, br = layer.bounds.r;
+  const SS = cell.ss ?? 4;
+  const far = 400 + br + Math.hypot(bc[0], bc[1], bc[2]); // ray start, in front of everything
 
   // Screen-space box for the bounding sphere.
   const wc = toWorld(bc, cy, sy);
@@ -77,7 +86,7 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
         for (let i = 0; i < SS; i++) {
           const sxp = (px + (i + 0.5) / SS - cell.ox) / k;
           const syp = (cell.oy - (py + (j + 0.5) / SS)) / k;
-          const ow: V3 = [sxp + CAM_B[0] * 400, syp * CAM_U[1] + CAM_B[1] * 400, syp * CAM_U[2] + CAM_B[2] * 400];
+          const ow: V3 = [sxp + CAM_B[0] * far, syp * CAM_U[1] + CAM_B[1] * far, syp * CAM_U[2] + CAM_B[2] * far];
           const oc = toChar(ow, cy, sy);
           // Clip the ray to the bounding sphere.
           const ocx = oc[0] - bc[0], ocy = oc[1] - bc[1], ocz = oc[2] - bc[2];
@@ -88,7 +97,7 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
           let t = -bq - Math.sqrt(disc);
           const tEnd = -bq + Math.sqrt(disc);
           let hit: Piece | null = null, hx = 0, hy = 0, hz = 0;
-          for (let step = 0; step < 160 && t < tEnd; step++) {
+          for (let step = 0; step < 300 && t < tEnd; step++) {
             hx = oc[0] + dc[0] * t; hy = oc[1] + dc[1] * t; hz = oc[2] + dc[2] * t;
             const r = layerDist(layer.pieces, hx, hy, hz);
             const o = occ.length ? occSdf(hx, hy, hz) : Infinity;
@@ -145,7 +154,9 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
       const ramp = palette.ramps[bestMat];
       const amb = palette.light.ambient;
       const lit = Math.min(1, Math.max(0, amb + (1 - amb) * (0.34 + 0.78 * diffuse)));
-      const tone = Math.round(lit * (ramp.length - 1) + dtSum / hits);
+      // Glowing materials (fire, embers) ignore the light: their paint picks the tone.
+      const glow = bestMat.startsWith('glow');
+      const tone = Math.round((glow ? ramp.length - 1 : lit * (ramp.length - 1)) + dtSum / hits);
       raw.mask[idx] = 1;
       raw.mat[idx] = bestMat;
       raw.tone[idx] = Math.max(1, Math.min(ramp.length - 1, tone)); // tone 0 is kept for outlines
@@ -230,7 +241,8 @@ export function colourLayers(raws: Raw[], palette: Palette): Map<string, Rgba> {
           }
         }
         let rgb: [number, number, number];
-        if (edge === 'dark') rgb = outlineRgb;
+        if (r.mat[i]!.startsWith('glow')) rgb = hex(ramp[r.tone[i]]); // light sources are never outlined
+        else if (edge === 'dark') rgb = outlineRgb;
         else if (edge === 'lit' || edge === 'inner') rgb = hex(ramp[0]);
         else rgb = hex(ramp[r.tone[i]]);
         px.set([rgb[0], rgb[1], rgb[2], 255], i * 4);
@@ -300,8 +312,8 @@ export function composite(
 
 function dot(a: V3, b: V3) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 function norm(a: V3): V3 { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
-function toWorld(p: V3, c: number, s: number): V3 { return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]; }
-function toChar(p: V3, c: number, s: number): V3 { return [p[0] * c - p[2] * s, p[1], p[0] * s + p[2] * c]; }
+export function toWorld(p: V3, c: number, s: number): V3 { return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]; }
+export function toChar(p: V3, c: number, s: number): V3 { return [p[0] * c - p[2] * s, p[1], p[0] * s + p[2] * c]; }
 export function hex(h: string): [number, number, number] {
   const v = parseInt(h.slice(1), 16);
   return [(v >> 16) & 255, (v >> 8) & 255, v & 255];

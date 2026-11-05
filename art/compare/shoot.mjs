@@ -1,4 +1,4 @@
-// Screenshot a comparison page to docs/gates/<gate>/. Usage: node compare/shoot.mjs gate1
+// Screenshot a comparison page to docs/gates/<page>/. Usage: node compare/shoot.mjs gate1 [file.png]
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -14,7 +14,7 @@ const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
 page.on('pageerror', (e) => console.error('page error:', e.message));
 await page.goto(pathToFileURL(path.join(here, `${gate}.html`)).href);
 await page.waitForSelector('body[data-ready="1"]', { timeout: 20000 });
-const file = path.join(outDir, 'style-frame.png');
+const file = path.join(outDir, process.argv[3] ?? 'style-frame.png');
 await page.screenshot({ path: file, fullPage: true });
 await browser.close();
 console.log('wrote', file);

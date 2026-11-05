@@ -15,6 +15,18 @@
       "leather": "leather",
       "leather.dark": "leather.dark",
       "brass": "brass"
+    },
+    "nord": {
+      "_note": "Sample palette swap: Nord skin and hair, the same farm clothes dyed red and grey.",
+      "skin": "skin.nord",
+      "hair": "hair.auburn",
+      "eye": "eye",
+      "brand": "brand",
+      "linen": "cloth.red",
+      "wool": "wool.grey",
+      "leather": "leather.dark",
+      "leather.dark": "leather.dark",
+      "brass": "iron"
     }
   },
   "slotOrder": {
