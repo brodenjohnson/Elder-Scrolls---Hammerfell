@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Sprite viewer</title>
+<style>
+  :root { --bg: #121010; --panel: #1b1715; --line: #3a322a; --text: #c9bba3; --dim: #8a7d68; --hi: #d8b46a; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 Georgia, serif; display: flex; min-height: 100vh; }
+  aside { width: 270px; background: var(--panel); border-right: 1px solid var(--line); padding: 14px; box-sizing: border-box; overflow-y: auto; max-height: 100vh; }
+  main { flex: 1; padding: 18px; overflow: auto; }
+  h1 { font-size: 16px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 12px; color: #d8c9a8; }
+  h2 { font-size: 12px; font-weight: normal; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 6px; }
+  button, select { background: #262019; color: var(--text); border: 1px solid var(--line); font: inherit; padding: 3px 8px; cursor: pointer; }
+  button.on { border-color: var(--hi); color: var(--hi); }
+  .compass { display: grid; grid-template-columns: repeat(3, 44px); gap: 3px; }
+  .compass span { display: block; }
+  .row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .seg { margin: 6px 0 2px; color: var(--dim); font-size: 12px; }
+  .layer { padding-left: 10px; font-size: 12px; }
+  canvas { image-rendering: pixelated; display: block; }
+  #stage { border: 1px solid var(--line); }
+  #all { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+  #all figure { margin: 0; text-align: center; color: var(--dim); font-size: 12px; }
+  #order { font-size: 11px; color: var(--dim); margin-top: 12px; max-width: 900px; }
+  .note { color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<aside>
+  <h1>SPRITE VIEWER</h1>
+  <div class="note" id="sheetInfo"></div>
+
+  <h2>Animation</h2>
+  <div class="row"><select id="anim"></select><button id="play">Pause</button><button id="step">Step</button></div>
+  <div class="note" id="frameInfo"></div>
+
+  <h2>Direction</h2>
+  <div class="compass" id="compass"></div>
+  <div class="row" style="margin-top:6px"><label><input type="checkbox" id="turn"> Turntable</label></div>
+
+  <h2>Scale</h2>
+  <div class="row" id="scales"></div>
+
+  <h2>Ground</h2>
+  <div class="row" id="grounds"></div>
+
+  <h2>Layers</h2>
+  <div class="row"><button id="allOn">All</button><button id="bodyOnly">Body only</button><button id="noShade">Cast shadows off</button></div>
+  <div id="layers"></div>
+</aside>
+<main>
+  <canvas id="stage"></canvas>
+  <div id="order"></div>
+  <h2>All eight directions, this frame</h2>
+  <div id="all"></div>
+</main>
+
+<script src="../out/sprites/index.js"></script>
+<script>
+// Reads only what the game will read: sheet PNGs and their atlases.
+const BASE = '../out/sprites/';
+const params = new URLSearchParams(location.search);
+const state = {
+  anim: params.get('anim') || 'idle', facing: params.get('facing') || 'S', frame: 0, playing: params.get('play') !== '0',
+  scale: +(params.get('scale') || 3), ground: params.get('ground') || 'dark', turntable: params.get('turn') === '1',
+  hidden: new Set(), shades: true,
+};
+const COMPASS = ['NW', 'N', 'NE', 'W', '', 'E', 'SW', 'S', 'SE'];
+const GROUNDS = { dark: null, sand: 'sand.desert_0', grass: 'grass.coast_0', beach: 'sand.beach_0' };
+const sheets = {}, images = {}, tiles = {};
+const $ = (id) => document.getElementById(id);
+const loadScript = (src) => new Promise((ok, err) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = err; document.head.appendChild(s); });
+const loadImage = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+
+async function init() {
+  const idx = window.SPRITE_INDEX;
+  if (!idx) { document.body.innerHTML = '<p style="padding:20px">No sprites yet. Run <code>npm run sprites</code> in art/.</p>'; return; }
+  for (const [name, s] of Object.entries(idx.sheets)) {
+    await loadScript(BASE + s.script);
+    sheets[name] = window.SPRITES[name];
+    images[name] = await loadImage(BASE + sheets[name].sheet);
+  }
+  for (const [g, t] of Object.entries(GROUNDS)) if (t) tiles[g] = await loadImage(`../out/samples/tiles/${t}.png`);
+  const names = Object.keys(sheets);
+  $('anim').innerHTML = names.map((n) => `<option value="${n}">${sheets[n].anim} (${sheets[n].frames} frames, ${sheets[n].fps} fps)</option>`).join('');
+  const pick = names.find((n) => sheets[n].anim === state.anim) || names[0];
+  $('anim').value = pick; state.sheet = pick;
+  $('anim').onchange = () => { state.sheet = $('anim').value; state.frame = 0; buildLayers(); draw(); };
+  $('play').onclick = () => { state.playing = !state.playing; $('play').textContent = state.playing ? 'Pause' : 'Play'; };
+  $('play').textContent = state.playing ? 'Pause' : 'Play';
+  $('step').onclick = () => { state.playing = false; $('play').textContent = 'Play'; state.frame = (state.frame + 1) % sheets[state.sheet].frames; draw(); };
+  $('compass').innerHTML = COMPASS.map((f) => (f ? `<button data-f="${f}">${f}</button>` : '<span></span>')).join('');
+  $('compass').onclick = (e) => { const f = e.target.dataset.f; if (f) { state.facing = f; draw(); } };
+  $('turn').checked = state.turntable;
+  $('turn').onchange = () => { state.turntable = $('turn').checked; };
+  $('scales').innerHTML = [1, 2, 3, 4].map((s) => `<button data-s="${s}">${s}x</button>`).join('');
+  $('scales').onclick = (e) => { if (e.target.dataset.s) { state.scale = +e.target.dataset.s; draw(); } };
+  $('grounds').innerHTML = Object.keys(GROUNDS).map((g) => `<button data-g="${g}">${g}</button>`).join('');
+  $('grounds').onclick = (e) => { if (e.target.dataset.g) { state.ground = e.target.dataset.g; draw(); } };
+  $('allOn').onclick = () => { state.hidden.clear(); state.shades = true; buildLayers(); draw(); };
+  $('bodyOnly').onclick = () => { state.hidden = new Set(layerIds().filter((id) => !id.endsWith('/body') && id !== 'shadow' && !id.endsWith('/scar'))); buildLayers(); draw(); };
+  $('noShade').onclick = () => { state.shades = !state.shades; draw(); };
+  buildLayers();
+  let last = 0, lastTurn = 0;
+  const tick = (t) => {
+    const a = sheets[state.sheet];
+    if (state.playing && t - last > 1000 / a.fps) { state.frame = (state.frame + 1) % a.frames; last = t; draw(); }
+    if (state.turntable && t - lastTurn > 900) {
+      const order = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
+      state.facing = order[(order.indexOf(state.facing) + 1) % 8]; lastTurn = t; draw();
+    }
+    requestAnimationFrame(tick);
+  };
+  draw();
+  document.body.dataset.ready = '1';
+  requestAnimationFrame(tick);
+}
+
+// Every layer id that appears anywhere in the sheet, in the S draw order.
+function layerIds() {
+  const a = sheets[state.sheet], ids = new Set();
+  for (const k of Object.keys(a.sprites)) for (const id of a.sprites[k].drawOrder) if (!id.endsWith('#shade')) ids.add(id);
+  return [...ids];
+}
+
+function buildLayers() {
+  const bySeg = {};
+  for (const id of layerIds()) { const seg = id.split('/')[0]; (bySeg[seg] ??= []).push(id); }
+  $('layers').innerHTML = Object.entries(bySeg).map(([seg, ids]) =>
+    `<div class="seg"><label><input type="checkbox" data-seg="${seg}" ${ids.some((i) => !state.hidden.has(i)) ? 'checked' : ''}> ${seg}</label></div>` +
+    ids.map((id) => `<div class="layer"><label><input type="checkbox" data-id="${id}" ${state.hidden.has(id) ? '' : 'checked'}> ${id.split('/')[1] || id}</label></div>`).join('')).join('');
+  $('layers').onchange = (e) => {
+    const t = e.target;
+    if (t.dataset.id) t.checked ? state.hidden.delete(t.dataset.id) : state.hidden.add(t.dataset.id);
+    if (t.dataset.seg) for (const id of layerIds()) if (id.split('/')[0] === t.dataset.seg) t.checked ? state.hidden.delete(id) : state.hidden.add(id);
+    buildLayers(); draw();
+  };
+}
+
+// Compose one sprite at 1x: each piece in draw order; shade pieces source-atop.
+function compose(facing, frame) {
+  const a = sheets[state.sheet], img = images[state.sheet], s = a.sprites[`${facing}/${frame}`];
+  const c = document.createElement('canvas'); c.width = a.cell.w; c.height = a.cell.h;
+  const g = c.getContext('2d');
+  for (const id of s.drawOrder) {
+    const p = s.pieces[id], base = id.replace('#shade', '');
+    if (state.hidden.has(base) || (p.kind === 'shade' && !state.shades)) continue;
+    g.globalCompositeOperation = p.kind === 'shade' ? 'source-atop' : 'source-over';
+    g.drawImage(img, p.sx, p.sy, p.w, p.h, p.x, p.y, p.w, p.h);
+  }
+  return { canvas: c, order: s.drawOrder };
+}
+
+function groundCanvas(w, h, ox, oy) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#121010'; g.fillRect(0, 0, w, h);
+  const t = tiles[state.ground];
+  if (t) for (let i = -8; i < 8; i++) for (let j = -8; j < 8; j++) g.drawImage(t, ox + (i - j) * 32 - 32, oy + (i + j) * 16 - 16);
+  return c;
+}
+
+function draw() {
+  const a = sheets[state.sheet], S = state.scale;
+  const { canvas, order } = compose(state.facing, state.frame);
+  const stage = $('stage'); stage.width = a.cell.w * S; stage.height = a.cell.h * S;
+  const g = stage.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(groundCanvas(a.cell.w, a.cell.h, a.cell.ox, a.cell.oy), 0, 0, stage.width, stage.height);
+  g.drawImage(canvas, 0, 0, stage.width, stage.height);
+  for (const b of document.querySelectorAll('#compass button')) b.classList.toggle('on', b.dataset.f === state.facing);
+  for (const b of document.querySelectorAll('#scales button')) b.classList.toggle('on', +b.dataset.s === S);
+  for (const b of document.querySelectorAll('#grounds button')) b.classList.toggle('on', b.dataset.g === state.ground);
+  $('noShade').classList.toggle('on', !state.shades);
+  $('frameInfo').textContent = `Frame ${state.frame + 1} of ${a.frames}, facing ${state.facing}`;
+  $('sheetInfo').textContent = `${a.outfitLabel}. Sheet ${a.sheet}, ${a.sheetSize[0]} by ${a.sheetSize[1]}.`;
+  $('order').textContent = 'Draw order: ' + order.filter((id) => !id.endsWith('#shade')).join(', ');
+  // All eight directions at 2x, same frame.
+  const all = $('all'); all.innerHTML = '';
+  for (const f of ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW']) {
+    const crop = { x: 46, y: 30, w: 100, h: 146 };
+    const c = document.createElement('canvas'); c.width = crop.w * 2; c.height = crop.h * 2;
+    const cg = c.getContext('2d'); cg.imageSmoothingEnabled = false;
+    cg.drawImage(groundCanvas(a.cell.w, a.cell.h, a.cell.ox, a.cell.oy), crop.x, crop.y, crop.w, crop.h, 0, 0, c.width, c.height);
+    cg.drawImage(compose(f, state.frame).canvas, crop.x, crop.y, crop.w, crop.h, 0, 0, c.width, c.height);
+    const fig = document.createElement('figure'); fig.appendChild(c);
+    fig.appendChild(Object.assign(document.createElement('figcaption'), { textContent: f }));
+    all.appendChild(fig);
+  }
+}
+init();
+</script>
+</body>
+</html>

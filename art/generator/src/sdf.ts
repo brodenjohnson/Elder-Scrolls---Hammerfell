@@ -16,8 +16,11 @@ export const smoothstep = (e0: number, e1: number, x: number) => {
 
 export function sdEll(px: number, py: number, pz: number, c: V3, r: V3): number {
   const x = px - c[0], y = py - c[1], z = pz - c[2];
-  const k0 = Math.hypot(x / r[0], y / r[1], z / r[2]);
-  const k1 = Math.hypot(x / (r[0] * r[0]), y / (r[1] * r[1]), z / (r[2] * r[2]));
+  // Math.hypot is several times slower than a plain square root in V8, and this is the hottest line.
+  const ax = x / r[0], ay = y / r[1], az = z / r[2];
+  const bx = ax / r[0], by = ay / r[1], bz = az / r[2];
+  const k0 = Math.sqrt(ax * ax + ay * ay + az * az);
+  const k1 = Math.sqrt(bx * bx + by * by + bz * bz);
   return k1 === 0 ? -Math.min(r[0], r[1], r[2]) : (k0 * (k0 - 1)) / k1;
 }
 
@@ -50,7 +53,8 @@ export function sdBox(px: number, py: number, pz: number, c: V3, h: V3, round: n
     x = rx;
   }
   const qx = Math.abs(x) - h[0] + round, qy = Math.abs(py - c[1]) - h[1] + round, qz = Math.abs(z) - h[2] + round;
-  const out = Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0));
+  const mx = Math.max(qx, 0), my = Math.max(qy, 0), mz = Math.max(qz, 0);
+  const out = Math.sqrt(mx * mx + my * my + mz * mz);
   return out + Math.min(Math.max(qx, qy, qz), 0) - round;
 }
 

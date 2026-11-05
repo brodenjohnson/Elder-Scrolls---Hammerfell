@@ -34,7 +34,8 @@ function layerDist(pieces: Piece[], x: number, y: number, z: number): { d: numbe
   let best = Infinity, piece = pieces[0];
   for (const p of pieces) {
     if (p.bounds) {
-      const bd = Math.hypot(x - p.bounds.c[0], y - p.bounds.c[1], z - p.bounds.c[2]) - p.bounds.r;
+      const dx = x - p.bounds.c[0], dy = y - p.bounds.c[1], dz = z - p.bounds.c[2];
+      const bd = Math.sqrt(dx * dx + dy * dy + dz * dz) - p.bounds.r;
       if (bd > 1) { if (bd < best) { best = bd; piece = p; } continue; }
     }
     const d = Math.max(p.shape(x, y, z), p.cut(x, y, z));
@@ -119,7 +120,8 @@ export function renderLayer(layer: Layer, yaw: number, cell: Cell, palette: Pale
             }
           }
           if (mat === null) continue; // overlay pixel with nothing painted
-          dt += materialTexture(mat, hx, hy, hz);
+          if (layer.local) { const q = layer.local(hx, hy, hz); dt += materialTexture(mat, q[0], q[1], q[2]); }
+          else dt += materialTexture(mat, hx, hy, hz);
           const e = 0.05, f = hit.shape;
           let gx = f(hx + e, hy, hz) - f(hx - e, hy, hz);
           let gy = f(hx, hy + e, hz) - f(hx, hy - e, hz);
@@ -243,7 +245,10 @@ export function colourLayers(raws: Raw[], palette: Palette): Map<string, Rgba> {
         let rgb: [number, number, number];
         if (r.mat[i]!.startsWith('glow')) rgb = hex(ramp[r.tone[i]]); // light sources are never outlined
         else if (edge === 'dark') rgb = outlineRgb;
-        else if (edge === 'lit' || edge === 'inner') rgb = hex(ramp[0]);
+        else if (edge === 'lit') rgb = hex(ramp[0]);
+        // Inside the silhouette, an edge over something further back is a shade of
+        // the pixel's own tone (selective outline), not a black line.
+        else if (edge === 'inner') rgb = hex(ramp[Math.max(1, r.tone[i] - 2)]);
         else rgb = hex(ramp[r.tone[i]]);
         px.set([rgb[0], rgb[1], rgb[2], 255], i * 4);
       }
@@ -273,8 +278,11 @@ export function shadowLayer(cell: Cell, palette: Palette, rx = 17, rz = 11): Rgb
 // depths[k] is the per-pixel depth of images[k] (null for flat layers like the
 // ground shadow). A shadow lands only where the caster is clearly in front, so a
 // continuous surface (forearm into upper arm) never shades itself.
+// shades, when given, receives a mask per image of the pixels it shaded, so the
+// shadow can be exported with its caster and vanish when the caster is removed.
 export function composite(
   cell: Cell, images: Rgba[], cast?: { dx: number; dy: number; multiply: number }, depths?: (Float32Array | null)[],
+  shades?: Uint8Array[],
 ): Rgba {
   const out = new Uint8ClampedArray(cell.w * cell.h * 4);
   const shaded = new Uint8Array(cell.w * cell.h);
@@ -291,6 +299,7 @@ export function composite(
         if (img[q * 4 + 3] === 255 || out[q * 4 + 3] !== 255 || shaded[q]) continue;
         if (dep[y * cell.w + x] - outDepth[q] < 2.5) continue;
         shaded[q] = 1;
+        if (shades) (shades[k] ??= new Uint8Array(cell.w * cell.h))[q] = 1;
         for (let c = 0; c < 3; c++) out[q * 4 + c] *= cast.multiply;
       }
     }

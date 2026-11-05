@@ -30,6 +30,7 @@ export type Layer = {
   bounds: { c: V3; r: number };
   overlay?: boolean;    // drop pixels whose paint returns mat null
   occluders?: Fn[];     // surfaces underneath that hide this layer's inside
+  local?: (x: number, y: number, z: number) => V3; // to the segment's rest pose, for texture
 };
 
 const SIDES: Side[] = ['L', 'R'];
@@ -62,19 +63,36 @@ export function boundsOf(prims: Prim[], margin: number): { c: V3; r: number } {
   return { c, r: r + margin };
 }
 
-// A set of named parts with an ownership split between them.
-type PartSet = { names: string[]; sdfs: Fn[] };
-function partSet(parts: Record<string, Fn>): PartSet {
-  return { names: Object.keys(parts), sdfs: Object.values(parts) };
+// A set of named parts with an ownership split between them. Bounds (optional)
+// let a query skip parts that are far away: the distance to a part's bounding
+// sphere is a lower bound on its distance.
+type Bounds = { c: V3; r: number };
+type PartSet = { names: string[]; sdfs: Fn[]; bounds?: Bounds[] };
+function partSet(parts: Record<string, Fn>, bounds?: Record<string, Bounds>): PartSet {
+  const names = Object.keys(parts);
+  return { names, sdfs: Object.values(parts), bounds: bounds && names.map((n) => bounds[n]) };
 }
-// Positive where some other part in the set is nearer than `name`.
+const lowerBound = (b: Bounds, x: number, y: number, z: number) => {
+  const dx = x - b.c[0], dy = y - b.c[1], dz = z - b.c[2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz) - b.r;
+};
+// Positive where some other part in the set is nearer than `name`. A part whose
+// lower bound is well clear of this one cannot change the sign near the
+// surface, so its bound stands in for its distance.
 function ownership(set: PartSet, name: string): Fn {
   const i = set.names.indexOf(name);
   if (set.sdfs.length === 1) return () => -Infinity;
   return (x, y, z) => {
     const own = set.sdfs[i](x, y, z);
     let other = Infinity;
-    for (let j = 0; j < set.sdfs.length; j++) if (j !== i) other = Math.min(other, set.sdfs[j](x, y, z));
+    for (let j = 0; j < set.sdfs.length; j++) {
+      if (j === i) continue;
+      if (set.bounds) {
+        const lb = lowerBound(set.bounds[j], x, y, z);
+        if (lb > own + 4) { if (lb < other) other = lb; continue; }
+      }
+      other = Math.min(other, set.sdfs[j](x, y, z));
+    }
     return (own - other) * 0.5;
   };
 }
@@ -145,7 +163,7 @@ function legPrims(p: Pose, s: Side): Prim[] {
 
 function footPrims(p: Pose, s: Side): Prim[] {
   const an = p.ankle[s], yaw = p.footYaw[s];
-  const fwd = (d: number): V3 => [an[0] + Math.sin(yaw) * d, 2.5, an[2] + Math.cos(yaw) * d];
+  const fwd = (d: number): V3 => [an[0] + Math.sin(yaw) * d, an[1] - 3.9, an[2] + Math.cos(yaw) * d];
   return [
     { kind: 'box', c: fwd(4), h: [2.8, 2.5, 7.0], round: 1.8, yaw, mat: 'skin' },
     { kind: 'ell', c: [an[0], an[1] - 1.5, an[2] - 0.5], r: [2.9, 3.4, 3.3], mat: 'skin' },
@@ -184,10 +202,21 @@ export function makeBody(p: Pose): Body {
   const segs = segmentPrims(p);
   const sdfs: Record<string, Fn> = {};
   for (const [n, s] of Object.entries(segs)) sdfs[n] = memo(primsSdf(s.prims, s.k));
-  const parts = partSet(sdfs);
+  const bounds: Record<string, Bounds> = {};
+  for (const [n, s] of Object.entries(segs)) bounds[n] = boundsOf(s.prims, s.k);
+  const parts = partSet(sdfs, bounds);
+  // Start from the nearest segment by bound, then blend in only the segments
+  // that could still be within the blend distance. Skipping the rest is exact:
+  // smin(d, b, k) is d whenever b >= d + k.
+  const n = parts.sdfs.length, lbs = new Float64Array(n), bb = parts.bounds!;
   const shape: Fn = (x, y, z) => {
-    let d = parts.sdfs[0](x, y, z);
-    for (let i = 1; i < parts.sdfs.length; i++) d = smin(d, parts.sdfs[i](x, y, z), JOIN);
+    let first = 0;
+    for (let i = 0; i < n; i++) { lbs[i] = lowerBound(bb[i], x, y, z); if (lbs[i] < lbs[first]) first = i; }
+    let d = parts.sdfs[first](x, y, z);
+    for (let i = 0; i < n; i++) {
+      if (i === first || lbs[i] >= d + JOIN) continue;
+      d = smin(d, parts.sdfs[i](x, y, z), JOIN);
+    }
     return d;
   };
   return { segs, parts, shape };
@@ -289,7 +318,7 @@ export function hairLayers(p: Pose, body: Body): Layer[] {
         mat: () => 'hair',
         paint: (x, y, z) => {
           const { ly } = local(y, z);
-          const w = Math.sin(x * 1.9 + ly * 0.7 + z * 1.1);
+          const w = Math.sin((x - p.head[0]) * 1.9 + ly * 0.7 + (z - p.head[2]) * 1.1);
           return w > 0.75 ? { dt: -1 } : w < -0.9 ? { dt: 1 } : null; // strands
         },
       }],
@@ -306,7 +335,10 @@ export function hairLayers(p: Pose, body: Body): Layer[] {
           return Math.max(ly - top, -0.8 - lz);
         },
         mat: () => 'hair',
-        paint: (x, y, z) => (hash3(Math.floor(x * 0.9), Math.floor(y * 0.9), Math.floor(z * 0.9)) < 0.18 ? { dt: 1 } : null),
+        paint: (x, y, z) => {
+          const f = Math.floor;
+          return hash3(f((x - p.head[0]) * 0.9), f((y - p.head[1]) * 0.9), f((z - p.head[2]) * 0.9)) < 0.18 ? { dt: 1 } : null;
+        },
       }],
       bounds: { c: p.head, r: 13 },
     },
@@ -321,8 +353,13 @@ function garmentLayers(
   opts: { paint?: Piece['paint']; bump?: Piece['bump']; segCut?: Record<string, Fn>; margin?: number } = {},
 ): Layer[] {
   const sub: Record<string, Fn> = {};
-  for (const n of allowed) sub[n] = body.parts.sdfs[body.parts.names.indexOf(n)];
-  const set = partSet(sub);
+  const subBounds: Record<string, Bounds> = {};
+  for (const n of allowed) {
+    const i = body.parts.names.indexOf(n);
+    sub[n] = body.parts.sdfs[i];
+    subBounds[n] = body.parts.bounds![i];
+  }
+  const set = partSet(sub, subBounds);
   return allowed.map((seg) => {
     const own = ownership(set, seg);
     const extra = opts.segCut?.[seg];
@@ -391,7 +428,9 @@ export function farmClothesLayers(p: Pose, body: Body): Layer[] {
 
   // Trousers over both legs, tucked into the boots.
   const trouserSdf = primsSdf([...legPrims(p, 'L'), ...legPrims(p, 'R')], 3);
-  const trousers = garmentLayers('armour', ['leg.L', 'leg.R'], (x, y, z) => trouserSdf(x, y, z) - 1.2, (_x, y) => 12 - y, () => 'wool', body, {
+  // Tucked in 5.6 units above each ankle (L is +x), so a lifted foot takes its trouser cuff with it.
+  const tuck: Fn = (x, y) => (x > 0 ? p.ankle.L[1] : p.ankle.R[1]) + 5.6 - y;
+  const trousers = garmentLayers('armour', ['leg.L', 'leg.R'], (x, y, z) => trouserSdf(x, y, z) - 1.2, tuck, () => 'wool', body, {
     bump: (x, y) => {
       const kn = p.knee.L[1];
       return Math.abs(y - kn) < 5 ? [0, 0.5 * Math.sin(y * 2.0 + x * 0.3), 0] : [0, 0, 0];
@@ -409,7 +448,7 @@ export function farmClothesLayers(p: Pose, body: Body): Layer[] {
       margin: 10,
       paint: (_x, y) => {
         if (y > top - 2.2) return { mat: 'leather', dt: -1 }; // turned-down cuff
-        if (y < 1.2) return { dt: -2 };                        // sole
+        if (y < p.ankle[s][1] - 5.2) return { dt: -2 };        // sole
         return null;
       },
     }));

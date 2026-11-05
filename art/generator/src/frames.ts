@@ -1,0 +1,113 @@
+import { idlePose, segmentLocal, walkPose, type Pose } from './pose.ts';
+import { bodyLayers, farmClothesLayers, hairLayers, makeBody, type Body, type Layer } from './character.ts';
+import { colourLayers, composite, renderLayer, shadowLayer, type Rgba } from './render.ts';
+import type { V3 } from './sdf.ts';
+import { attachOccluders, cell, paletteFile, paletteFor, rig } from './pipeline.ts';
+
+// ---------- one animation frame, in one direction ----------
+
+// Facing yaw: 0 faces the viewer (screen south), pi/2 faces screen right (east).
+export const FACINGS = {
+  S: 0, SE: Math.PI / 4, E: Math.PI / 2, NE: (3 * Math.PI) / 4,
+  N: Math.PI, NW: (-3 * Math.PI) / 4, W: -Math.PI / 2, SW: -Math.PI / 4,
+} as const;
+export type Facing = keyof typeof FACINGS;
+
+export const ANIMS: Record<string, { frames: number; fps: number; pose: (t: number) => Pose }> = {
+  idle: { frames: 6, fps: 5, pose: idlePose },
+  walk: { frames: 8, fps: 10, pose: walkPose },
+};
+
+export const OUTFITS: Record<string, { label: string; layers: (p: Pose, body: Body) => Layer[] }> = {
+  farm: { label: 'Farm Clothes, Farm Boots', layers: farmClothesLayers },
+};
+
+export type FrameJob = { race: string; outfit: string; anim: string; frame: number; facing: Facing };
+export type FramePiece = {
+  id: string; segment: string; slot: string; kind: 'shadow' | 'layer' | 'shade';
+  x: number; y: number; w: number; h: number; data: Uint8ClampedArray;
+};
+export type FrameResult = { job: FrameJob; drawOrder: string[]; pieces: FramePiece[]; composite: Rgba; ms: number };
+
+// Segment draw order, back to front, worked out per frame from where the limbs
+// are. Rules (see README):
+//  - an arm well behind the torso (the far arm in side views) goes first, behind the legs;
+//  - legs, each followed by its foot (boots overlap trousers), far leg first;
+//  - the torso (its shirt skirt hangs over the thighs);
+//  - a back item (cloak, quiver) before everything when he faces the viewer, after the torso when he faces away;
+//  - the remaining arms, far first, forearm before upper arm (the sleeve overlaps the elbow);
+//  - the head, then held items.
+export function segmentOrder(p: Pose, yaw: number): string[] {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const depth = (v: V3) => -v[0] * s + v[2] * c; // toward the viewer, after turning
+  const mid = (a: V3, b: V3): V3 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+  const torso = depth(p.chest);
+  const arms = (['L', 'R'] as const).map((side) => ({ side, d: depth(mid(p.shoulder[side], p.hand[side])) })).sort((a, b) => a.d - b.d);
+  const legs = (['L', 'R'] as const).map((side) => ({ side, d: depth(p.knee[side]) })).sort((a, b) => a.d - b.d);
+  const faceViewer = c > -0.3;
+  const order: string[] = ['shadow'];
+  if (faceViewer) order.push('back');
+  const far = arms.filter((a) => a.d < torso - 3), near = arms.filter((a) => a.d >= torso - 3);
+  for (const a of far) order.push(`forearm.${a.side}`, `upperArm.${a.side}`);
+  for (const l of legs) order.push(`leg.${l.side}`, `foot.${l.side}`);
+  order.push('torso');
+  if (!faceViewer) order.push('back');
+  for (const a of near) order.push(`forearm.${a.side}`, `upperArm.${a.side}`);
+  order.push('head', 'offHand', 'mainHand');
+  return order;
+}
+
+function trimPiece(img: Rgba, base: Omit<FramePiece, 'x' | 'y' | 'w' | 'h' | 'data'>): FramePiece | null {
+  const { w: W, h: Hh } = cell;
+  let x0 = W, y0 = Hh, x1 = -1, y1 = -1;
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
+    if (img[(y * W + x) * 4 + 3] === 0) continue;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < 0) return null;
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const data = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) data.set(img.subarray(((y + y0) * W + x0) * 4, ((y + y0) * W + x0 + w) * 4), y * w * 4);
+  return { ...base, x: x0, y: y0, w, h, data };
+}
+
+export function renderFrame(job: FrameJob): FrameResult {
+  const t0 = Date.now();
+  const anim = ANIMS[job.anim];
+  const p = anim.pose(job.frame / anim.frames);
+  const body = makeBody(p);
+  const layers = [...bodyLayers(p, body), ...hairLayers(p, body), ...OUTFITS[job.outfit].layers(p, body)];
+  const local = segmentLocal(p);
+  for (const l of layers) l.local = local[l.segment];
+  attachOccluders(layers, body);
+  const yaw = FACINGS[job.facing];
+  const segs = segmentOrder(p, yaw), slots: string[] = rig.slotOrder.order;
+  const ordered = [...layers].sort((a, b) => segs.indexOf(a.segment) - segs.indexOf(b.segment) || slots.indexOf(a.slot) - slots.indexOf(b.slot));
+  const palette = paletteFor(job.race);
+  const raws = ordered.map((l) => renderLayer(l, yaw, cell, palette));
+  const coloured = colourLayers(raws, palette);
+  const shadow = shadowLayer(cell, palette);
+  const images = [shadow, ...ordered.map((l) => coloured.get(l.id)!)];
+  const shades: Uint8Array[] = [];
+  const comp = composite(cell, images, paletteFile.castShadow, [null, ...raws.map((r) => r.depth)], shades);
+
+  // Each cast shadow becomes a piece of its own, drawn just before its caster
+  // with "source-atop": black at this alpha darkens what is beneath by exactly
+  // the multiply factor, and only where something is already drawn.
+  const shadeAlpha = Math.round((1 - paletteFile.castShadow.multiply) * 255);
+  const pieces: FramePiece[] = [];
+  const sh = trimPiece(shadow, { id: 'shadow', segment: 'root', slot: 'shadow', kind: 'shadow' });
+  if (sh) pieces.push(sh);
+  ordered.forEach((l, i) => {
+    const mask = shades[i + 1];
+    if (mask) {
+      const img = new Uint8ClampedArray(cell.w * cell.h * 4);
+      for (let q = 0; q < mask.length; q++) if (mask[q]) img[q * 4 + 3] = shadeAlpha;
+      const s = trimPiece(img, { id: `${l.id}#shade`, segment: l.segment, slot: l.slot, kind: 'shade' });
+      if (s) pieces.push(s);
+    }
+    const piece = trimPiece(coloured.get(l.id)!, { id: l.id, segment: l.segment, slot: l.slot, kind: 'layer' });
+    if (piece) pieces.push(piece);
+  });
+  return { job, drawOrder: pieces.map((q) => q.id), pieces, composite: comp, ms: Date.now() - t0 };
+}

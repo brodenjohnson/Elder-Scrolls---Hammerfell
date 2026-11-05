@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Directions and walk</title>
+<style>
+  body { margin: 0; padding: 24px; background: #121010; color: #c9bba3; font: 13px/1.4 Georgia, serif; }
+  h1 { font-size: 20px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 4px; color: #d8c9a8; }
+  .sub { color: #8a7d68; margin-bottom: 18px; max-width: 1100px; }
+  h2 { font-size: 14px; font-weight: normal; color: #b3a283; border-bottom: 1px solid #3a322a; padding-bottom: 4px; margin: 0 0 12px; letter-spacing: 0.05em; }
+  .row { display: flex; align-items: flex-start; gap: 22px; margin-bottom: 26px; flex-wrap: wrap; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  figcaption { color: #8a7d68; font-size: 12px; text-align: center; max-width: 420px; }
+  canvas { image-rendering: pixelated; display: block; }
+  .labels { display: flex; flex-direction: column; color: #8a7d68; font-size: 12px; }
+  .labels div { display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+</style>
+</head>
+<body>
+<h1 id="title">EIGHT DIRECTIONS: IDLE AND WALK</h1>
+<div class="sub" id="sub"></div>
+
+<h2>Gate 2: idle, all layers, every direction (rows) and frame (columns), 2x</h2>
+<div class="row" id="idle"></div>
+
+<h2>Gate 3: walk cycle, every direction and frame, 2x</h2>
+<div class="row" id="walk"></div>
+
+<h2>Mirroring test: W drawn directly, E mirrored to stand in for W, and the pixels that differ (red), 3x</h2>
+<div class="row" id="mirror"></div>
+
+<script src="../out/sprites/index.js"></script>
+<script>
+const I = window.SPRITE_INDEX, base = '../out/sprites/previews/';
+const FACINGS = I.facings, ROW = 140;
+const load = (src) => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+function scaled(img, s) {
+  const c = document.createElement('canvas'); c.width = img.width * s; c.height = img.height * s;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, c.width, c.height); return c;
+}
+function withLabels(parent, canvas, s, caption) {
+  const wrap = document.createElement('div'); wrap.style.display = 'flex';
+  const lab = document.createElement('div'); lab.className = 'labels';
+  lab.innerHTML = FACINGS.map((f) => `<div style="height:${ROW * s}px">${f}</div>`).join('');
+  wrap.append(lab, canvas);
+  const f = document.createElement('figure'); f.append(wrap);
+  f.append(Object.assign(document.createElement('figcaption'), { textContent: caption }));
+  document.getElementById(parent).append(f);
+}
+(async () => {
+  const sec = (ms) => (ms / 1000).toFixed(1);
+  for (const anim of ['idle', 'walk']) {
+    const s = I.sheets[`farm_${anim}`];
+    if (!s) continue;
+    withLabels(anim, scaled(await load(`${base}farm_${anim}.png`), 2), 2,
+      `${s.pieces} layer pieces (cast shadows included) packed in one ${s.sheet[0]} by ${s.sheet[1]} sheet. ${sec(s.frameMs.mean)} s per frame on one core.`);
+  }
+  const m = I.mirror;
+  const f = document.createElement('figure'); f.append(scaled(await load(`${base}mirror_test.png`), 3));
+  f.append(Object.assign(document.createElement('figcaption'), { textContent: `${m.differingPixels} of ${m.figurePixels} figure pixels differ (${m.percent}%). Mirroring puts the light on the right, and moves the pouch and parting to the wrong side.` }));
+  document.getElementById('mirror').append(f);
+  document.getElementById('sub').textContent = `${I.frames} frames rendered in ${(I.renderMs / 1000).toFixed(0)} s on 11 worker threads. Every frame is exported as separate layers with draw order and offsets in a JSON atlas; open viewer/index.html to play them.`;
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

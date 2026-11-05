@@ -473,6 +473,8 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 29. A fourth ending, "The Quiet Bargain", exists after the dark bargain at Valaneth.
 30. The calendar clock is a pressure system, never a fail state.
 31. **Camera split (art spike):** ground, buildings and props use the true 30 degree isometric camera. Characters and creatures are drawn at a shallower 12 degree pitch so faces and chests read, as in concept-05. Tested in the sample scene, where the two sit together without looking wrong.
+32. **World scale kept at 12 tiles per Skyrim cell.** At character scale a tile is about 0.69 m, so the world (about 1,428 by 1,128 tiles) is about 1 km by 0.8 km of walkable space: Skyrim's layout, compressed about seven times. Chosen for performance (smaller slices to stream and draw) and so the world can actually be filled with hand-placed content. Towns and dungeons are built at character scale inside it.
+33. **Eight directions are all drawn, none mirrored.** Mirroring moved the light and the asymmetric details (brand, pouch, parting); 79% of pixels differed.
 
 ---
 

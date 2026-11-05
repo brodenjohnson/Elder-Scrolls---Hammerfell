@@ -8,13 +8,15 @@ Code-generated, layered pixel-art sprites. Kept apart from game code: the game w
 cd art
 npm install
 npm run gen                     # player style frame to art/out/gate1/ (not committed)
+npm run sprites                 # player idle and walk, 8 directions, sheets and atlases to art/out/sprites/ (about 3 min)
+npm run sprites -- walk         # one animation only
 npm run samples                 # tiles, building, props, figures, icons, scene to art/out/samples/ (about 5 min)
 npm run samples -- house scene  # redo only some parts; the rest are read back from the last run
 node compare/shoot.mjs gate1    # comparison sheet to docs/gates/gate1/
 node compare/shoot.mjs samples asset-samples.png
 ```
 
-To look at the art, open `compare/gate1.html` or `compare/samples.html` in Chrome or Edge after a render. Committed screenshots are in `docs/gates/`.
+To look at the art, open `viewer/index.html` (sprites: turntable, play, layers, scale), `compare/sprites.html`, `compare/gate1.html` or `compare/samples.html` in Chrome or Edge after a render. Committed screenshots are in `docs/gates/`.
 
 ## How it works
 
@@ -33,22 +35,43 @@ To look at the art, open `compare/gate1.html` or `compare/samples.html` in Chrom
 - **Objects** (`objects.ts`): buildings, props, creatures and icons use the character's shapes and renderer at the true 30 degree pitch, turned 45 degrees to sit on the grid. Ground shadows are cast by marching toward the sun (`groundShadowSun` in the palette file). Each object exports the full sprite, the body alone and the shadow alone. Scenes lay every shadow down first, so shadows never darken another object.
 - **Scale:** a tile edge is about 51 units, or 0.69 m, at the character's scale.
 
+## Sprite sheets and atlases (`sprites.ts`, `frames.ts`)
+
+- Frames render in parallel on worker threads (one per core, less one). One frame is about 8 s on one core; the 112 frames of idle and walk take about 3 minutes.
+- Each frame is exported as separate layer pieces, trimmed and packed into one 1024 px wide sheet per outfit and animation (`farm_idle.png`, `farm_walk.png`).
+- The atlas (`farm_idle.json`, and a `.js` copy for file://) records, per `facing/frame`: the draw order and, for every piece, its place in the sheet (`sx, sy, w, h`), its offset in the 192 by 192 cell (`x, y`), its `kind`, `segment` and `slot`. The cell anchor (`ox, oy`) is the point between the feet.
+- **Cast shadows travel with their caster.** A piece `id#shade` is drawn just before layer `id`, composited `source-atop`: black at 97 alpha darkens what is already drawn by the palette's multiply factor. Hide or detach a layer and its shadow goes with it.
+- **Animation poses** (`pose.ts`): idle breathes over 6 frames at 5 fps. Walk is 8 frames at 10 fps, with feet planted and sliding, two-bone leg IK, a pelvis dip at each double support and arms swinging against the legs.
+- **Texture follows the limb.** Each segment maps surface points back to its rest pose before texture is looked up, so cloth grain does not crawl between frames.
+
+### Draw order
+
+Worked out per frame from where the limbs are (`segmentOrder` in `frames.ts`), back to front:
+
+1. ground shadow;
+2. back item (cloak, quiver) if he faces the viewer;
+3. any arm well behind the torso (the far arm in side and three-quarter views), forearm then upper arm;
+4. legs, far first, each followed by its foot (boots overlap trousers);
+5. torso (the shirt skirt hangs over the thighs);
+6. back item if he faces away;
+7. remaining arms, far first, forearm then upper arm (the sleeve overlaps the elbow);
+8. head, then off hand and main hand.
+
+Within a segment, slots stack in slot order (below). The exact order for every frame is in the atlas.
+
+### Mirroring: not used
+
+Tested by mirroring E to stand in for W: 79% of figure pixels differ. Mirroring moves the light to the top right, and puts the brand, pouch and parting on the wrong side. Rendering all eight directions costs only machine time and about 1.6 times the sheet space of five, so every direction is drawn directly.
+
 ## Layers
 
 Layer ids are `segment/slot`. Slots stack within a segment in this order: body, scar, blood, facialHair, hair, armour, gloves, boots, helmet, equipBlood.
 
-Segment draw order, back to front:
-
-| Facing | Order |
-|---|---|
-| S | shadow, back, leg.L, leg.R, foot.L, foot.R, torso, forearm.L, forearm.R, upperArm.L, upperArm.R, head, offHand, mainHand |
-
-The other seven facings are added at gate 2.
+Segment draw order: see Draw order above.
 
 ## Known limits
 
-- About 30 s to render one character frame with all its layers, and 90 s for the house. Needs a speed-up before the eight-direction and animation gates.
+- About 8 s to render one character frame on one core (3 minutes for idle and walk in all directions on 11 threads), 90 s for the house.
 - Coastlines follow the tile grid in visible steps. A larger transition set or per-pixel blending would smooth them.
 - The wolf is one solid, not yet split into detachable segments.
 - Cast shadows multiply colours, so the final sprite has some colours that are not in the palette (58 colours in the dressed frame).
-- Texture uses character-space coordinates. It has to move to segment-local coordinates before animation, or it will crawl.
