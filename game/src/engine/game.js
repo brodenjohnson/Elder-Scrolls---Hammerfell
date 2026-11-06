@@ -234,7 +234,13 @@ function lootOf(f) {
   Object.assign(items, f.lootExtra || {});
   return { items, gold: f.beast ? 0 : f.gold ?? 5 + Math.floor(Math.random() * 25) };
 }
+// The story still needs them: at no Health they drop to one knee for a while, then get up.
+function knockDown(f) {
+  f.hp = 1; f.down = 8; f.stagger = 0; f.bleed = 0; f.spurt = 0; f.fleeT = 0; f.kb = [f.kb[0] * 0.3, f.kb[1] * 0.3];
+  if (attacker === f) attacker = null; play(f, 'kneel'); say(`${f.pname} is down`, 'hint');
+}
 function kill(f, by, how = {}) {
+  if (f.essential && f !== pl && !how.story) { knockDown(f); return; }
   f.dead = true; f.hp = 0; play(f, how.anim || 'death'); f.stagger = 0; f.kb = [f.kb[0] * 0.5, f.kb[1] * 0.5];
   if (how.part) sever(f, how.part, by);
   if (how.crush) { sfx('crush'); if (gore() !== 'off') { f.crushed = gore() === 'full'; spray(f.x, f.y, 40, 46, [0, 0], 1.4); if (gore() === 'full') bits(f.x, f.y, 40, 16); } }
@@ -285,7 +291,7 @@ function damage(att, def, kind) {
     if (allOf('Heavy') && has('ReflectBlows') && Math.random() < 0.1) { att.hp -= 1; att.flash = 0.08; say('Reflected', 'hint'); }
   }
   def.hp -= dmg; def.flash = 0.08;
-  if (def.essential && def.hp <= 0) def.hp = 1; // the story needs them alive
+  if (def.essential && def !== pl && def.hp <= 0) { sfx('impact', { cls: w.cls, mat: matOf(def), heavy }); knockDown(def); return; }
   if (def.yieldAt && !def.yielded && def.hp <= def.maxHp * def.yieldAt) { def.hp = Math.max(def.hp, 0.5); sfx('impact', { cls: w.cls, mat: matOf(def), heavy }); yieldNow(def); return; }
   sfx('impact', { cls: w.cls, mat: matOf(def), heavy, crit, gore: gore() !== 'off', hurt: def.hp > 0 && Math.random() < 0.35 }); if (crit) say('Critical', 'skill');
   if (gore() === 'full' && matOf(def) !== 'metal') { const ddx = def.x - att.x, ddy = def.y - att.y, dd = Math.hypot(ddx, ddy) || 1; streak(def.x, def.y, [ddx / dd, ddy / dd], heavy ? 22 : 12); }
@@ -321,13 +327,13 @@ function damage(att, def, kind) {
   else play(def, 'hit');
 }
 function landBlow(att) {
-  if (fin && att !== pl) return; // nobody strikes the player mid-finisher
+  if ((fin || scene) && att !== pl) return; // nobody strikes the player mid-finisher or in a cutscene
   if (att !== pl) sfx('swing', { shape: W8(att).shape, heavy: W8(att).hands === 2 });
   const targets = att === pl ? foes : [pl];
   const kind = att.anim === 'power' ? 'power' : att.anim === 'chop' && att === pl ? 'combo3' : att.anim === 'enemyChop' ? 'power' : 'quick';
   for (const def of targets) {
     const sweep = att === pl && kind === 'power' && W8(att).hands === 2 && has('Sweep');
-    if (def.dead || !inArc(att, def, reachOf(att), sweep ? -0.25 : 0.3)) continue;
+    if (def.dead || def.down > 0 || !inArc(att, def, reachOf(att), sweep ? -0.25 : 0.3)) continue;
     if (att !== pl && def.inv > 0) continue;
     // The player blocks: a shield takes all of it and parries more easily; a blade takes most of it.
     if (def === pl && (def.anim === 'block' || def.anim === 'shieldBlock') && inArc(def, att, 80, 0)) {
@@ -355,6 +361,7 @@ function landBlow(att) {
 // Disarming Bash: half the time his weapon goes flying.
 function bash() {
   if (!has('PowerBashPerk')) { say('Bashing needs the Power Bash perk (Block 30)', 'warn'); return; }
+  if (pl.sheathed) { sheathe(false); return; }
   if (!canAct(pl) && pl.anim !== 'block' && pl.anim !== 'shieldBlock') return;
   if (!spend(20)) return;
   const t = nearest(40, 0); if (t) pl.face = faceOf(t.x - pl.x, t.y - pl.y);
@@ -363,7 +370,7 @@ function bash() {
 }
 function landBash() {
   for (const e of foes) {
-    if (e.dead || !inArc(pl, e, 30, 0.2)) continue;
+    if (e.dead || e.down > 0 || !inArc(pl, e, 30, 0.2)) continue;
     e.hp -= 0.4 * (has('DeadlyBash') ? 5 : 1); e.flash = 0.08;
     const dx = e.x - pl.x, dy = e.y - pl.y, d = Math.hypot(dx, dy) || 1; e.kb = [(dx / d) * 120, (dy / d) * 80];
     hitStop = 0.09; shake = 3.5; sfx('bash', { guard: guardOf(pl) }); train('Block', 10);
@@ -378,6 +385,7 @@ function landBash() {
 function spend(n) { if (furious() && has('RageWind')) return true; if (state.stamina < n) { say('Not enough stamina', 'warn'); return false; } state.stamina -= n; state.staminaWait = 0.8; return true; }
 function attack(power) {
   if (pl.dead || fin || state.paused) return;
+  if (pl.sheathed) { sheathe(false); return; }
   if (!canAct(pl)) { pl.buffer = { power, left: 0.35 }; return; }
   const w = W8(pl);
   if (!spend(power ? 25 * (has(w.hands === 2 ? 'ChampionsStance' : 'FightingStance') ? 0.75 : 1) : 6)) return;
@@ -398,14 +406,15 @@ function attack(power) {
 }
 function nearest(r, cos, pred = () => true) {
   let best = null, bd = r;
-  for (const e of foes) { if (e.dead || !pred(e)) continue; const d = Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3); if (d < bd && (cos <= -1 || inArc(pl, e, r, cos) || d < 20)) { best = e; bd = d; } }
+  for (const e of foes) { if (e.dead || e.down > 0 || !pred(e)) continue; const d = Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3); if (d < bd && (cos <= -1 || inArc(pl, e, r, cos) || d < 20)) { best = e; bd = d; } }
   return best;
 }
-const finishable = (e) => !e.dead && !e.beast && !e.yielded && (e.stagger > 0 || e.hp <= e.maxHp * 0.3 || (furious() && has('RageButcher')));
+const finishable = (e) => !e.dead && !e.beast && !e.yielded && !e.essential && !e.down && (e.stagger > 0 || e.hp <= e.maxHp * 0.3 || (furious() && has('RageButcher')));
 function finisher() {
   if (fin || pl.dead || state.paused || (busy(pl) && !canAct(pl))) return;
+  if (pl.sheathed) { sheathe(false); return; }
   const e = nearest(46, -2, finishable);
-  if (!e) { say('Stagger him first: a third hit, a power attack or a parry', 'warn'); return; }
+  if (!e) { const k = nearest(46, -2, (x) => x.essential && !x.down); say(k ? `${k.pname} is needed alive` : 'Stagger him first: a third hit, a power attack or a parry', 'warn'); return; }
   const cls = W8(pl).cls, list = FINISHERS[cls], kind = list[(finTurn[cls] = ((finTurn[cls] ?? -1) + 1) % list.length)];
   pl.face = faceOf(e.x - pl.x, e.y - pl.y); const [fx, fy] = fwd(pl), gap = kind === 'throat' || kind === 'stabs' ? 11 : 17;
   e.x = pl.x + fx * gap; e.y = pl.y + fy * gap / 1.3; e.face = faceOf(pl.x - e.x, pl.y - e.y); e.kb = [0, 0]; e.stagger = 0;
@@ -566,6 +575,11 @@ function toggleTorch() {
   if (!state.inv.Torch) { say('You have no torch. Dalia and Hamid sell them.', 'warn'); return; }
   equip('Torch'); sfx('torch');
 }
+// R: put the weapon away, or draw it. Attacking, bashing or a finisher draws it too.
+function sheathe(on = !pl.sheathed) {
+  if (!pl || pl.dead || fin || !pl.eq.weapon || !!pl.sheathed === on || (busy(pl) && !canAct(pl))) return false;
+  pl.sheathed = on; sfx('sheathe', { draw: !on }); return true;
+}
 function useItem(edid) {
   const it = ITEMS[edid]; if (!it || !state.inv[edid]) return;
   if (it.cat === 'weapon' || it.cat === 'apparel' || it.torch) return equip(edid);
@@ -604,7 +618,8 @@ function mkActor(id, def, wp) {
     lootExtra: def.loot, gold: def.gold, yieldAt: def.yield, chief: def.boss, essential: def.essential, walkT: Math.random() * 3,
   };
   const saved = ws(world.id).actors[id];
-  if (saved?.dead) { Object.assign(a, saved, { dead: true, hp: 0, anim: 'death', fi: frames({ ...a, anim: 'death' }).length - 1, ft: 0 }); }
+  // Someone the story needs, left dead by a save from before 0.8.1, is up again.
+  if (saved?.dead && !def.essential) { Object.assign(a, saved, { dead: true, hp: 0, anim: 'death', fi: frames({ ...a, anim: 'death' }).length - 1, ft: 0 }); }
   else if (saved?.eq) a.eq = saved.eq;
   return a;
 }
@@ -857,7 +872,7 @@ function runAction(str) {
       case 'calm': flags.add(`calm:${args[0]}`); break;
       case 'free': { flags.add(`gone:${args[0]}`); const a = actors.find((x) => x.id === args[0]); if (a) { a.gone = true; a.leaving = true; } break; }
       case 'finish': { const a = actors.find((x) => x.id === args[0]); if (a && !a.dead) { a.yielded = false; a.stagger = 5; play(a, 'stagger'); a.fi = 1; pl.face = faceOf(a.x - pl.x, a.y - pl.y); setTimeout(() => finisher(), 60); } break; }
-      case 'kill': { const a = actors.find((x) => x.id === args[0]); if (a && !a.dead) kill(a, pl, {}); break; }
+      case 'kill': { const a = actors.find((x) => x.id === args[0]); if (a && !a.dead) kill(a, pl, { story: true }); break; }
       case 'give': take(args[0], +(args[1] || 1)); say(`${nameOf(args[0])} added`, 'item'); break;
       case 'take': take(args[0], -(+(args[1] || 1))); break;
       case 'equip': if (!state.inv[args[0]]) take(args[0], 1); pl.eq[ITEMS[args[0]].cat === 'weapon' ? 'weapon' : ITEMS[args[0]].slot] = args[0]; break;
@@ -1113,7 +1128,7 @@ function update(rdt) {
   if (!pl.dead && !fin) {
     const blockAnim = shieldOn(pl) ? 'shieldBlock' : 'block', ground = world.speedAt(pl.x, pl.y);
     if (!busy(pl)) {
-      if (blocking && state.stamina > 0 && pl.eq.weapon) {
+      if (blocking && state.stamina > 0 && pl.eq.weapon && !pl.sheathed) {
         if (pl.anim !== blockAnim) { play(pl, blockAnim); pl.blockT = 0; } pl.blockT += dt;
         if (mx || my) {
           const l = Math.hypot(mx, my), charge = shieldOn(pl) && has('ShieldCharge') && (keys.has('ShiftLeft') || keys.has('ShiftRight')) && state.stamina > 1;
@@ -1147,6 +1162,10 @@ function update(rdt) {
   step(pl, dt);
   for (const e of actors) {
     if (e.dead) { step(e, dt); continue; }
+    if (e.down > 0) { if ((e.down -= dt) <= 0) { e.down = 0; e.hp = Math.max(e.hp, e.maxHp * 0.5); play(e, 'idle'); } step(e, dt); continue; }
+    e.sheathed = !e.aggro && !(fighting && e.def?.fights);
+    // A cutscene holds the fight still: nobody strikes while the player cannot.
+    if (scene && hostileTo(e)) { if (!busy(e) && e.anim !== 'idle') play(e, 'idle'); step(e, dt); continue; }
     if (hostileTo(e)) (e.beast ? thinkBeast : think)(e, dt); else peaceful(e, dt);
     step(e, dt);
   }
@@ -1341,6 +1360,8 @@ const HF = {
   overview: () => world?.overview?.() || WORLDS.get('coast')?.world.overview(), mapSize: () => ({ w: MAPS.maps.coast.w, h: MAPS.maps.coast.h }),
   saveSettings: () => { try { localStorage.setItem('hammerfell.settings', JSON.stringify(settings)); } catch { /* private window */ } },
   skipScene: () => { if (scene) { scene.skip(); scene = null; autosave(); } },
+  advanceScene: () => scene?.advance(),
+  sheathe: (on) => sheathe(on),
   version: VERSION,
 };
 window.HF = HF;
@@ -1380,6 +1401,8 @@ addEventListener('keydown', (e) => {
   if (!pl) return; // the title is up
   if (e.code === 'F9') { e.preventDefault(); load('quick') || load(latestSlot()); return; }
   if (scene && e.code === 'Escape') { HF.skipScene(); e.stopImmediatePropagation(); return; }
+  // A line in a cutscene stays up until Space, Enter, E or a click moves it on.
+  if (scene && !e.repeat && ['Space', 'Enter', 'NumpadEnter', 'KeyE'].includes(e.code)) { e.preventDefault(); scene.advance(); return; }
   if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyJ', 'KeyK', 'KeyF', 'KeyQ', 'KeyC', 'ShiftLeft', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.repeat || scene || convo || shop) { keys.add(e.code); return; }
   keys.add(e.code);
@@ -1388,10 +1411,12 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyF') finisher();
   if (e.code === 'KeyQ') fury();
   if (e.code === 'KeyL') toggleTorch();
+  if (e.code === 'KeyR') sheathe();
 });
 addEventListener('keyup', (e) => { keys.delete(e.code); if (e.code === 'KeyJ' && holdStart !== null) { holdStart = null; attack(false); } });
 view.addEventListener('contextmenu', (e) => e.preventDefault());
 view.addEventListener('mousedown', (e) => {
+  if (scene && e.button === 0 && !state.paused) { scene.advance(); return; }
   if (state.paused || scene || convo || shop || !pl) return;
   if (e.button === 0) { if (!pl.eq.weapon) return; if (keys.has('KeyK') || keys.has('mouse2')) { bash(); return; } holdStart = performance.now(); }
   if (e.button === 2) keys.add('mouse2');

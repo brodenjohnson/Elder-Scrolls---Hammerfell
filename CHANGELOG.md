@@ -2,6 +2,14 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.8.1 (2026-11-07): fixes from play
+
+- **Put your weapon away.** R sheathes it: a one-hander hangs at the left hip, a two-hander goes across the back. R again, or any attack, bash or finisher, draws it. You cannot block with it put away. Townsfolk and guards keep theirs sheathed until a fight starts.
+- **Time to read.** Captions and spoken lines in cutscenes now stay up until you press Space, Enter or E, or click. A pulsing prompt in the corner says so. Esc still skips the whole scene. Notes down the side and speech bubbles stay up longer, and longer still for long lines.
+- **No blows during cutscenes.** Raiders and anything else hostile stand still while a scene plays, and no blow lands on you.
+- **The people the story needs cannot die.** Nadira, Tavi, Dune, Zeyna, Khadija and the stranger drop to one knee at no Health instead of dying, then get up eight seconds later with half their Health. You cannot use a finisher on them ("Khadija is needed alive"). Bleeding and shield bashes no longer get round this, which is how Khadija could die before.
+- **Saves:** unchanged. If a save has one of those people lying dead (Khadija, say), they are up and well the next time you enter the map.
+
 ## 0.8.0 (2026-11-06): smithing, torches and the dark, a proper title
 
 - **A title sequence.** Black, then "Press any key". The title theme rises (strings, a low choir, a horn and timpani, our own tune), the coast fades in at dusk with the camera drifting along the shore, and the seal and the name, **The Salt Ledger**, come up on a timpani roll. Then the menu: Continue, New Game, Load (every save, with name, level and date), Credits. Any key skips straight to the menu.

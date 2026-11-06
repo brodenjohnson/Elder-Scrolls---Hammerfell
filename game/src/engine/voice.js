@@ -28,7 +28,7 @@ window.HFV = (() => {
     const raw = def.lines[i], name = raw.includes('{name}') ? ctx.name : null, text = name ? raw.replaceAll('{name}', name) : raw;
     last[f.vid] = now; busyUntil = now + 900 + text.length * 55;
     for (let k = bubbles.length - 1; k >= 0; k--) if (bubbles[k].f === f) bubbles.splice(k, 1);
-    bubbles.push({ f, text, until: now + 1800 + text.length * 55 });
+    bubbles.push({ f, text, until: now + 2800 + text.length * 75 });
     if (!on) return true;
     const who = speakerOf(f), id = `${set}.${i}${name ? `.${name.toLowerCase()}` : ''}`;
     if (MANIFEST[who]?.[id]) {

@@ -155,6 +155,8 @@
   #sceneLine { position: absolute; left: 12%; right: 12%; bottom: 13%; text-align: center; font-size: 18px; color: var(--ink); text-shadow: 0 1px 3px #000, 0 0 6px #000; opacity: 0; transition: opacity .3s; }
   #sceneLine.on { opacity: 1; } #sceneLine b { color: var(--gold2); font-weight: normal; margin-right: 8px; }
   #skip { position: absolute; right: 2%; bottom: 3%; font-size: 12px; color: var(--dim); opacity: 0; } #skip.on { opacity: 0.8; }
+  #skip .go { display: none; } #skip.held .go { display: inline; color: var(--ink); font-size: 14px; animation: hfPulse 1.6s ease-in-out infinite; }
+  @keyframes hfPulse { 50% { opacity: 0.45; } }
   /* conversation: the line above, the choices below, Skyrim's way */
   #menu.talk { background: linear-gradient(transparent 45%, rgba(5,4,3,0.85)); }
   .talk { position: absolute; left: 18%; right: 18%; bottom: 6%; text-align: center; }

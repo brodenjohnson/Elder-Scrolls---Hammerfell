@@ -204,6 +204,12 @@ export function rig(pose, face, wpn, R = RIG) {
     crA: add(head, add([0, R.headR * 0.55, 0], up, R.headR * 0.95)), crB: add(head, add(back, up, R.headR * 0.5)),
     tlA: add(head, back, R.headR * 0.85), tlB: add(neck, [1.5, -R.headR * 1.5, -R.spine * 0.45]),
     torB: add(haL, rotZ([-0.15, 0.25, 1], P.tw), -2.5), torT: add(haL, rotZ([-0.15, 0.25, 1], P.tw), 7.5) };
+  // A sheathed weapon: a one-hander hangs at the left hip, point down and back; a two-hander across the back.
+  if (wpn.sheath) {
+    const s = wpn.sheath, two = s.hands === 2, d = nrm(rotZ(two ? [-0.55, -0.12, -1] : [-0.3, -0.45, -1], P.tw * 0.5));
+    const g0 = two ? add(chest, rotZ([R.shW * 0.7, -2.6, 1.5], P.tw)) : add(hipL, rotZ([-2, 0.9, 1.6], P.tw * 0.3));
+    Object.assign(pts, { sbB: add(g0, d, two ? -5.5 : -2.6), sbH: add(g0, d, -1.2), sbG: g0, sbT: add(g0, d, s.len * R.k) });
+  }
   // A roll turns the whole body about the hips, and lifts it so the lowest point stays on the ground.
   if (P.spin) {
     const piv = [0, 0, pelvis[2] * 0.55];
@@ -283,7 +289,12 @@ export function lookFor(who, eq) {
 }
 // An improved item (IronSword+2) looks like the item it was made from.
 export const baseOf = (edid) => (edid ? String(edid).split('+')[0] : edid);
-export const weaponOf = (eq) => { const w = ITEMS[eq.weapon] || ITEMS.Fists || { shape: 'none', hands: 1, metal: 'iron' }, s = SHAPES[w.shape]; return { ...s, hands: w.hands, metal: w.metal, shield: w.hands === 1 && eq.shield ? SHIELDS[baseOf(eq.shield)] || null : null, torch: w.hands === 1 && eq.shield === 'Torch' }; };
+export const weaponOf = (eq) => {
+  const w = ITEMS[eq.weapon] || ITEMS.Fists || { shape: 'none', hands: 1, metal: 'iron' }, s = SHAPES[w.shape], sh = ITEMS[eq.sheath];
+  // A two-hander on the back leaves no hand free for a shield or torch either way.
+  const sheath = sh && SHAPES[sh.shape] && sh.shape !== 'none' ? { ...SHAPES[sh.shape], hands: sh.hands, metal: sh.metal } : null, oneHand = w.hands === 1 && sheath?.hands !== 2;
+  return { ...s, hands: w.hands, metal: w.metal, shield: oneHand && eq.shield ? SHIELDS[baseOf(eq.shield)] || null : null, torch: oneHand && eq.shield === 'Torch', sheath };
+};
 
 // ---------- drawing a character ----------
 // cut: parts taken off (head, armR, armL). only: draw just that part (a severed piece). crushed: the head is pulp.
@@ -369,6 +380,7 @@ export function drawCharacter(look, wpn, pose, face, o = {}) {
   }
   // the weapon goes with the right arm, the shield with the left
   push('armR', (Z('wb') + Z('wt')) / 2 - 0.3, () => drawWeapon(p, wpn, S('wb'), S('haR'), S('wt'), S('wg')));
+  if (wpn.sheath) push('body', (Z('sbG') + Z('sbT')) / 2 - 0.2, () => drawWeapon(p, wpn.sheath, S('sbB'), S('sbH'), S('sbT'), S('sbG')));
   if (wpn.shield) push('armL', Z('haL') - 0.6, () => drawShield(p, g, wpn.shield));
   // A torch: the stick in the left hand and a charred head (the flame is drawn live, over the figure).
   if (wpn.torch) push('armL', (Z('torB') + Z('torT')) / 2 - 0.3, () => { const [x0, y0] = S('torB'), [x1, y1] = S('torT'); rod(p, x0, y0, x1, y1, 1.6, 1.4, 'wood'); blob(p, x1, y1, 1.8, 1.6, 'leather', { tex: 0.1 }); });
@@ -668,16 +680,18 @@ export const FIN_NAMES = { behead: 'Beheaded', impale: 'Run through', cleave: 'C
 
 // ---------- frames, cached ----------
 const cache = new Map();
-const eqKey = (eq) => `${eq.body}.${eq.hands}.${eq.feet}.${eq.head}.${eq.weapon}.${eq.shield}`;
+const eqKey = (eq) => `${eq.body}.${eq.hands}.${eq.feet}.${eq.head}.${eq.weapon}.${eq.shield}.${eq.sheath}`;
 // f: anything with person (an appearance id or object, with apKey naming an object), eq,
 // cut and crushed, and build (man, woman, girl, old, big).
 export function frameOf(f, anim = f.anim, i = f.fi, face = f.face, extra = {}) {
   const cut = extra.cut ?? f.cut ?? [], crushed = extra.crushed ?? f.crushed, only = extra.only ?? null, who = typeof f.person === 'string' ? f.person : f.apKey;
-  const key = `${who}|${f.build || 'man'}|${eqKey(f.eq)}|${anim}|${i}|${face.toFixed(3)}|${cut.join(',')}|${crushed ? 1 : 0}|${only}`;
+  // Put away: the hands are empty and the weapon hangs at the hip or on the back.
+  const eq = f.sheathed && f.eq.weapon ? { ...f.eq, weapon: null, sheath: f.eq.weapon } : f.eq;
+  const key = `${who}|${f.build || 'man'}|${eqKey(eq)}|${anim}|${i}|${face.toFixed(3)}|${cut.join(',')}|${crushed ? 1 : 0}|${only}`;
   let r = cache.get(key);
   if (!r) {
     if (cache.size > 12000) cache.clear();
-    r = drawCharacter(lookFor(f.person, f.eq), weaponOf(f.eq), ANIMS[anim].frames[Math.min(i, ANIMS[anim].frames.length - 1)].pose, face, { cut, crushed, only, R: RIGS[f.build || 'man'] });
+    r = drawCharacter(lookFor(f.person, eq), weaponOf(eq), ANIMS[anim].frames[Math.min(i, ANIMS[anim].frames.length - 1)].pose, face, { cut, crushed, only, R: RIGS[f.build || 'man'] });
     cache.set(key, r);
   }
   return r;

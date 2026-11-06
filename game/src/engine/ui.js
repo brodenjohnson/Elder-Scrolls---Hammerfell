@@ -26,14 +26,16 @@ addEventListener('hf-ready', () => {
     <div id="prompt"></div>
     <div id="bars"><div class="b rage"><i></i></div><div class="b hp"><i></i></div><div class="b st"><i></i></div></div>
     <div id="bubbles"></div>
-    <div id="caption"></div><div id="sceneLine"></div><div id="skip">${key('Esc')} skip</div>
+    <div id="caption"></div><div id="sceneLine"></div><div id="skip"><span class="go">${key('Space')} or click to continue &middot; </span>${key('Esc')} skip</div>
     <div id="fury">FURY</div><div id="rage-ready">${key('Q')} RAGE</div>
     <div id="clock"></div>`;
   const notes = $('#notes');
   function note(text, kind) {
     const d = document.createElement('div'); d.className = `n ${kind}`; d.textContent = text; notes.prepend(d);
     while (notes.children.length > 6) notes.lastChild.remove();
-    setTimeout(() => d.classList.add('out'), 3800); setTimeout(() => d.remove(), 4600);
+    // Long enough to read: longer for longer lines, longest for the story's.
+    const ms = (4500 + text.length * 45) * (kind === 'quest' ? 1.5 : 1);
+    setTimeout(() => d.classList.add('out'), ms); setTimeout(() => d.remove(), ms + 800);
   }
   let bannerT = 0;
   function banner(small, big, sub) {
@@ -87,7 +89,7 @@ addEventListener('hf-ready', () => {
     $('#caption').textContent = v?.caption || ''; $('#caption').classList.toggle('on', !!v?.caption);
     const line = v?.line ? `${v.line.speaker}: “${v.line.text}”` : '';
     $('#sceneLine').innerHTML = v?.line ? `<b>${esc(v.line.speaker)}</b> ${esc(v.line.text)}` : ''; $('#sceneLine').classList.toggle('on', !!line && subtitles);
-    $('#skip').classList.toggle('on', !!sc);
+    $('#skip').classList.toggle('on', !!sc); $('#skip').classList.toggle('held', !!v?.held);
     if (line && line !== lastSceneLine && voiceOn()) window.HFV.say(v.line.speaker, v.line.text);
     lastSceneLine = line;
   }
@@ -281,7 +283,7 @@ addEventListener('hf-ready', () => {
           <div class="opt"><span>Sound</span><button data-sound="on" class="${window.HFA?.on ? 'on' : ''}">On</button><button data-sound="off" class="${window.HFA?.on ? '' : 'on'}">Off</button></div>
           <div class="opt"><span>Voices</span><button data-voice="on" class="${voiceOn() ? 'on' : ''}">On</button><button data-voice="off" class="${voiceOn() ? '' : 'on'}">Off</button></div>
           <div class="opt"><span>Subtitles</span><button data-subs="on" class="${subtitles ? 'on' : ''}">On</button><button data-subs="off" class="${subtitles ? '' : 'on'}">Off</button></div>
-          <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; L torch &middot; E talk, search, open, enter, use (a forge, a grindstone) &middot; T wait &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal &middot; F5 quick save, F9 quick load</div></div>`;
+          <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; R put the weapon away or draw it &middot; L torch &middot; E talk, search, open, enter, use (a forge, a grindstone) &middot; T wait &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal &middot; F5 quick save, F9 quick load</div></div>`;
       menu.innerHTML = `<div class="journal"><div class="tabs">${tabs.map(([k, n]) => `<div class="tab ${k === journalTab ? 'sel' : ''}" data-tab="${k}">${n}</div>`).join('')}</div><div class="page">${body}</div>
         <div class="keys">${key('A')}${key('D')} Tab &middot; ${key('Esc')} Close</div></div>`;
       return;

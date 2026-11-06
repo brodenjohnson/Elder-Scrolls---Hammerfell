@@ -167,6 +167,8 @@ window.HFA = (() => {
       else if (o.station === 'tanning') { P.slap(t, 0.8); noise(t + 0.15, 0.3, 'bandpass', 900, 1, 0.3); }
       else for (let i = 0; i < 3; i++) { P.ring(t + i * 0.28, R(1100, 1300), 0.5, 0.7); tone(t + i * 0.28, 'sine', 180, 0.08, 0.5, sfxBus, 0.001, 120); }
     },
+    // Steel drawn from the scabbard (a scrape and a ring) or put back (a scrape and a knock).
+    sheathe(o = {}) { const t = now(); P.scrape(t, 0.3); if (o.draw) P.ring(t + 0.16, R(1500, 1700), 0.25, 0.35); else P.knock(t + 0.2, 0.5); },
     torch() { const t = now(); const n = noise(t, 0.4, 'bandpass', 600, 0.7, 0.4, sfxBus, 0.05); n.f.frequency.exponentialRampToValueAtTime(2400, t + 0.35); },
     // The title appears: a timpani roll swelling into a struck chord and a crash.
     reveal() {
