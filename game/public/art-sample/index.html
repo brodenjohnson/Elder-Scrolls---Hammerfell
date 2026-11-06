@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hammerfell art sample</title>
+<style>
+  :root { --bg: #14110d; --panel: #1e1a14; --ink: #e2d8bb; --dim: #9b917a; --gold: #e0a030; --line: #3a3226; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Georgia, serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; color: #f0d090; }
+  h2 { font-size: 17px; margin: 22px 0 6px; color: #f0d090; }
+  p { margin: 6px 0; }
+  .dim { color: var(--dim); }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 10px; }
+  nav button, .who button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 7px 12px; font: inherit; cursor: pointer; }
+  nav button.on, .who button.on { border-color: var(--gold); color: #f0d090; }
+  #view { width: 100%; max-width: 960px; aspect-ratio: 320 / 190; image-rendering: pixelated; display: block; border: 1px solid var(--line); cursor: crosshair; }
+  #sheet { image-rendering: pixelated; border: 1px solid var(--line); max-width: 100%; }
+  .keys { background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; margin: 10px 0; }
+  #msg { min-height: 1.5em; color: #f0d090; }
+  #now img { width: 100%; max-width: 960px; border: 1px solid var(--line); }
+  .who { display: flex; gap: 6px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Hammerfell: art sample</h1>
+  <p class="dim">Two candidate styles for the reset (design bible v0.3). Both are drawn by code while the page runs: small pixel figures posed from one skeleton, shaded with palette ramps, outlined. Pick one, or say what to take from each.</p>
+  <nav>
+    <button data-tab="A">Style A: top-down</button>
+    <button data-tab="B">Style B: small isometric</button>
+    <button data-tab="now">Now: the current game</button>
+  </nav>
+  <section id="play">
+    <h2 id="style-name"></h2>
+    <p id="style-note"></p>
+    <div class="keys">WASD walk &middot; Shift run &middot; J or left click attack (tap three times for the combo: forehand, backhand, overhead) &middot; hold J or left click for a power attack &middot; K or right click block. The bandit glows before he swings: block then, or step away.</div>
+    <canvas id="view" width="320" height="190"></canvas>
+    <p id="msg"></p>
+    <h2>Every animation, every direction</h2>
+    <div class="who"><button data-who="kasim" class="on">Kasim</button><button data-who="bandit">Bandit</button></div>
+    <canvas id="sheet"></canvas>
+  </section>
+  <section id="now" hidden>
+    <h2>Now: the current game</h2>
+    <p>The current game, for comparison: large figures built from 3D shapes and rendered into sprite sheets ahead of time, eight directions.</p>
+    <img src="now.png" alt="The farm in the current game: Kasim, Nadira, Tavi and the dog outside the house">
+  </section>
+  <h2>What is the same in both</h2>
+  <p>The figures are about 40 pixels tall, shown three times larger. The bodies, clothes and weapons are separate pieces, so new armour and weapons are cheap and limbs can come off. Swings have their own frames with held timings and a blade smear, and hits freeze for a split second, shake and knock back, as the game now does.</p>
+  <h2>What this sample does not show</h2>
+  <p>Buildings, towns, interiors, the desert, night lighting, finishers and gore beyond blood. Faces are a few pixels, so close-up expression would come from portraits in dialogue, not the sprites.</p>
+</main>
+<script src="sample.js"></script>
+</body>
+</html>
