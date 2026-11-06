@@ -280,10 +280,7 @@ export class Game {
       let speed = k.has('ShiftLeft') || k.has('ShiftRight') ? RUN : WALK;
       if (this.terrain.material(p.a, p.b) === M.shallow) speed *= 0.6;
       if (f.blocking) speed *= 0.5;
-      // Sneaking (Ctrl) is slower and trains Sneak while moving.
-      const sneaking = (k.has('ControlLeft') || k.has('ControlRight')) && !this.combat.fury; // no sneaking in Fury
       if (f.limp > 0) speed *= WOUNDS.limpSpeed;
-      if (sneaking) { speed *= 0.55; this.character.useSkill('Sneak', 0.5 * dt); }
       p.speed = speed;
       [p.a, p.b] = this.move(p.a, p.b, (ga / l) * speed * dt, (gb / l) * speed * dt);
     }
@@ -435,7 +432,6 @@ export class Game {
     const loot = ['ArmorLeatherCuirass', 'ArmorLeatherBoots', 'ArmorLeatherGauntlets', 'ArmorSteelCuirassA', 'ArmorSteelBootsB', 'ArmorSteelGauntletsA', 'SteelGreatsword'];
     for (const e of loot) this.character.give(e);
     this.character.give('Bandage', 3);
-    this.character.useSkill('Lockpicking', 1);
     this.say('Opened the chest: Leather and Steel armour, a Steel Greatsword, three bandages. I for inventory.');
   }
   // Which sprite set the player wears follows the body armour.
@@ -509,10 +505,10 @@ export class Game {
   }
   private cut(f: Fighter) { return f.severed.flatMap((s) => PARTS[s]); }
 
-  // Character creation: a name and a race (only races with drawn sprites can be chosen yet).
-  create(name: string, race = 'RedguardRace') {
+  // Character creation: a name. The player is always a Redguard (bible section 9.5).
+  create(name: string) {
     const clean = name.trim().replace(/\s+/g, ' ').slice(0, 24) || this.character.s.name;
-    this.character = new Character(this.data, newCharacter(this.data, race, clean));
+    this.character = new Character(this.data, newCharacter(this.data, 'RedguardRace', clean));
     this.pf = undefined;
     this.play('opening', 1);
   }
@@ -546,6 +542,7 @@ export class Game {
     this.streamer.states = structuredClone(s.slices);
     this.streamer.reset();
     this.character = new Character(this.data, s.character ? structuredClone(s.character) : newCharacter(this.data));
+    this.character.prune();
     this.reputation = structuredClone(s.reputation);
     this.flags = new Set(s.flags);
     this.quests = this.makeQuests(structuredClone(s.quests));

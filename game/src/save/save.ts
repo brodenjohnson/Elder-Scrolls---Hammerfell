@@ -9,7 +9,7 @@ import { newQuestState, type QuestState } from '../systems/quests';
 // migration from the version before, so an old save always loads (CLAUDE.md:
 // never break an old save without saying so first).
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export type Save = {
   version: typeof SAVE_VERSION;
@@ -46,6 +46,11 @@ const migrations: Record<number, (s: any) => any> = {
   // The clock starts at 07:00 on day 1 plus the time already played, at timescale 20.
   // Characters made before creation existed get the default name.
   3: (s) => ({ ...s, version: 4, quests: newQuestState(), time: 7 * 3600 + (s.playSeconds ?? 0) * 20, character: s.character && { name: 'Kasim', ...s.character }, bond: { wife: 0, child: 0, dog: 0 } }),
+  // Version 4 (0.5.x): the scope cut. The player is a Redguard, and the skills that went
+  // (Archery, Sneak, Lockpicking, Pickpocket, Alchemy) are dropped. Perks in those trees and
+  // items no longer in the game are refunded on load by Character.prune, which has the data.
+  4: (s) => ({ ...s, version: 5, character: s.character && { ...s.character, race: 'RedguardRace',
+    skills: Object.fromEntries(Object.entries(s.character.skills).filter(([k]) => !['Archery', 'Sneak', 'Lockpicking', 'Pickpocket', 'Alchemy'].includes(k))) } }),
 };
 
 export function migrate(raw: any): Save {

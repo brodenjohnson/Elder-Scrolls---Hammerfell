@@ -28,22 +28,14 @@ const sceneCaption = document.getElementById('scene-caption')!, sceneLine = docu
 })();
 
 // Character creation: shown for a new game (the first visit, and N after death).
-// Ten races with Skyrim's skill boosts; only those with drawn sprites can be picked yet.
-const DRAWN = ['RedguardRace'];
+// He is a Redguard (bible section 9.5); the player names him.
 const create = document.getElementById('create')!, nameBox = document.getElementById('create-name') as HTMLInputElement;
-let race = 'RedguardRace';
 function showCreate() {
   nameBox.value = DEFAULT_NAME;
-  const races = [...game.data.races.values()];
-  document.getElementById('create-races')!.innerHTML = races.map((r) => `<button data-race="${r.edid}" ${DRAWN.includes(r.edid) ? '' : 'disabled title="Sprites for this race come in a later release"'} class="${r.edid === race ? 'sel' : ''}">${r.name}</button>`).join('');
-  const r = game.data.races.get(race)!;
-  document.getElementById('create-race-note')!.textContent = `${r.name}: ${r.skillBoosts.filter((b) => ['OneHanded', 'TwoHanded', 'Archery', 'Block', 'Smithing', 'HeavyArmor', 'LightArmor', 'Pickpocket', 'Lockpicking', 'Sneak', 'Alchemy', 'Speech'].includes(b.skill)).map((b) => `${b.skill.replace(/([a-z])([A-Z])/g, '$1 $2')} +${b.boost}`).join(', ')}. Other races open as their sprites are drawn.`;
   create.hidden = false;
 }
 create.addEventListener('click', (e) => {
-  const t = e.target as HTMLElement;
-  if (t.dataset.race) { race = t.dataset.race; showCreate(); }
-  if (t.id === 'create-go') { game.create(nameBox.value, race); create.hidden = true; }
+  if ((e.target as HTMLElement).id === 'create-go') { game.create(nameBox.value); create.hidden = true; }
 });
 game.onNewGame = showCreate;
 if (!listSaves().length) showCreate();

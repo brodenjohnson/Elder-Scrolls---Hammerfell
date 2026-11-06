@@ -1,6 +1,7 @@
 // Build the game's data pack (public/data/game/) from the Skyrim export.
-// Only what the game uses: the player's 12 skills and their perk trees, playable
-// unenchanted weapons and armour, the races, and the game settings the rules read.
+// Only what the game uses: the player's 7 melee skills and their perk trees, a short
+// list of weapons and armour (bible section 12.1), the Redguard race, and the game
+// settings the rules read.
 // Usage: npm run data   (after node data/skyrim/extract/export.mjs)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,8 +14,8 @@ const load = (n) => JSON.parse(fs.readFileSync(path.join(src, `${n}.json`), 'utf
 fs.mkdirSync(out, { recursive: true });
 const write = (n, v) => fs.writeFileSync(path.join(out, `${n}.json`), JSON.stringify(v));
 
-// Bible section 9: twelve skills, the magic schools and Enchanting removed.
-const SKILLS = ['OneHanded', 'TwoHanded', 'Archery', 'Block', 'Smithing', 'HeavyArmor', 'LightArmor', 'Pickpocket', 'Lockpicking', 'Sneak', 'Alchemy', 'Speech'];
+// Bible section 9: seven skills. Magic, stealth, thieving, archery and alchemy are cut.
+const SKILLS = ['OneHanded', 'TwoHanded', 'Block', 'HeavyArmor', 'LightArmor', 'Smithing', 'Speech'];
 const skills = load('skills').filter((s) => SKILLS.includes(s.skill))
   .map(({ skill, name, description, useMult, useOffset, improveMult, improveOffset, perks }) => ({ skill, name, description, useMult, useOffset, improveMult, improveOffset, perks }))
   .sort((a, b) => SKILLS.indexOf(a.skill) - SKILLS.indexOf(b.skill));
@@ -35,10 +36,25 @@ const perks = [...wanted].map((e) => byEdid.get(e)).map((p) => ({
   abilities: p.effects.filter((x) => x.type === 'ability').map((x) => x.spell),
 }));
 
-const plain = (r) => r.name && !r.enchanted && !r.template && r.value > 0 && !/dragon|daedric artifact/i.test(r.name);
-const weapons = load('weapons').filter(plain).filter((w) => w.type && w.type !== 'Staff')
+// Bible section 12.1: eight weapon classes in iron, steel and Orcish, the scimitar,
+// and a few one-offs. Armour: clothes, then hide, fur, leather, iron, steel and Orcish.
+const CLASSES = ['Sword', 'WarAxe', 'Mace', 'Dagger', 'Greatsword', 'Battleaxe', 'Warhammer'];
+const WEAPONS = [...['Iron', 'Steel', 'Orcish'].flatMap((m) => CLASSES.map((c) => m + c)), 'Scimitar', 'Axe01', 'ExecutionerAxe'];
+const ARMOUR = [
+  'ClothesFarmClothes01', 'ClothesFarmClothes02', 'ClothesFarmClothes03', 'ClothesFarmClothes04', 'ClothesFarmBoots01', 'ClothesFarmBoots02', 'ClothesFarmHat01',
+  'ClothesRedguardClothes', 'ClothesRedguardBoots', 'DBClothesRedguardHood', 'ClothesPrisonerTunic', 'ClothesPrisonerShoes',
+  'ArmorHideCuirass', 'ArmorHideBoots', 'ArmorHideHelmet', 'ArmorHideShield',
+  'ArmorBanditCuirass', 'ArmorBanditBoots', 'ArmorBanditGauntlets', 'ArmorBanditHelmet',
+  'ArmorLeatherCuirass', 'ArmorLeatherBoots', 'ArmorLeatherGauntlets', 'ArmorLeatherHelmet',
+  'ArmorIronCuirass', 'ArmorIronBoots', 'ArmorIronGauntlets', 'ArmorIronHelmet', 'ArmorIronShield',
+  'ArmorSteelCuirassA', 'ArmorSteelBootsB', 'ArmorSteelGauntletsA', 'ArmorSteelHelmetA', 'ArmorSteelShield',
+  'ArmorOrcishCuirass', 'ArmorOrcishBoots', 'ArmorOrcishGauntlets', 'ArmorOrcishHelmet', 'ArmorOrcishShield',
+];
+const plain = (r) => r.name && !r.enchanted && !r.template && r.value > 0;
+const pick = (rows, ids) => { const m = new Map(rows.filter(plain).map((r) => [r.edid, r])); const miss = ids.filter((i) => !m.has(i)); if (miss.length) throw new Error(`not in the export: ${miss}`); return ids.map((i) => m.get(i)); };
+const weapons = pick(load('weapons'), WEAPONS)
   .map(({ edid, name, type, damage, weight, value, speed, reach, stagger, skill, keywords }) => ({ edid, name, type, damage, weight, value, speed, reach, stagger, skill, keywords }));
-const armour = load('armour').filter(plain).filter((a) => a.race === 'DefaultRace' || !a.race)
+const armour = pick(load('armour'), ARMOUR)
   .map(({ edid, name, armourType, slots, rating, weight, value, keywords }) => ({ edid, name, armourType, slots, rating, weight, value, keywords }));
 
 const SETTINGS = ['fXPLevelUpBase', 'fXPLevelUpMult', 'fXPPerSkillRank', 'fSkillUseCurve', 'iAVDhmsLevelUp', 'fLevelUpCarryWeightMod',
@@ -47,7 +63,8 @@ const SETTINGS = ['fXPLevelUpBase', 'fXPLevelUpMult', 'fXPPerSkillRank', 'fSkill
 const gm = load('gameSettings');
 const settings = Object.fromEntries(SETTINGS.map((e) => [e, gm.find((g) => g.edid === e)?.value]));
 
-const races = load('races').filter((r) => r.playable && !/Vampire|Child/.test(r.edid))
+// Bible section 9.5: the player is a Redguard.
+const races = load('races').filter((r) => r.edid === 'RedguardRace')
   .map(({ edid, name, skillBoosts, startingHealth, startingStamina, carryWeight, regen, unarmedDamage }) => ({ edid, name, skillBoosts, startingHealth, startingStamina, carryWeight, regen, unarmedDamage }));
 
 // Enemy templates: Skyrim's own NPC records (level, base health and stamina, combat skills).

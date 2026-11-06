@@ -137,7 +137,7 @@ test('a version 2 save (0.3.x) migrates to the current version with no Rage, wou
   })));
   expect(await call(page, 'load', 'v2')).toBe(true);
   const s = await call(page, 'readSave', 'v2');
-  expect(s.version).toBe(4);
+  expect(s.version).toBe(5);
   expect(s.quests).toEqual({ active: {}, done: [] });
   expect(s.combat).toEqual({ rage: 0, bleed: 0, limp: 0, bodies: {} });
   expect(await call<number>(page, 'rage')).toBe(0);

@@ -10,13 +10,13 @@ async function boot(page: Page) {
 const call = <T = any>(page: Page, fn: string, ...args: unknown[]) =>
   page.evaluate(([f, a]) => (window as any).__game[f as string](...(a as unknown[])), [fn, args] as const) as Promise<T>;
 
-const SKILLS = ['OneHanded', 'TwoHanded', 'Archery', 'Block', 'Smithing', 'HeavyArmor', 'LightArmor', 'Pickpocket', 'Lockpicking', 'Sneak', 'Alchemy', 'Speech'];
+const SKILLS = ['OneHanded', 'TwoHanded', 'Block', 'HeavyArmor', 'LightArmor', 'Smithing', 'Speech'];
 
-test('all 12 skills level by use, and skill ranks level the player', async ({ page }) => {
+test('all 7 skills level by use, and skill ranks level the player', async ({ page }) => {
   await boot(page);
   const before = await call(page, 'character');
   expect(Object.keys(before.skills).sort()).toEqual([...SKILLS].sort());
-  // Enough use to level even the slow ones (Speech trains at 0.36 per use, Alchemy 0.75).
+  // Enough use to level even the slow ones (Speech trains at 0.36 per use).
   for (const s of SKILLS) await call(page, 'useSkill', s, 5000);
   const after = await call(page, 'character');
   for (const s of SKILLS) expect(after.skills[s].level, s).toBeGreaterThan(before.skills[s].level);
@@ -36,7 +36,7 @@ test("skill XP follows Skyrim's curve", async ({ page }) => {
 
 test('perks need their skill level and earlier rank, and only the highest rank applies', async ({ page }) => {
   await boot(page);
-  await call(page, 'useSkill', 'Lockpicking', 3000); // earn perk points: Lockpicking trains fast (45 per use)
+  await call(page, 'useSkill', 'Block', 3000); // earn perk points
   expect((await call(page, 'canTake', 'Armsman20')).ok).toBe(false);
   expect((await call(page, 'takePerk', 'Armsman00')).ok).toBe(true);
   expect(await call<number>(page, 'perkValue', 'ModAttackDamage', 10, ['WeapTypeSword'])).toBeCloseTo(12);
@@ -54,7 +54,7 @@ test('equipping armour changes the outfit drawn and the armour rating; armour pe
   expect(await call(page, 'outfit')).toBe('leather');
   const rating = await call<number>(page, 'armourRating');
   expect(rating).toBeGreaterThan(40); // 26 + 7 + 7 base, raised by Light Armor skill
-  await call(page, 'useSkill', 'Lockpicking', 3000); // perk points
+  await call(page, 'useSkill', 'Block', 3000); // perk points
   expect((await call(page, 'takePerk', 'AgileDefender00')).ok).toBe(true);
   expect(await call<number>(page, 'armourRating')).toBeGreaterThan(rating);
   await call(page, 'give', 'ArmorSteelCuirassA'); await call(page, 'equip', 'ArmorSteelCuirassA');
@@ -86,16 +86,14 @@ test('dialogue: choices move reputation, and a Speech check gates the reward', a
   expect(await call<string[]>(page, 'choices')).not.toContain('I need a blade. Can you spare one?');
 });
 
-test('the settlement chest gives both armour sets once and trains Lockpicking', async ({ page }) => {
+test('the settlement chest gives both armour sets once', async ({ page }) => {
   await boot(page);
   const chest = (await call<any[]>(page, 'things')).find((t) => t.id === 'chest');
   await call(page, 'teleport', chest.a + 1, chest.b + 0.2);
-  const lock = (await call(page, 'character')).skills.Lockpicking.xp;
   await call(page, 'interact');
   const c = await call(page, 'character');
   expect(c.inventory.ArmorLeatherCuirass).toBe(1);
   expect(c.inventory.SteelGreatsword).toBe(1);
-  expect(c.skills.Lockpicking.xp).toBeGreaterThan(lock);
   await call(page, 'interact');
   expect((await call(page, 'character')).inventory.ArmorLeatherCuirass).toBe(1);
 });
@@ -125,9 +123,33 @@ test('a version 1 save (0.1.0) migrates to the current version with the default 
   })));
   expect(await call(page, 'load', 'v1')).toBe(true);
   const s = await call(page, 'readSave', 'v1');
-  expect(s.version).toBe(4);
+  expect(s.version).toBe(5);
   expect(s.character).toBeNull();
   expect((await call(page, 'character')).skills.OneHanded.level).toBe(25);
+});
+
+test('a version 4 save (0.5.x) loses the cut skills; their perks become perk points again', async ({ page }) => {
+  await boot(page);
+  await call(page, 'useSkill', 'Block', 3000);
+  await call(page, 'takePerk', 'Armsman00');
+  await call(page, 'save', 'v4');
+  // Make it look like a 0.5.x save: a Nord with Sneak, a Lockpicking perk and a bow.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('hammerfell.save.v4')!);
+    s.version = 4; s.character.race = 'NordRace';
+    s.character.skills.Sneak = { level: 30, xp: 0 }; s.character.perks.push('NoviceLocks00');
+    s.character.inventory.HuntingBow = 1; s.character.equipped.mainHand = 'HuntingBow';
+    localStorage.setItem('hammerfell.save.v4', JSON.stringify(s));
+  });
+  const points = (await call(page, 'character')).perkPoints;
+  expect(await call(page, 'load', 'v4')).toBe(true);
+  const c = await call(page, 'character');
+  expect(c.race).toBe('RedguardRace');
+  expect(c.skills.Sneak).toBeUndefined();
+  expect(c.perks).toEqual(['Armsman00']);
+  expect(c.perkPoints).toBe(points + 1);
+  expect(c.inventory.HuntingBow).toBeUndefined();
+  expect(c.equipped.mainHand).toBeNull();
 });
 
 test('quests: the settler offers the road quest; clearing the camp and reporting completes it', async ({ page }) => {
@@ -165,11 +187,9 @@ test('quests: the settler offers the road quest; clearing the camp and reporting
   expect((await call(page, 'quests')).done).toEqual(['clearRoad']);
 });
 
-test('character creation on a first visit: the name is kept, and only drawn races can be picked', async ({ page }) => {
+test('character creation on a first visit: the name is kept, and he is a Redguard', async ({ page }) => {
   await boot(page);
   await expect(page.locator('#create')).toBeVisible();
-  await expect(page.locator('#create-races button')).toHaveCount(10);
-  await expect(page.locator('#create-races button:not([disabled])')).toHaveText(['Redguard']);
   await page.locator('#warning button[data-gore="full"]').click();
   await page.locator('#create-name').fill('Yusuf');
   await page.locator('#create-go').click();

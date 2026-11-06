@@ -1,7 +1,7 @@
 // The game's data pack (public/data/game/, built by scripts/data.mjs from the Skyrim
 // export). Code reads numbers from here; nothing is typed in by hand.
 
-export type SkillId = 'OneHanded' | 'TwoHanded' | 'Archery' | 'Block' | 'Smithing' | 'HeavyArmor' | 'LightArmor' | 'Pickpocket' | 'Lockpicking' | 'Sneak' | 'Alchemy' | 'Speech';
+export type SkillId = 'OneHanded' | 'TwoHanded' | 'Block' | 'HeavyArmor' | 'LightArmor' | 'Smithing' | 'Speech';
 export type SkillDef = { skill: SkillId; name: string; description: string; useMult: number; useOffset: number; improveMult: number; improveOffset: number; perks: string[] };
 export type PerkEffect = { entryPoint: string; function: string; value?: number; keywords: string[] };
 export type PerkDef = { edid: string; name: string; description: string; skill: SkillId; skillReq: { skill: string; level: number }[]; requires: string[]; nextPerk: string | null; effects: PerkEffect[]; abilities: string[] };

@@ -33,6 +33,16 @@ export function newCharacter(data: GameData, race = 'RedguardRace', name = DEFAU
 
 export class Character {
   constructor(readonly data: GameData, public s: CharacterState) {}
+  // After a load: perks and items that are no longer in the game (the 0.6.0 scope cut)
+  // are removed, and each perk rank is refunded as a perk point.
+  prune() {
+    const gone = this.s.perks.filter((p) => !this.data.perks.has(p));
+    this.s.perks = this.s.perks.filter((p) => this.data.perks.has(p));
+    this.s.perkPoints += gone.length;
+    const known = (e: string) => this.data.weapons.has(e) || this.data.armour.has(e) || e in this.data.items;
+    for (const e of Object.keys(this.s.inventory)) if (!known(e)) delete this.s.inventory[e];
+    for (const [slot, e] of Object.entries(this.s.equipped)) if (e && !known(e)) this.s.equipped[slot as keyof CharacterState['equipped']] = null;
+  }
   private def(skill: SkillId) { return this.data.skills.find((d) => d.skill === skill)!; }
   private get set() { return this.data.settings; }
 

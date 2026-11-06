@@ -46,8 +46,6 @@
   #create > div { width: min(560px, 92vw); padding: 20px 24px; border: 1px solid #5a4a36; background: #15110e; color: #d8c8a8; }
   #create h2 { font-weight: normal; color: #e0cfa8; margin-top: 0; }
   #create input { background: #231d18; border: 1px solid #5a4a36; color: #e0cfa8; padding: 4px 6px; font: inherit; }
-  #create-races { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 4px; }
-  #create-races button.sel { border-color: #e0a030; color: #f0d090; }
   #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 5; }
   #scene { position: fixed; inset: 0; pointer-events: none; z-index: 6; }
   #scene[hidden] { display: none; }
@@ -71,17 +69,15 @@
 <div id="panel" hidden></div>
 <div id="vitals" class="panel"><div class="v"><span id="hp" style="background:#8f2a22"></span></div><div class="v"><span id="sp" style="background:#3f7a52"></span></div><div class="v rage"><span id="rp" style="background:#b07a24"></span></div><div id="status"></div></div>
 <div id="dead" class="panel" hidden>You are dead.<br><span style="font-size:13px;color:#a89a82">F9 to load your last save, N for a new game.</span></div>
-<div id="keys" class="panel">WASD move &middot; Shift run &middot; Ctrl sneak &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; F finisher &middot; Q Fury (Shift+Q choose) &middot; B bandage &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; J journal &middot; O options &middot; F5 save &middot; F9 load</div>
+<div id="keys" class="panel">WASD move &middot; Shift run &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; F finisher &middot; Q Fury (Shift+Q choose) &middot; B bandage &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; J journal &middot; O options &middot; F5 save &middot; F9 load</div>
 <div id="version" class="panel"></div>
 <div id="tracker" class="panel" hidden></div>
 <div id="scene" hidden><div class="bar top"></div><div class="bar bottom"><div id="scene-line"></div><div id="scene-caption"></div><div class="dim skip">Esc to skip</div></div></div>
 <div id="fade"></div>
 <div id="create" hidden><div>
   <h2>Who is he?</h2>
-  <p class="dim">A farmer on the Sentinel Coast, a husband and a father. Once, long ago, a conscript.</p>
+  <p class="dim">A Redguard farmer on the Sentinel Coast, a husband and a father. Once, long ago, a conscript.</p>
   <label>Name <input id="create-name" maxlength="24" autocomplete="off"></label>
-  <div id="create-races"></div>
-  <p class="dim" id="create-race-note"></p>
   <button id="create-go">Begin</button>
 </div></div>
 <div id="warning" hidden><div>

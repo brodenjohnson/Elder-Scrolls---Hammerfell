@@ -1,8 +1,17 @@
-# Design Bible v0.2
+# Design Bible v0.3
 
 Working title: TBD (placeholder: "The Salt Ledger"). The earlier name "The Ashen Warden" was only an example character and is not the game or the protagonist.
 
-Status: pre-production. No code exists. This document is the source of truth for design decisions made in conversation so far.
+Status: in production (0.5.0 released). This document is the source of truth for design decisions.
+
+**v0.3 changes: the scope reset (Broden, 2026-11-06).** A smaller game done well beats a bigger one done badly. Story and combat come first; graphics serve them.
+- **Melee only.** Seven skills: One-handed, Two-handed, Block, Light Armor, Heavy Armor, Smithing and Speech. Sneak, Lockpicking, Pickpocket, Alchemy and Archery are cut with their perks. No standing stones. Enemies still use bows.
+- **One race: Redguard.** Character creation is a name.
+- **A short gear list:** about 24 weapons (eight classes in iron, steel and Orcish, the scimitar, a few one-offs) and seven armour sets (hide, fur, leather, Alik'r garb, iron, steel, Orcish). Every piece shows on the character.
+- **Healing:** bandages, food and potions, bought or found. No brewing.
+- **One region, full.** The Sentinel Coast only, about 3 by 3 slices, packed with places, people and encounters (section 3). Other regions come later, one per release, the same way.
+- **Combat must be fast and fun.** Finishers and signature moves stay; responsiveness comes first (section 11).
+- **Art direction reopened:** the 3D-to-sprite pipeline is too slow and animates stiffly. A simpler code-drawn pixel style, between this project and Wasteland Settlement, is to be chosen from a side-by-side sample (section 4).
 
 **v0.2 changes (Broden's latest decisions):**
 - **NPCs can use magic. The player cannot.** Enemy mages, Thalmor wizards, necromancers and Lamia sorcerers use Skyrim spell numbers.
@@ -28,12 +37,12 @@ Status: pre-production. No code exists. This document is the source of truth for
 
 A mature, 2D, isometric, open-world RPG in the mould of Skyrim, set in **Hammerfell** about **4E 201**, with our own story. It uses Skyrim's systems (skills, perks, factions, crafting, crime) and the Elder Scrolls world's gear types, enemies, lore and places, but it is not Skyrim's map, it has no dragons or dragon shouts, and **the player has no magic** (LOCKED). NPCs do: Thalmor wizards, necromancers, conjurers and Lamia sorcerers use Skyrim's spell numbers.
 
-**Pillars**
-1. Brutal, weighty combat. Short, committed, lethal fights.
-2. A personal story about loss and rage inside a political conspiracy.
-3. A world worth walking across: beautiful, then dangerous.
-4. Skyrim's depth of systems, adapted for 2D.
-5. Consequences you can feel: Infamy, Standing and Collateral.
+**Pillars** (v0.3: in this order)
+1. A personal story about loss and rage inside a political conspiracy.
+2. Fast, brutal, fun melee. Short, committed, lethal fights with finishers.
+3. A small world that is full: people, places and trouble every few steps.
+4. Consequences you can feel: Infamy, Standing and Collateral.
+5. Skyrim's systems where they serve the first four, cut where they do not.
 
 **Audience and tone (LOCKED):** adults, 18 and over. R-rated: swearing, blood, gore, ruthlessness. Characters kill out of rage, and so do many NPCs where it makes sense. A mature content warning and a gore setting (off, some, full) are required.
 
@@ -65,7 +74,17 @@ A mature, 2D, isometric, open-world RPG in the mould of Skyrim, set in **Hammerf
 
 ## 3. World and map
 
-### 3.1 Size (LOCKED)
+**v0.3 (LOCKED, supersedes 3.1 and 3.4):** the game is built **one region at a time, and only the first exists for now**: the Sentinel Coast, about 3 by 3 slices (384 by 384 tiles), around the farm. The rest of the map is not walkable until its region is built. The master map stays as the plan for where later regions go.
+
+**Density target for a region (PROPOSED):** something worth stopping for every 20 to 30 seconds of walking.
+- **Settled places:** a village with people on daily schedules (work, meals, home, sleep), farms, a market, an inn, the road.
+- **Life on the roads:** travellers, merchants, patrols, hunters, a caravan; wildlife, some of it dangerous.
+- **Random encounters** on the roads and in the wilds, from a table per region: ambushes, a fight already under way, a lost traveller, a dying man with a note, a wagon broken down, bandits shaking down a farmer.
+- **Places to explore:** two or three bandit camps, two or three caves or ruins, each with a hook (a named item, a note, a person, a secret).
+- **Small finds:** shrines, bodies, stashes, viewpoints, signposts.
+- Model: the town in Wasteland Settlement (people, schedules, vendors, job board) and its place registry (discovery, danger pips).
+
+### 3.1 Size (SUPERSEDED by v0.3 above; kept for the long-term plan)
 The playable world matches Skyrim's **playable map size**, not its lore size. Skyrim's playable map is 119 by 94 exterior cells (about 4.3 by 3.4 miles, 14.8 square miles).
 
 | Parameter | Value |
@@ -129,7 +148,14 @@ Characters are built from layers so equipment is swappable and dismemberment is 
 ### 4.5 Animation (PROPOSED)
 Eight directions. Shared animation sets per weapon class. Starting frame targets, to be tuned: idle 6 to 8, walk 8, run 8 to 10, light attack 6 to 8, heavy attack 8 to 12, block 4 to 6, dodge 6 to 8, hit reaction 4 to 6, death 8 to 12. Quality of movement beats frame count.
 
-### 4.6 Art production approach (OPEN, to be proven)
+### 4.0 v0.3: art direction reopened (OPEN, Broden to choose)
+The code-drawn 3D pipeline (shapes raymarched into large sprites, 8 directions) is too slow to render (about 5 s a frame) and animates stiffly. Its direction-count and size decisions (9, 31, 33 in the log) are reopened. The replacement is chosen from a side-by-side sample in the browser:
+- **Smaller characters** (about 48 to 64 px), drawn directly as pixel art in code, with palette ramps, outlines and dithering, like the Wasteland Settlement art lab.
+- **Layered at runtime** (body, clothes, armour, weapon), so gear and dismemberment cost one small set of frames each.
+- **More animation frames where they matter** (attacks, hits, finishers), with timing and anticipation, fewer elsewhere.
+- **Camera:** isometric kept, or top-down three-quarter like Wasteland. Decided by the sample.
+
+### 4.6 Art production approach (superseded by 4.0)
 Broden believes the art can be produced here. The commitment is an **art spike before anything else**: one character in eight directions with swappable layers, a small isometric tileset including a desert set, and a sample scene, all at target resolution, compared side by side with the concept images. The sprite pipeline must be separate from game code so better art (generated, commissioned or licensed) can be swapped in later with no code changes. Expected outcome: recognisably in the same family as the concept art, simpler in detail. If the spike falls short, decide early whether to change the target fidelity or the source of art.
 
 ### 4.7 Asset conventions
@@ -287,22 +313,23 @@ OPEN: whether to add a crafting or merchant guild.
 ### 9.2 Attributes (LOCKED)
 **Health** and **Stamina** only, starting at 100 each (Skyrim). Each level gives +10 to one of them. Magicka is removed for the player. NPC mages still have Magicka internally.
 
-### 9.3 Skills (LOCKED: 12 skills, Skyrim's own numbers)
+### 9.3 Skills (LOCKED v0.3: 7 skills, Skyrim's own numbers)
 
-| School | Skills |
+| Kind | Skills |
 |---|---|
-| Combat | Archery, Block, Heavy Armor, One-handed, Two-handed, Smithing |
-| Stealth and craft | Alchemy, Light Armor, Lockpicking, Pickpocket, Sneak, Speech |
+| Fighting | One-handed, Two-handed, Block |
+| Armour | Light Armor, Heavy Armor |
+| Other | Smithing, Speech |
 
-Removed with player magic: Alteration, Conjuration, Destruction, Illusion, Restoration, and Enchanting. Healing comes from potions, bandages, food and rest. **Speech** includes an Intimidate option that scales with Infamy.
+Cut: the magic schools and Enchanting (v0.1), then Archery, Sneak, Lockpicking, Pickpocket and Alchemy (v0.3). Healing comes from bandages, food, bought or found potions, and rest. **Speech** includes an Intimidate option that scales with Infamy. Saves from 0.5.x drop the cut skills and refund their perks.
 
-### 9.4 Perks and level cap (computed from Skyrim's rules)
+### 9.4 Perks and level cap (computed from Skyrim's rules; v0.3: 98 perk ranks in the 7 trees, so the numbers below are out of date)
 The 12 retained trees have **107 unique perks, 165 counting every rank** (Skyrim's own perk data, verified against UESP). A full-mastery character reaches **level 66 with 65 perk points** (Skyrim's formula: 75 + 25 x level XP per level, and skill levels give character XP). That is about 39 percent of all ranks, compared with about 32 percent in Skyrim, so choices still matter. Legendary resets raise the ceiling as in Skyrim. Perks that mention spells, Magicka or enchanting are rewritten or replaced: see `data/skyrim/perks.md` and `SYSTEMS_SPEC.md` section 3.
 
-### 9.5 Races (LOCKED: all ten, Skyrim's bonuses, magic points reassigned)
+### 9.5 Races (LOCKED v0.3: Redguard only. The text below is the old plan.)
 Each race keeps its Skyrim skill bonuses and non-magical abilities. Bonuses in removed skills are reassigned to thematic non-magic skills, and magical racial powers are replaced. Full tables in `data/skyrim/races.md`. Redguards are the majority in Hammerfell. The player's wife and child match the chosen race.
 
-### 9.6 Birthsigns / standing stones (LOCKED in concept)
+### 9.6 Birthsigns / standing stones (CUT in v0.3)
 Keep the non-magical Skyrim stones: Warrior, Thief, Lady, Steed, Lord, Lover, Shadow, Tower, Serpent. Drop Mage, Apprentice, Atronach and Ritual (magic). Numbers from Skyrim (verify in Phase 0). The guardian stones (Warrior and Thief) speed up combat and stealth skills by about 20 percent in Skyrim.
 
 ### 9.7 Difficulty and scaling (LOCKED)
@@ -341,7 +368,9 @@ A **separate small Fury perk tree**, paid for with its own points earned from th
 
 ## 11. Combat
 
-**Principle (LOCKED):** heavy, short, decisive, brutal. Keep Skyrim's structure (power attacks, blocking, stamina, bows) but make each blow weigh something. A fight is won by a few good decisions, not by trading hits for two minutes. A farmer in leather dies in three or four hits. Enemies are as dangerous as he is.
+**v0.3 (LOCKED): fast and fun first.** Broden's verdict on 0.5.0: slow and janky. Before more systems, combat gets a feel pass: instant response to input, attacks pressed early still go through (input buffer), a short freeze on every hit (hit-stop), knockback and screen shake, quicker recovery, clear enemy wind-ups, and combos that flow. Finishers and Fury moves stay and should look spectacular. No sneak attacks and no player bows.
+
+**Principle (LOCKED):** heavy, short, decisive, brutal. Keep Skyrim's structure (power attacks, blocking, stamina) but make each blow weigh something. A fight is won by a few good decisions, not by trading hits for two minutes. A farmer in leather dies in three or four hits. Enemies are as dangerous as he is.
 
 ### 11.1 Controls (LOCKED)
 
@@ -362,7 +391,6 @@ A **separate small Fury perk tree**, paid for with its own points earned from th
 - **Dodge:** a roll with a brief invulnerability window (about 0.25 s). Dodge in the last instant before impact for a **perfect dodge** (about a 0.15 s window): time slows for roughly a second, the attacker is off balance, and the counter does double damage and staggers.
 - **Block and parry:** holding block is safe but drains stamina per hit. A tap just before impact (about a 0.2 s window) is a **parry**: the attacker staggers and their guard breaks, opening a finisher. Shields parry more easily. Two-handers parry harder but slower.
 - **Weapon classes feel different:** one-handers are fast with a short arc, two-handers are slow, wide and guard-breaking, daggers are very fast with backstab and throat-cut finishers, dual-wield is a flurry that is weak against armour, bows have a real draw time.
-- **Sneak:** a quiet kill from behind is the best way to start a fight. A brutal one feeds Rage.
 - **Wounds (LOCKED):** bleeding (stopped by a bandage or time), scars that persist visibly, and a **limp from serious leg wounds** (movement penalty until treated). Blood decals persist.
 - **Morale (PROPOSED):** enemies at low health, or whose allies fall, can flee, beg or surrender. How often depends on faction and on the player's Infamy. Killing the fleeing or surrendering adds Infamy, and Collateral if they were non-combatants or conscripts.
 - **Enemy AI (PROPOSED):** Skyrim's alert states (idle, suspicious, searching, combat) with flanking for groups of three or more, ranged units that keep distance, casters that prioritise line of sight, and group morale as above. Detail in Phase 3.
@@ -384,14 +412,15 @@ Animation count is the big cost (eight directions times weapon classes times att
 ## 12. Equipment, crafting, economy and systems
 
 ### 12.1 Gear (LOCKED: Skyrim's gear and numbers)
-- **Weapons:** swords, war axes, maces, daggers, greatswords, battleaxes, warhammers, bows. Skyrim's damage, weight, value, speed and stagger numbers are in `data/skyrim/weapons.md`. The Scimitar is the Redguard and Alik'r blade.
+- **v0.3 list (LOCKED):** about 24 weapons and seven armour sets, chosen in `game/scripts/data.mjs` (`WEAPONS`, `ARMOUR`). Bows are for enemies only.
+- **Weapons:** swords, war axes, maces, daggers, greatswords, battleaxes, warhammers. Skyrim's damage, weight, value, speed and stagger numbers are in `data/skyrim/weapons.md`. The Scimitar is the Redguard and Alik'r blade.
 - **Armour:** light and heavy sets with Skyrim's ratings: `data/skyrim/armour.md`. Armour reduces physical damage only, up to an 80 percent cap.
-- **Materials ladder:** iron, steel, orcish, dwarven, elven, glass, ebony, daedric (Skyrim's availability by level and Smithing perk gates). Dragon gear is excluded.
+- **Materials ladder (v0.3):** iron, steel and Orcish for the first region. Later materials come with later regions.
 - **Hammerfell flavour** is a reskin of Skyrim rows, so balance is already known (Alik'r Warrior gear, desert veils, scimitars, Yokudan blades). Any new item must name a donor row.
 - **Rarity** shown through design, materials and ornamentation, as in the art brief.
 
 ### 12.2 Crafting (LOCKED)
-**Smithing** (forge, tempering, improving) and **Alchemy** (potions, poisons, food and bandages). **Enchanting is out.** Cooking is part of Alchemy-adjacent crafting as in Skyrim (stew and campfire cooking). **Lockpicking** (a minigame) and **Pickpocket** stay. Two Smithing perks are replaced: see `SYSTEMS_SPEC.md` section 3.
+**Smithing** (forge, tempering, improving) only. **v0.3:** Alchemy, Lockpicking and Pickpocket are cut, and Enchanting was never in. Locked doors and chests open with keys or by force. Two Smithing perks are replaced: see `SYSTEMS_SPEC.md` section 3.
 
 ### 12.3 Economy (PROPOSED)
 Skyrim item values, Speech-based barter, merchant gold pools and restocking, Infamy and Standing affecting prices. Details in `SYSTEMS_SPEC.md` section 7.
@@ -427,7 +456,8 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 | **2. Systems core** | Data schemas, skills and perks engine, inventory, equipment layers, reputation, dialogue engine | The 12 skills level by use and perks apply |
 | **3. Combat slice** | Attacks, dodge, block and parry, stamina, Rage, three enemy types, wounds, gore, dismemberment, three finishers | A fight in a test arena feels right |
 | **4. Prologue** | The farm, family, tutorial jobs, Kerrash's visit, the attack, cutscenes, Zeyna | Playable from character creation to waking |
-| **5. Sentinel coast slice** | First region: hand-built village and Sentinel, the first two list targets, the first guild intro, templated dungeons | The first region is a complete, fun slice |
+| **4a. Reset (v0.3)** | Scope cut, combat feel pass, art style chosen from a sample and swapped in | Broden says combat is fun and picks the art |
+| **5. Sentinel coast slice** | First region, full: the village with schedules, roads with travellers and random encounters, camps, caves and ruins, the first list targets | The first region is a complete, fun slice |
 | **6+. Regions** | One region per release, in story order, each with its own palette, props, enemies and loot | Each release is playable on its own |
 
 **Phase 0 spikes.**
@@ -480,6 +510,7 @@ Skyrim-style conversations with skill and reputation checks (Speech persuade, Sp
 36. **Phase 0 approved by Broden (2026-11-05):** PixiJS 8 stack and the code-drawn art direction. Phase 1 (engine core) released as 0.1.0: `game/`.
 37. **Phase 2 systems core released as 0.2.0.** Skills level on Skyrim's curves from the export; perks apply through Skyrim's entry points (highest owned rank only). Armour rating per piece is base x (1 + 0.4 x (skill + 15) / 100), PROPOSED until checked in game.
 39. **0.5.0 (PROPOSED, for Broden to confirm):** a new game wakes at the farm (slice 3,7 counting from 0, "Farm valley") outside the house at 07:00; the house interior and waking indoors come later. The player's default name is Kasim (P). Character creation lists all ten races but only those with drawn sprites can be picked (Redguard first). Gore defaults to full after the warning; the player chooses. Hidden family bond is stored 0 to 5 per family member, as MAIN_QUEST 0.1 says. Morale: a badly hurt enemy checks once; flee chances per style (bandit 35, Alik'r 15, marauder 5 percent), raised by Infamy.
+40. **v0.3 scope reset (Broden, 2026-11-06):** melee only (7 skills), Redguard only, about 24 weapons and seven armour sets, no brewing, one full region before any other, combat feel before new systems, art direction reopened. Supersedes 4, 5, 6, 24 and the race list in 39, and reopens 9, 31 and 33.
 38. **Phase 3 second part released as 0.4.0 (PROPOSED numbers, tune in play):** a serious wound is a hit of 30 percent of max Health or more; it bleeds (SYSTEMS_SPEC numbers), and a quarter of serious wounds land on the legs and lame. Dismemberment takes the head half the time, an arm 30 percent, a leg 20 percent. Finishers pick by situation: a broken guard takes the sword arm, a turned back is hamstrung then beheaded, otherwise the head. The first Fury power (Pain-ignoring burst) is open from the start until the hunt list is in the game. Enemy fighting styles (tank, berserker, duelist) are ours, as Skyrim's combat style records are not exported yet. Attack speed follows the weapon's Skyrim speed.
 
 ---
