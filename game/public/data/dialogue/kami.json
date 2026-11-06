@@ -1,0 +1,83 @@
+{
+ "id": "kami",
+ "title": "Kami",
+ "_note": "Saltreach, the errand boy who wants to be a Sword-singer. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "paid",
+   "if": {
+    "flag": "cleared:mudcrabs",
+    "notFlag": "kami.paid"
+   }
+  }
+ ],
+ "nodes": {
+  "idle": {
+   "speaker": "Kami",
+   "text": "Are you a fighter? You look like a fighter. I'm going to be a Sword-singer. I've been practising with a stick. I've only hit myself twice today.",
+   "choices": [
+    {
+     "text": "What do you need?",
+     "next": "crabs",
+     "if": {
+      "notFlag": "quest:mudcrabs"
+     }
+    },
+    {
+     "text": "Keep practising.",
+     "next": "end"
+    }
+   ]
+  },
+  "crabs": {
+   "speaker": "Kami",
+   "text": "Mudcrabs. On the south beach, past the dunes. If I bring back claws, the fishermen's boys have to call me Sword-singer for a whole month. I went once. [Quietly.] They're really big.",
+   "choices": [
+    {
+     "text": "I'll get your claws.",
+     "next": "end",
+     "do": {
+      "startQuest": "mudcrabs"
+     }
+    },
+    {
+     "text": "Get them yourself.",
+     "next": "end"
+    }
+   ]
+  },
+  "paid": {
+   "speaker": "Kami",
+   "text": "You did it! All of them? Can I have the claws? [He holds out every coin he has.] It's twenty-five. It's everything. It's worth it.",
+   "choices": [
+    {
+     "text": "[Give him the claws and the coins back.]",
+     "next": "end",
+     "do": {
+      "take": {
+       "CrabClaw": 4
+      },
+      "setFlag": "kami.paid",
+      "questEvent": "kami.crabs",
+      "standing": {
+       "saltreach": 1
+      }
+     }
+    },
+    {
+     "text": "[Take the coins.]",
+     "next": "end",
+     "do": {
+      "take": {
+       "CrabClaw": 4
+      },
+      "gold": 25,
+      "setFlag": "kami.paid",
+      "questEvent": "kami.crabs"
+     }
+    }
+   ]
+  }
+ }
+}

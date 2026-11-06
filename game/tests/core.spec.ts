@@ -1,143 +1,71 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { start } from './start';
 
-// Phase 1 regression list: the engine core. Each test drives the built game
-// through window.__game (and real key presses for movement).
+// The engine core: the title and new-game screens, moving, and saves (versioned, migrated).
 
-const G = (page: Page) => page.evaluate(() => (window as any).__game);
-async function boot(page: Page) {
+test('a new game through the title, warning and naming screens starts at home with the opening scene', async ({ page }) => {
   await page.goto('./');
   await page.waitForFunction(() => (window as any).__game?.ready, null, { timeout: 30_000 });
-}
-async function hold(page: Page, keys: string[], ms: number) {
-  for (const k of keys) await page.keyboard.down(k);
-  await page.waitForTimeout(ms);
-  for (const k of keys) await page.keyboard.up(k);
-}
-const call = <T>(page: Page, fn: string, ...args: unknown[]) =>
-  page.evaluate(([f, a]) => (window as any).__game[f as string](...(a as unknown[])), [fn, args] as const) as Promise<T>;
-
-test('boots on the Sentinel Coast with the 3 by 3 slices around the player loaded', async ({ page }) => {
-  await boot(page);
-  const w = await call<{ region: string; sx: number; sy: number }>(page, 'where');
-  expect(w.region).toBe('Sentinel Coast');
-  const loaded = await call<string[]>(page, 'loadedSlices');
-  expect(loaded).toHaveLength(9);
-  expect(loaded).toContain(`${w.sx},${w.sy}`);
-  await expect(page.locator('#version')).toHaveText(/^v\d+\.\d+\.\d+$/);
-});
-
-test('walking moves the player and turns to face the way he goes', async ({ page }) => {
-  await boot(page);
-  const before = await page.evaluate(() => (window as any).__game.player);
-  await hold(page, ['KeyD'], 600);
-  const after = await page.evaluate(() => (window as any).__game.player);
-  expect(after.facing).toBe('E');
-  expect(Math.hypot(after.a - before.a, after.b - before.b)).toBeGreaterThan(1);
-});
-
-test('crossing a slice border streams the next slices in, without a long frame', async ({ page }) => {
-  await boot(page);
-  const S = (await G(page)).SLICE as number;
-  // Two tiles before the eastern edge of the start slice, then walk east-south-east (+a).
-  const start = await call<{ sx: number; sy: number }>(page, 'where');
-  await call(page, 'teleport', (start.sx + 1) * S - 2, start.sy * S + 30);
-  await page.waitForTimeout(500);
-  await hold(page, ['KeyD', 'KeyS'], 1500);
-  const w = await call<{ sx: number; sy: number }>(page, 'where');
-  expect(w.sx).toBe(start.sx + 1);
-  const loaded = await call<string[]>(page, 'loadedSlices');
-  expect(loaded).toContain(`${w.sx + 1},${w.sy}`);
-  expect(loaded).not.toContain(`${start.sx - 1},${start.sy}`);
-  const stats = await call<{ streamer: { maxLoadMs: number }; frameLog: number[] }>(page, 'stats');
-  expect(stats.streamer.maxLoadMs).toBeLessThan(50);
-  // Ground is built off the main thread, so no frame should stall for long.
-  expect(Math.max(...stats.frameLog.slice(-60))).toBeLessThan(150);
-});
-
-test('houses are solid', async ({ page }) => {
-  await boot(page);
-  const things = await call<{ id: string; a: number; b: number }[]>(page, 'things');
-  const house = things.find((t) => t.id === 'house')!;
-  // Stand south of the house and walk north (screen up is -a and -b) into it.
-  await call(page, 'teleport', house.a + 1, house.b + 5);
-  await hold(page, ['KeyW'], 1500);
-  const p = await page.evaluate(() => (window as any).__game.player);
-  const insideA = Math.abs(p.a - house.a) < 2.35, insideB = Math.abs(p.b - house.b) < 2.95;
-  expect(insideA && insideB).toBe(false);
-});
-
-test('deep water stops the player', async ({ page }) => {
-  await boot(page);
-  // Find land next to deep water south of the start (the map's sea is to the south).
-  const spot = await page.evaluate(() => {
-    const g = (window as any).__game, p = g.player;
-    for (let b = Math.floor(p.b); b < Math.floor(p.b) + 400; b++) {
-      if (g.material(p.a, b) === 0) return { a: p.a, b: b - 12 };
-    }
-    return null;
-  });
-  expect(spot).not.toBeNull();
-  await call(page, 'teleport', spot!.a, spot!.b);
-  await hold(page, ['KeyS', 'KeyA'], 4000); // screen down-left is +b
-  const deep = await page.evaluate(() => { const g = (window as any).__game, p = g.player; return g.material(p.a, p.b); });
-  expect(deep).not.toBe(0);
-});
-
-test('a smashed barrel stays smashed through save, reload and load', async ({ page }) => {
-  await boot(page);
-  const barrel = (await call<{ uid: string; id: string; a: number; b: number }[]>(page, 'things')).find((t) => t.id === 'barrel')!;
-  await call(page, 'teleport', barrel.a + 0.9, barrel.b);
-  const smashed = await call<{ uid: string } | null>(page, 'smash');
-  expect(smashed?.uid).toBe(barrel.uid);
-  const pos = await page.evaluate(() => (window as any).__game.player);
-  await call(page, 'save', 'test');
+  await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForFunction(() => (window as any).__game?.ready);
-  // A fresh game has the barrel again; loading the save removes it and restores the position.
-  expect((await call<{ uid: string }[]>(page, 'things')).some((t) => t.uid === barrel.uid)).toBe(true);
-  expect(await call(page, 'load', 'test')).toBe(true);
-  const p = await page.evaluate(() => (window as any).__game.player);
-  expect(Math.abs(p.a - pos.a) + Math.abs(p.b - pos.b)).toBeLessThan(0.01);
-  expect((await call<{ uid: string }[]>(page, 'things')).some((t) => t.uid === barrel.uid)).toBe(false);
+  await expect(page.locator('#front h1')).toHaveText(/Salt Ledger/i);
+  await page.locator('[data-front="new"]').click();
+  await page.locator('[data-gore="some"]').click();
+  await page.locator('#nameBox').fill('Rashad');
+  await page.locator('[data-front="begin"]').click();
+  await expect(page.locator('#front')).toBeHidden();
+  const s = await page.evaluate(() => ({ map: __game.world.id, name: __game.S.name, scene: !!__game.scene, gore: __game.settings.gore }));
+  expect(s).toEqual({ map: 'farmhouse', name: 'Rashad', scene: true, gore: 'some' });
 });
 
-test('an old version 0 save migrates and loads', async ({ page }) => {
-  await boot(page);
-  await page.evaluate(() => localStorage.setItem('hammerfell.save.old', JSON.stringify({ player: { x: 600.5, y: 950.5 }, time: 42 })));
-  expect(await call(page, 'load', 'old')).toBe(true);
-  const p = await page.evaluate(() => (window as any).__game.player);
-  expect(Math.round(p.a)).toBe(601);
-  const s = await call<{ version: number; playSeconds: number }>(page, 'readSave', 'old');
-  expect(s.version).toBe(5); // version 0 migrates through every version to the current one
-  expect(s.playSeconds).toBe(42);
+test('walking moves him and turns him the way he goes', async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => __game.go('coast', 1250, 1560));
+  const before = await page.evaluate(() => ({ x: __game.pl.x, y: __game.pl.y }));
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(600); await page.keyboard.up('KeyD');
+  const after = await page.evaluate(() => ({ x: __game.pl.x, y: __game.pl.y, face: __game.pl.face }));
+  expect(after.x - before.x).toBeGreaterThan(10);
+  expect(Math.abs(after.y - before.y)).toBeLessThan(3);
+  expect(Math.abs(Math.sin(after.face))).toBeGreaterThan(0.9); // side-on
 });
 
-test('a newer published version shows a notice', async ({ page }) => {
-  await page.route('**/version.json*', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '99.0.0' }) }));
-  await boot(page);
-  await expect(page.locator('#notice')).toBeVisible();
-  await expect(page.locator('#notice')).toContainText('99.0.0');
+test('doors lead into rooms and back out', async ({ page }) => {
+  await start(page);
+  const out = await page.evaluate(() => { const d = __game.world.doors[0]; __game.teleport(d.x, d.y - 4); __game.activate(); return d.to; });
+  expect(out).toBe('coast');
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => __game.world.id)).toBe('coast');
 });
 
-test('only the farm sprite sheets load at start; an outfit loads when it is first worn', async ({ page }) => {
-  await boot(page);
-  expect((await call<string[]>(page, 'sheetsLoaded')).filter((n) => n.startsWith('leather_'))).toEqual([]); // nothing worn yet is loaded
-  await call(page, 'give', 'ArmorLeatherCuirass'); await call(page, 'equip', 'ArmorLeatherCuirass');
-  await page.waitForFunction(() => (window as any).__game.sheetsLoaded().includes('leather_death'), null, { timeout: 15_000 });
-  expect((await call<string[]>(page, 'sheetsLoaded')).filter((n) => n.startsWith('leather_'))).toHaveLength(7);
+test('a save keeps where he is, what he carries and what has happened', async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => { __game.go('coast', 830, 1150); __game.give('SteelSword', 1); __game.setFlag('test.flag'); __game.state.gold = 77; __game.save('quick'); });
+  await page.evaluate(() => { __game.go('farmhouse', 100, 100); __game.give('SteelSword', -1); __game.state.gold = 0; __game.flags.delete('test.flag'); });
+  expect(await page.evaluate(() => __game.load('quick'))).toBe(true);
+  const s = await page.evaluate(() => ({ map: __game.world.id, x: Math.round(__game.pl.x), sword: __game.state.inv.SteelSword, gold: __game.state.gold, f: __game.hasFlag('test.flag') }));
+  expect(s).toEqual({ map: 'coast', x: 830, sword: 1, gold: 77, f: true });
 });
 
-test('the farm is a hand-placed site: house, well, goat pen with a broken north fence, on dry land', async ({ page }) => {
-  await boot(page);
-  const S = 128, fa = 3 * S + 30, fb = 7 * S + 96;
-  await call(page, 'teleport', fa + 4, fb + 3);
-  await page.waitForTimeout(300);
-  const things = (await call<any[]>(page, 'things')).filter((t) => Math.hypot(t.a - fa, t.b - fb) < 16);
-  const count = (id: string) => things.filter((t) => t.id === id).length;
-  expect(count('house')).toBe(1); expect(count('well')).toBe(1); expect(count('goat')).toBe(3);
-  expect(count('fenceA') + count('fenceB')).toBe(10);
-  expect(things.find((t) => t.tag === 'northFence')?.id).toBe('fenceABroken');
-  // Nothing random grows inside the yard, and the farm stands on dry ground.
-  expect(things.filter((t) => /palm|rock|scrub/.test(t.id))).toEqual([]);
-  for (const t of things) expect(['grass', 'sand', 'beach', 'cracked']).toContain(await call<number>(page, 'material', t.a, t.b).then((m) => ['deep', 'shallow', 'beach', 'sand', 'cracked', 'grass', 'road'][m]));
+test('a save from 0.6 (version 5) loads, keeping skills, perks, kit and story', async ({ page }) => {
+  await start(page);
+  const old = {
+    version: 5, savedAt: '2026-11-01T00:00:00.000Z', gameVersion: '0.6.0', playSeconds: 1200, player: { a: 10, b: 10, facing: 'S' }, slices: {},
+    character: { name: 'Old Kasim', race: 'RedguardRace', level: 4, xp: 10, perkPoints: 1, perks: ['Armsman00'],
+      skills: { OneHanded: { level: 41, xp: 3 }, TwoHanded: { level: 15, xp: 0 }, Block: { level: 22, xp: 0 }, HeavyArmor: { level: 15, xp: 0 }, LightArmor: { level: 18, xp: 0 }, Smithing: { level: 15, xp: 0 }, Speech: { level: 30, xp: 0 } },
+      inventory: { IronSword: 1, ArmorHideCuirass: 1 }, equipped: { mainHand: 'IronSword', body: 'ArmorHideCuirass' } },
+    reputation: { infamy: 3, collateral: 0, standing: {}, log: [] }, flags: ['pro01.morning'], combat: { rage: 25, bleed: 0, limp: 0, bodies: {} },
+    quests: { active: {}, done: ['chores'] }, time: 30000, bond: { wife: 2, child: 1, dog: 1 },
+  };
+  await page.evaluate((o) => localStorage.setItem('hammerfell.save.old', JSON.stringify(o)), old);
+  expect(await page.evaluate(() => __game.load('old'))).toBe(true);
+  const s = await page.evaluate(() => ({ map: __game.world.id, name: __game.S.name, oh: __game.state.skills.OneHanded.level, perk: __game.state.perks.has('Armsman00'), weapon: __game.pl.eq.weapon, body: __game.pl.eq.body, rage: Math.round(__game.state.rage), chores: __game.quests.s.done.includes('chores'), f: __game.hasFlag('pro01.morning'), rageSkill: __game.state.skills.Rage.level }));
+  expect(s).toEqual({ map: 'coast', name: 'Old Kasim', oh: 41, perk: true, weapon: 'IronSword', body: 'ArmorHideCuirass', rage: 25, chores: true, f: true, rageSkill: 15 });
+});
+
+test('a save from a newer version is refused with a message, and the game carries on', async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => localStorage.setItem('hammerfell.save.future', JSON.stringify({ version: 99, game: {} })));
+  expect(await page.evaluate(() => __game.load('future'))).toBe(false);
+  expect(await page.evaluate(() => __game.world.id)).toBe('farmhouse');
 });

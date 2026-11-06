@@ -2,6 +2,38 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.7.0 (2026-11-06): the new game, the whole coast, the prologue and Act One
+
+The game now runs on the art sample's look and combat, and the story goes past the prologue for the first time.
+
+- **New look.** Top-down three-quarter view with chunky, code-drawn figures, as in the art sample. Every armour set and weapon shows on you and on everyone else.
+- **The sample's combat, in the game.**
+  - Moving while you swing, three-hit combos, power attacks, dodge and roll.
+  - Blocking and parries, and a shield bash with the perk.
+  - Finishers by weapon class.
+  - Rage and Fury with its own perk tree, and gore that changes with the weapon.
+  - Enemies have a quarter more health. Looting takes the gear off the body.
+- **The Sentinel Coast, one full region.** Everything here is new:
+  - Saltreach: a village with a market, an inn, a smith, a shrine and the salt pans.
+  - Your farm and the Haddads' empty farm.
+  - The crossroads, the Coast Road bandit camp, the Drowned Stair (a Yokudan ruin), the cove, Gull Rock Cave, a shrine of Tu'whacca, and the edge of the Alik'r.
+  - Places are discovered as you find them and can be travelled to from the map (M). Travel takes time.
+- **A living place.**
+  - People keep hours: stalls open by day, the inn fills at night.
+  - Saltreach gossips about what you have done.
+  - Random encounters on the roads: jackals, wild dogs, boars, bandits, Alik'r warriors, Kesh riders once they know your face, pilgrims, and a caravan trader you can buy from.
+- **Trading** with merchants who have their own gold and only buy what they deal in. Prices follow Speech, as in Skyrim.
+- **The prologue, complete:** morning chores, the smoke over the ridge, market day in Saltreach (and the Collector), evening, the boar in the barley, the guest, and the night.
+- **Act One, complete:**
+  - Ash and Salt, The Hill, The Collector (Tarik Hasani), The Hammer (Bahram Kesh), The Unbent (Khadija's three lessons) and What Zeyna Owes.
+  - Each name crossed off the list gives a free Rage perk point.
+  - Tarik can be killed, spared or handed to the village. The conscript can be spared.
+- **Side quests:** The Road East (Hassan pays to clear the camp), Nets and Teeth (skeevers in Gull Rock Cave), Crabs on the Beach (Kami).
+- **A compass** with quest markers, a quest journal, notes and letters to read, waiting and sleeping (T, or a bed), and a rented room at the inn.
+- **Voices.** Barks in fights and spoken dialogue use the browser's voices for now. Subtitles can be turned off in the journal's System tab.
+- **Not in yet:** Act Two and beyond (the road inland ends the act), smithing at the forge, and recorded voices.
+- **Saves:** save version 6. A 0.6 save loads on the coast road near the farm, keeping your name, skills, perks, level, kit, story flags and quests. The old map's places are gone, so where you were is not kept.
+
 ## 0.6.0 (2026-11-06): a smaller game, faster combat
 
 The game has been cut down to what matters most: the story and the fighting. See the design bible (v0.3) for the full reasoning.

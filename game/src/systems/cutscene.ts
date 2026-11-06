@@ -10,11 +10,12 @@ export type Step =
   | { camera: [number, number] | 'player'; seconds: number } // pan to a ground point, or back to the player
   | { wait: number }
   | { setFlag: string }
-  | { startQuest: string };
+  | { startQuest: string }
+  | { run: string }; // a named game action: move someone, change the time, change the world
 export type Scene = { id: string; steps: Step[] };
 
 export type SceneView = { fade: number; caption: string; line: { speaker: string; text: string } | null; camera: [number, number] | null };
-export type SceneHooks = { flag: (f: string) => void; startQuest: (id: string) => void; player: () => [number, number]; token: (s: string) => string };
+export type SceneHooks = { flag: (f: string) => void; startQuest: (id: string) => void; player: () => [number, number]; token: (s: string) => string; run?: (action: string) => void };
 
 const dur = (s: Step) => ('seconds' in s ? s.seconds : 'wait' in s ? s.wait : 0);
 
@@ -36,6 +37,7 @@ export class Cutscene {
     if (!s) { this.done = true; this.view.caption = ''; this.view.line = null; return; }
     if ('setFlag' in s) { this.hooks.flag(s.setFlag); this.next(); return; }
     if ('startQuest' in s) { this.hooks.startQuest(s.startQuest); this.next(); return; }
+    if ('run' in s) { this.hooks.run?.(s.run); this.next(); return; }
     this.view.caption = 'caption' in s ? this.hooks.token(s.caption) : '';
     this.view.line = 'say' in s ? { speaker: this.hooks.token(s.say.speaker), text: this.hooks.token(s.say.text) } : null;
     if ('camera' in s) this.from = this.view.camera ?? this.hooks.player();

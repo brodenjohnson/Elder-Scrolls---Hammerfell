@@ -1,0 +1,104 @@
+{
+ "id": "tarik_market",
+ "title": "Tarik Hasani",
+ "_note": "PRO_03: the Collector at Dalia's stall. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "start",
+ "starts": [],
+ "nodes": {
+  "start": {
+   "speaker": "Tarik",
+   "text": "[He tips Dalia's cart over with his boot, 'checking for contraband'.] Three sacks for the Patriot's Share, two for the processing, one for my trouble. Smile, woman. You're helping Hammerfell.",
+   "choices": [
+    {
+     "text": "[Silent] Stay out of it.",
+     "next": "watched",
+     "do": {
+      "setFlag": "pro03.tarikDone",
+      "run": "free tarik; free collector1; free collector2"
+     }
+    },
+    {
+     "text": "[Speech 20] She's paid. Check your tally.",
+     "spoken": "She's paid. Check your tally.",
+     "do": {
+      "setFlag": "pro03.tarikDone"
+     },
+     "check": {
+      "skill": "Speech",
+      "level": 20,
+      "pass": "backdown",
+      "fail": "mock"
+     }
+    },
+    {
+     "text": "[Threat] Pick up her cart.",
+     "spoken": "Pick up her cart.",
+     "next": "standoff",
+     "do": {
+      "setFlag": "pro03.tarikDone",
+      "infamy": 1
+     }
+    }
+   ],
+   "id": "PRO03_TAR_004"
+  },
+  "watched": {
+   "speaker": "Tarik",
+   "text": "[He collects his six sacks, whistling, and does not look at you once.] Good day, Saltreach. Pay on time and we'll all stay friends.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end"
+    }
+   ]
+  },
+  "backdown": {
+   "speaker": "Tarik",
+   "text": "[He looks you over for a long moment. Then he smiles.] So she has. My mistake. Look at that, an honest man and a farmer. Two rare things. I'll remember you.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "tarik.remembers",
+      "standing": {
+       "saltreach": 1
+      },
+      "run": "free tarik; free collector1; free collector2"
+     }
+    }
+   ],
+   "id": "PRO03_TAR_006"
+  },
+  "mock": {
+   "speaker": "Tarik",
+   "text": "A farmer who counts! [Laughter from the guards.] Then count this. [He takes a fourth sack anyway.] I'll remember you.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "tarik.remembers",
+      "run": "free tarik; free collector1; free collector2"
+     }
+    }
+   ],
+   "id": "PRO03_TAR_007"
+  },
+  "standoff": {
+   "speaker": "Tarik",
+   "text": "[The guards close in. Behind the stall, Dalia whispers: 'Don't.' Tarik holds your eye, then laughs and puts his hand up.] Another day, farmer. You and I will have another day.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "tarik.remembers",
+      "run": "free tarik; free collector1; free collector2"
+     }
+    }
+   ],
+   "id": "PRO03_TAR_008"
+  }
+ }
+}

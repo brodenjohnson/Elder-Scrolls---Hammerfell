@@ -1,0 +1,573 @@
+{
+ "id": "zeyna",
+ "title": "Zeyna",
+ "_note": "PRO_03, A1.1, A1.2, A1.6. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "truth",
+   "if": {
+    "flag": "quest:a16",
+    "notFlag": "a16.done"
+   }
+  },
+  {
+   "node": "tin",
+   "if": {
+    "flag": "tin.found",
+    "notFlag": "a12.tin"
+   }
+  },
+  {
+   "node": "graves",
+   "if": {
+    "flag": "hill.arrived",
+    "notFlag": "a12.graves"
+   }
+  },
+  {
+   "node": "hillWait",
+   "if": {
+    "flag": "quest:a12",
+    "notFlag": "hill.arrived"
+   }
+  },
+  {
+   "node": "waking",
+   "if": {
+    "flag": "quest:a11",
+    "notFlag": "a11.talked"
+   }
+  },
+  {
+   "node": "bundle",
+   "if": {
+    "flag": "quest:market",
+    "notFlag": "pro03.zeyna"
+   }
+  },
+  {
+   "node": "a1",
+   "if": {
+    "flag": "farm.burned"
+   }
+  }
+ ],
+ "nodes": {
+  "bundle": {
+   "speaker": "Zeyna",
+   "text": "The wife all right? Eating? Sleeping?",
+   "choices": [
+    {
+     "text": "[Dry] She's well. Why?",
+     "spoken": "She's well. You ask like a doctor.",
+     "next": "doctor"
+    },
+    {
+     "text": "[Warm] Come to supper.",
+     "spoken": "Come to supper tomorrow. She'd like it.",
+     "next": "supper",
+     "do": {
+      "bond": {
+       "wife": 1
+      }
+     }
+    },
+    {
+     "text": "[Flat] Fine.",
+     "spoken": "Fine.",
+     "next": "fine"
+    }
+   ],
+   "id": "PRO03_ZEY_001"
+  },
+  "doctor": {
+   "speaker": "Zeyna",
+   "text": "I ask like a friend who was never thanked.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "give"
+    }
+   ],
+   "id": "PRO03_ZEY_002"
+  },
+  "supper": {
+   "speaker": "Zeyna",
+   "text": "I might. I might.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "give"
+    }
+   ],
+   "id": "PRO03_ZEY_003"
+  },
+  "fine": {
+   "speaker": "Zeyna",
+   "text": "Good. [To herself.] Good.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "give"
+    }
+   ],
+   "id": "PRO03_ZEY_004"
+  },
+  "give": {
+   "speaker": "Zeyna",
+   "text": "[Low, putting a small bundle in his hands.] Give her this. Tell her I said the weather is changing.",
+   "choices": [
+    {
+     "text": "The weather.",
+     "spoken": "The weather is changing. I will.",
+     "next": "end",
+     "do": {
+      "give": {
+       "ZeynaBundle": 1
+      },
+      "setFlag": "pro03.zeyna",
+      "questEvent": "zeyna.bundle"
+     }
+    }
+   ],
+   "id": "PRO03_ZEY_005"
+  },
+  "waking": {
+   "speaker": "Zeyna",
+   "text": "You've been asking for water in your sleep. Not for her. Water.",
+   "choices": [
+    {
+     "text": "[Flat] Where are they?",
+     "spoken": "Where are they?",
+     "next": "where"
+    },
+    {
+     "text": "[Cold] Who did this to me?",
+     "spoken": "Who did this?",
+     "next": "brand"
+    },
+    {
+     "text": "[Silent] Stare at the ceiling.",
+     "next": "where"
+    }
+   ],
+   "id": "A11_ZEY_001"
+  },
+  "where": {
+   "speaker": "Zeyna",
+   "text": "There was a fire. There was what the fire left. I did what I could, and I did it properly. [A pause.] I'm sorry. I'm not going to say it was quick. I don't know that it was.",
+   "choices": [
+    {
+     "text": "[Flat] You buried them.",
+     "spoken": "You buried them.",
+     "next": "tree"
+    },
+    {
+     "text": "[Cold] Show me.",
+     "spoken": "Show me where.",
+     "next": "walk"
+    },
+    {
+     "text": "[Silent] Nothing.",
+     "next": "walk"
+    }
+   ],
+   "id": "A11_ZEY_004"
+  },
+  "tree": {
+   "speaker": "Zeyna",
+   "text": "Under the pomegranate. It was your wife's favourite tree.",
+   "choices": [
+    {
+     "text": "The mark on my chest.",
+     "next": "brand"
+    }
+   ],
+   "id": "A11_ZEY_006"
+  },
+  "walk": {
+   "speaker": "Zeyna",
+   "text": "When you can walk, I'll take you.",
+   "choices": [
+    {
+     "text": "The mark on my chest.",
+     "next": "brand"
+    }
+   ],
+   "id": "A11_ZEY_007"
+  },
+  "brand": {
+   "speaker": "Zeyna",
+   "text": "A fish-hook in a grain of salt. It's his. The Saltmaker's. He leaves it on one person in every place he visits. They call that person the messenger.",
+   "choices": [
+    {
+     "text": "[Flat] What does the message say?",
+     "spoken": "What does it say?",
+     "next": "message"
+    },
+    {
+     "text": "[Cold] Who is he?",
+     "spoken": "Who is he?",
+     "next": "message"
+    }
+   ],
+   "id": "A11_ZEY_009"
+  },
+  "message": {
+   "speaker": "Zeyna",
+   "text": "That he doesn't need a reason. Or that he has one, and you're not worth the telling.",
+   "choices": [
+    {
+     "text": "[Warm] Thank you.",
+     "spoken": "I owe you my life.",
+     "next": "notYet"
+    },
+    {
+     "text": "[Cold] What do you want for it?",
+     "spoken": "What does this cost me?",
+     "next": "price"
+    },
+    {
+     "text": "[Threat] You knew something.",
+     "spoken": "My wife asked about the weather. You knew something.",
+     "next": "price"
+    }
+   ],
+   "id": "A11_ZEY_011"
+  },
+  "notYet": {
+   "speaker": "Zeyna",
+   "text": "Not yet you don't. Walk first.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "price"
+    }
+   ],
+   "id": "A11_ZEY_012"
+  },
+  "price": {
+   "speaker": "Zeyna",
+   "text": "I knew some things. I'll tell you all of them. Not today. When you've done something with your hands that makes it worth telling.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "knife"
+    }
+   ],
+   "id": "A11_ZEY_014"
+  },
+  "knife": {
+   "speaker": "Zeyna",
+   "text": "[She puts his old farm knife on the blanket, cleaned.] Yours. Go to the hill when you can stand. I'll meet you at the farm.",
+   "choices": [
+    {
+     "text": "[Take the knife.]",
+     "next": "end",
+     "do": {
+      "give": {
+       "IronDagger": 1
+      },
+      "questEvent": "zeyna.waking",
+      "setFlag": "a11.talked"
+     }
+    }
+   ],
+   "id": "A11_ZEY_015"
+  },
+  "hillWait": {
+   "speaker": "Zeyna",
+   "text": "Go on up. I'll be there. I walk slower than you, even now.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "graves": {
+   "speaker": "Zeyna",
+   "text": "[Three cairns under the pomegranate. A small one. A long one with a flat stone, and her name scratched on it. A third, of plain stones, with no name. Zeyna does not explain the third.]",
+   "choices": [
+    {
+     "text": "[Silent] Kneel. Say nothing.",
+     "next": "well",
+     "do": {
+      "setFlag": "a12.graves",
+      "questEvent": "zeyna.graves"
+     }
+    },
+    {
+     "text": "[Cold] I'll kill every one of them.",
+     "spoken": "I'll find every one. I'll do it slowly.",
+     "next": "flinch",
+     "do": {
+      "setFlag": "a12.graves",
+      "questEvent": "zeyna.graves",
+      "infamy": 1
+     }
+    },
+    {
+     "text": "[Warm] I said I'd stay.",
+     "spoken": "I said I'd stay. I'm staying.",
+     "next": "well",
+     "if": {
+      "flag": "pro04.asked"
+     },
+     "do": {
+      "setFlag": "a12.graves",
+      "questEvent": "zeyna.graves",
+      "bond": {
+       "wife": 1
+      }
+     }
+    },
+    {
+     "text": "[Dog] Speak to the small cairn.",
+     "spoken": "Good lad. You earned it.",
+     "next": "well",
+     "if": {
+      "bond": {
+       "who": "dog",
+       "atLeast": 1
+      }
+     },
+     "do": {
+      "setFlag": "a12.graves",
+      "questEvent": "zeyna.graves"
+     }
+    }
+   ]
+  },
+  "flinch": {
+   "speaker": "Zeyna",
+   "text": "[She flinches, very slightly.] Slowly takes time. You don't have much of that.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "well"
+    }
+   ]
+  },
+  "well": {
+   "speaker": "Zeyna",
+   "text": "The well. She checked the well stone, the night before. I saw her from the road with a lamp. She said it was the latch. It wasn't the latch.",
+   "choices": [
+    {
+     "text": "[Search] The gull. Tavi made me a gull.",
+     "next": "gull",
+     "if": {
+      "flag": "pro04.gullKept"
+     }
+    },
+    {
+     "text": "I'll look.",
+     "next": "end"
+    }
+   ],
+   "id": "A12_ZEY_000"
+  },
+  "gull": {
+   "speaker": "Zeyna",
+   "text": "There was nothing on the floor when I came. Nothing small. [She looks at him for a long moment.] Look at the well.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "gull.missing"
+     }
+    }
+   ]
+  },
+  "tin": {
+   "speaker": "Zeyna",
+   "text": "[Very quiet, reading over his shoulder.] She kept it. Of course she kept it.",
+   "choices": [
+    {
+     "text": "[Cold] What is this?",
+     "spoken": "What is this?",
+     "next": "five"
+    },
+    {
+     "text": "[Flat] You knew about this.",
+     "spoken": "You knew about this.",
+     "next": "five"
+    },
+    {
+     "text": "[Flat] I know two of these.",
+     "spoken": "T.H. Tarik. B.K. The one with the hammer.",
+     "next": "five"
+    }
+   ],
+   "id": "A12_ZEY_001"
+  },
+  "five": {
+   "speaker": "Zeyna",
+   "text": "You know two. There are five more. I'll tell you who they are when you've earned that too. Start with Tarik. He rides the east road. He talks when he's frightened, and he's always frightened.",
+   "choices": [
+    {
+     "text": "Tarik.",
+     "next": "end",
+     "do": {
+      "setFlag": "a12.tin",
+      "questEvent": "zeyna.tin"
+     }
+    }
+   ],
+   "id": "A12_ZEY_003"
+  },
+  "truth": {
+   "speaker": "Zeyna",
+   "text": "[Very still.] Two.",
+   "choices": [
+    {
+     "text": "[Flat] You said you'd tell me.",
+     "spoken": "I've earned it. Tell me.",
+     "next": "hegathe"
+    },
+    {
+     "text": "[Cold] What was my wife?",
+     "spoken": "What was she?",
+     "next": "hegathe"
+    },
+    {
+     "text": "[Threat] Don't make me ask twice.",
+     "spoken": "Don't make me ask twice.",
+     "next": "hegathe"
+    }
+   ],
+   "id": "A16_ZEY_001"
+  },
+  "hegathe": {
+   "speaker": "Zeyna",
+   "text": "Fourth Era, 173. Hegathe under siege. A column of Crown refugees fled the city. They were promised a road. They were sold. A Forebear officer delivered them to the Thalmor for gold and a safe passage, and then had the survivors silenced, so the heroic relief of Hegathe could be told cleanly. The officer's name was Azhar Kerrash.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "wife"
+    }
+   ],
+   "id": "A16_ZEY_005"
+  },
+  "wife": {
+   "speaker": "Zeyna",
+   "text": "Your wife was a child in that column. Number nineteen. She lived. An aunt raised her under a Forebear name, and she grew up, and she kept the proof: his ledger of the payments. Signed. He has hunted the last witnesses for twenty years. The salt trade is the pipe that pays every mouth to stay shut.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "folios"
+    }
+   ],
+   "id": "A16_ZEY_010"
+  },
+  "folios": {
+   "speaker": "Zeyna",
+   "text": "She split the ledger into three folios and gave them to three people she trusted. I hold one. The key in the tin opens my strongbox.",
+   "choices": [
+    {
+     "text": "[Cold] She lied to me.",
+     "spoken": "She lied to me for twenty years.",
+     "next": "story"
+    },
+    {
+     "text": "[Warm] She was protecting us.",
+     "spoken": "She was protecting us. Wasn't she.",
+     "next": "story"
+    },
+    {
+     "text": "[Flat] Where are the others?",
+     "spoken": "Where are the other folios?",
+     "next": "story"
+    },
+    {
+     "text": "[Threat] They died for a book.",
+     "spoken": "My family died for a book.",
+     "next": "story"
+    }
+   ],
+   "id": "A16_ZEY_018"
+  },
+  "story": {
+   "speaker": "Zeyna",
+   "text": "Your family died because a man needed a story to stay true. The book is just what proves it isn't. [She unlocks the strongbox with the gull key and puts a leather folio in his hands.] Take it to the court in Sentinel. Let Hammerfell decide what he is.",
+   "choices": [
+    {
+     "text": "[Cold] I'm going to kill him.",
+     "spoken": "I'm going to kill him.",
+     "next": "end",
+     "do": {
+      "questEvent": "zeyna.truth",
+      "setFlag": "a16.done",
+      "give": {
+       "Folio": 1
+      },
+      "run": "scene act1End"
+     }
+    },
+    {
+     "text": "[Flat] I'll take it to the court.",
+     "spoken": "I'll take it to the court.",
+     "next": "end",
+     "do": {
+      "questEvent": "zeyna.truth",
+      "setFlag": "a16.done",
+      "give": {
+       "Folio": 1
+      },
+      "run": "scene act1End"
+     }
+    },
+    {
+     "text": "[Flat] Give me the names. I'll decide later.",
+     "spoken": "Give me the names. I'll decide later.",
+     "next": "end",
+     "do": {
+      "questEvent": "zeyna.truth",
+      "setFlag": "a16.done",
+      "give": {
+       "Folio": 1
+      },
+      "run": "scene act1End"
+     }
+    }
+   ],
+   "id": "A16_ZEY_022"
+  },
+  "a1": {
+   "speaker": "Zeyna",
+   "text": "Bandages. Potions. Advice, which is free and therefore ignored.",
+   "choices": [
+    {
+     "text": "Bandages and potions.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "idle": {
+   "speaker": "Zeyna",
+   "text": "Herbs. A few things that aren't herbs. Don't ask which.",
+   "choices": [
+    {
+     "text": "Let me see what you have.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}

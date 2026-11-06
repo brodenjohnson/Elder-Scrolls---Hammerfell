@@ -1,0 +1,72 @@
+{
+ "id": "fisherman",
+ "title": "Rashid",
+ "_note": "Saltreach, the fish stall and the dock. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "paid",
+   "if": {
+    "flag": "cleared:caveSkeevers",
+    "notFlag": "rashid.paid"
+   }
+  }
+ ],
+ "nodes": {
+  "idle": {
+   "speaker": "Rashid",
+   "text": "Fish. Salted, dried, or still arguing. Something in Gull Rock Cave keeps coming down at night and chewing through my nets. Teeth like needles.",
+   "choices": [
+    {
+     "text": "I'll look in the cave.",
+     "next": "cave",
+     "if": {
+      "notFlag": "quest:skeevers"
+     },
+     "do": {
+      "startQuest": "skeevers"
+     }
+    },
+    {
+     "text": "Some fish.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "cave": {
+   "speaker": "Rashid",
+   "text": "North-east of the crossroads, under the boulders. Skeevers, I'd bet. Big ones. Take a torch.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "paid": {
+   "speaker": "Rashid",
+   "text": "Skeevers? Five? Gods. Here. It's not much, but it's more than the nets were worth. And take a fish, you're thin.",
+   "choices": [
+    {
+     "text": "[Take it.]",
+     "next": "end",
+     "do": {
+      "gold": 50,
+      "give": {
+       "Salmon": 2
+      },
+      "setFlag": "rashid.paid",
+      "questEvent": "rashid.skeevers"
+     }
+    }
+   ]
+  }
+ }
+}

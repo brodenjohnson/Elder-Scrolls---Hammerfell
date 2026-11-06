@@ -1,0 +1,234 @@
+{
+ "id": "khadija",
+ "title": "Khadija the Unbent",
+ "_note": "A1.5. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "met",
+   "if": {
+    "notFlag": "khadija.met"
+   }
+  },
+  {
+   "node": "lesson1",
+   "if": {
+    "flag": "quest:a15",
+    "notFlag": "khadija.lesson1"
+   }
+  },
+  {
+   "node": "debt",
+   "if": {
+    "flag": "khadija.rageFull",
+    "notFlag": "khadija.debt"
+   }
+  },
+  {
+   "node": "lesson2",
+   "if": {
+    "flag": "spar.done",
+    "notFlag": "khadija.lesson2"
+   }
+  },
+  {
+   "node": "after",
+   "if": {
+    "flag": "khadija.debt"
+   }
+  }
+ ],
+ "nodes": {
+  "met": {
+   "speaker": "Khadija",
+   "text": "[Dry, not unkind, from behind him.] You fight like a man who wants to die. It's very wasteful. I don't like waste.",
+   "choices": [
+    {
+     "text": "[Cold] Who are you?",
+     "spoken": "Who are you?",
+     "next": "name"
+    },
+    {
+     "text": "[Dry] I've had worse advice.",
+     "spoken": "I've had worse.",
+     "next": "name"
+    },
+    {
+     "text": "[Threat] Leave.",
+     "spoken": "Leave me alone.",
+     "next": "name"
+    }
+   ],
+   "id": "A15_KHA_001"
+  },
+  "name": {
+   "speaker": "Khadija",
+   "text": "Khadija. They used to call me Unbent. I wasn't. I was just too stubborn to break. You're going to be dead in a week unless someone teaches you to stop being angry.",
+   "choices": [
+    {
+     "text": "[Cold] I don't need teaching.",
+     "spoken": "I don't need teaching.",
+     "next": "breathing"
+    },
+    {
+     "text": "[Flat] Teach me.",
+     "spoken": "Teach me.",
+     "next": "cove",
+     "do": {
+      "standing": {
+       "swordsingers": 1
+      }
+     }
+    },
+    {
+     "text": "[Dry] I'll learn faster by killing people.",
+     "spoken": "I learn faster killing.",
+     "next": "different"
+    }
+   ],
+   "id": "A15_KHA_004"
+  },
+  "breathing": {
+   "speaker": "Khadija",
+   "text": "No. You need breathing. It's the same thing.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "cove"
+    }
+   ],
+   "id": "A15_KHA_006"
+  },
+  "different": {
+   "speaker": "Khadija",
+   "text": "You learn different, not faster.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "cove"
+    }
+   ],
+   "id": "A15_KHA_007"
+  },
+  "cove": {
+   "speaker": "Khadija",
+   "text": "The cove, south of the farms. A stone hut, a boat that doesn't float. Come when you can walk straight. And don't touch a weapon in front of me until I say so.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "khadija.met",
+      "questEvent": "khadija.met",
+      "run": "refresh"
+     }
+    }
+   ],
+   "id": "A15_KHA_008"
+  },
+  "lesson1": {
+   "speaker": "Khadija",
+   "text": "First lesson. Breath. I'm going to hit you. You block as the blow lands. Not before, not after. As it lands. Three times, and we stop.",
+   "choices": [
+    {
+     "text": "[Draw your weapon.] Ready.",
+     "next": "end",
+     "do": {
+      "setFlag": "khadija.lesson1",
+      "questEvent": "khadija.breath",
+      "run": "hostile khadija"
+     }
+    },
+    {
+     "text": "Not yet.",
+     "next": "end"
+    }
+   ],
+   "id": "A15_KHA_010"
+  },
+  "lesson2": {
+   "speaker": "Khadija",
+   "text": "Second lesson. Rage. Let it fill. All of it, past half. Then hold it. Don't spend it. Hold it, and see what it does to your hands.",
+   "choices": [
+    {
+     "text": "Ready.",
+     "next": "end",
+     "do": {
+      "setFlag": "khadija.lesson2",
+      "questEvent": "khadija.lesson2",
+      "run": "unflag spar.done; hostile khadija"
+     }
+    },
+    {
+     "text": "Not yet.",
+     "next": "end"
+    }
+   ],
+   "id": "A15_KHA_014"
+  },
+  "debt": {
+   "speaker": "Khadija",
+   "text": "[She took the sword out of your hands while you were busy being angry.] You couldn't see me. You couldn't block. That's all rage is. A blindfold.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "speech"
+    }
+   ],
+   "id": "A15_KHA_018"
+  },
+  "speech": {
+   "speaker": "Khadija",
+   "text": "You've been taught that rage is a fire. It isn't. It's a debt. Every time you spend it you borrow from tomorrow. You'll pay it back with interest, and the interest is people.",
+   "choices": [
+    {
+     "text": "[Flat] I understand.",
+     "spoken": "I understand.",
+     "next": "bank"
+    },
+    {
+     "text": "[Cold] I'll pay it.",
+     "spoken": "Then I'll pay it.",
+     "next": "bank"
+    }
+   ],
+   "id": "A15_KHA_020"
+  },
+  "bank": {
+   "speaker": "Khadija",
+   "text": "No, you don't. Not yet. But you'll hold it a little longer now before it holds you. Go and see your herbalist. She's been waiting for you to come back with blood on you.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "khadija.debt",
+      "questEvent": "khadija.debt",
+      "run": "ragepoint"
+     }
+    }
+   ],
+   "id": "A15_KHA_022"
+  },
+  "after": {
+   "speaker": "Khadija",
+   "text": "Breathe. Then do whatever stupid thing you were going to do.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "idle": {
+   "speaker": "Khadija",
+   "text": "Breathe.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}

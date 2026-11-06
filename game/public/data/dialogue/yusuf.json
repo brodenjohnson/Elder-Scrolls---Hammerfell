@@ -1,0 +1,94 @@
+{
+ "id": "yusuf",
+ "title": "Brother Yusuf",
+ "_note": "Saltreach, by the shrine. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "burned",
+   "if": {
+    "flag": "farm.burned",
+    "notFlag": "yusuf.sorry"
+   }
+  }
+ ],
+ "nodes": {
+  "idle": {
+   "speaker": "Brother Yusuf",
+   "text": "Tu'whacca keep you. Are you here for a blessing, or to tell me something I'd rather not know? People mostly do the second.",
+   "choices": [
+    {
+     "text": "A blessing.",
+     "next": "bless",
+     "do": {
+      "run": "heal"
+     }
+    },
+    {
+     "text": "Do you know anything about the Kesh?",
+     "next": "kesh"
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "bless": {
+   "speaker": "Brother Yusuf",
+   "text": "[He touches your forehead with two fingers and salt water.] Keeper of the Far Shores, see this one home. [You feel steadier.]",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "kesh": {
+   "speaker": "Brother Yusuf",
+   "text": "[He looks round.] I know they give to the shrine. More than anyone. I know I take it. I know I should not. Please don't ask me more in the street.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "burned": {
+   "speaker": "Brother Yusuf",
+   "text": "I heard. I'm so sorry. Zeyna would not let me do the rites, she said she'd do them herself, properly. She did. I watched.",
+   "choices": [
+    {
+     "text": "Thank you.",
+     "next": "end",
+     "do": {
+      "setFlag": "yusuf.sorry"
+     }
+    },
+    {
+     "text": "Did you count the graves?",
+     "next": "count",
+     "if": {
+      "flag": "heard.count"
+     },
+     "do": {
+      "setFlag": "yusuf.sorry"
+     }
+    }
+   ]
+  },
+  "count": {
+   "speaker": "Brother Yusuf",
+   "text": "Count them? Three. A small one, a long one, and... [He frowns.] The third was too long for a child. I thought it was strange. I didn't say anything. I never do.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "yusuf.counted"
+     }
+    }
+   ]
+  }
+ }
+}

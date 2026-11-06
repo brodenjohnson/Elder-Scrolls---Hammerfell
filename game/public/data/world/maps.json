@@ -1,0 +1,199 @@
+{
+  "_note": "Maps (src/engine/world.js). The coast is the region outdoors (pixels; a person is about 45 tall). Ground shapes paint the terrain: the sea first (beaches and shallows follow from it), then areas and roads. Props stand on the ground; 'use' makes them something E does, 'if'/'ifNot' tie them to story flags. Places are discovered by coming near and can be travelled to from the map. Triggers fire a scene, a conversation or a flag when you walk into them. Rooms are interiors: a floor, a back wall, props and a door out. 'from' on a room is where its door is outdoors (for the compass).",
+  "maps": {
+    "coast": {
+      "id": "coast", "name": "The Sentinel Coast", "kind": "outdoor", "w": 3200, "h": 2400,
+      "ground": { "base": "grass", "shapes": [
+        { "t": "sea", "poly": [[0, 0], [420, 0], [380, 300], [460, 600], [400, 900], [520, 1150], [640, 1400], [760, 1700], [980, 1950], [1300, 2150], [1700, 2300], [2100, 2400], [0, 2400]] },
+        { "t": "area", "m": "dry", "poly": [[2000, 0], [3200, 0], [3200, 2400], [2300, 2400], [2150, 1900], [2050, 1300], [2000, 800]] },
+        { "t": "area", "m": "desert", "poly": [[2600, 0], [3200, 0], [3200, 2400], [2750, 2400], [2650, 1700], [2550, 1000], [2600, 500]] },
+        { "t": "area", "m": "salt", "poly": [[560, 640], [900, 620], [930, 800], [600, 860], [520, 760]] },
+        { "t": "area", "m": "dirt", "circle": [800, 1010, 150] },
+        { "t": "area", "m": "dirt", "circle": [1250, 1500, 70] },
+        { "t": "area", "m": "field", "poly": [[1340, 1440], [1560, 1430], [1580, 1560], [1350, 1580]] },
+        { "t": "area", "m": "dirt", "circle": [1720, 1380, 55] },
+        { "t": "area", "m": "field", "poly": [[1780, 1300], [1900, 1300], [1900, 1420], [1790, 1430]] },
+        { "t": "area", "m": "dirt", "circle": [1900, 800, 175] },
+        { "t": "area", "m": "rock", "circle": [620, 230, 115] },
+        { "t": "area", "m": "rock", "circle": [1430, 930, 40] },
+        { "t": "road", "m": "road", "w": 18, "pts": [[790, 880], [780, 700], [760, 520], [700, 360], [640, 260]] },
+        { "t": "road", "m": "road", "w": 18, "pts": [[820, 1100], [900, 1220], [1020, 1300], [1150, 1350]] },
+        { "t": "road", "m": "road", "w": 14, "pts": [[1150, 1350], [1220, 1420], [1250, 1470]] },
+        { "t": "road", "m": "road", "w": 18, "pts": [[1150, 1350], [1350, 1330], [1560, 1300], [1700, 1340]] },
+        { "t": "road", "m": "road", "w": 18, "pts": [[1560, 1300], [1800, 1150], [1890, 980]] },
+        { "t": "road", "m": "road", "w": 18, "pts": [[1800, 1150], [2200, 1120], [2600, 1100], [3150, 1080]] },
+        { "t": "road", "m": "dirt", "w": 12, "pts": [[1250, 1540], [1230, 1700], [1200, 1900], [1195, 1975]] },
+        { "t": "road", "m": "dirt", "w": 12, "pts": [[1150, 1350], [1300, 1150], [1430, 985]] }
+      ] },
+      "clear": [[800, 1010, 190], [1250, 1490, 110], [1720, 1370, 90], [1900, 800, 220], [620, 230, 150], [1200, 2000, 70], [1430, 960, 55], [1150, 1350, 40], [1500, 1100, 40], [720, 740, 140], [2700, 1100, 60]],
+      "places": [
+        { "id": "farm", "name": "The Farm", "kind": "Home", "x": 1250, "y": 1500, "r": 90, "safe": true, "banner": false, "tx": 1250, "ty": 1530 },
+        { "id": "saltreach", "name": "Saltreach", "kind": "Village", "x": 800, "y": 1000, "r": 150, "safe": true, "tx": 830, "ty": 1150 },
+        { "id": "saltpans", "name": "Saltreach Salt Pans", "kind": "Salt pans", "x": 720, "y": 740, "r": 120 },
+        { "id": "crossroads", "name": "The Crossroads", "kind": "Road", "x": 1150, "y": 1350, "r": 45, "tx": 1170, "ty": 1370 },
+        { "id": "haddad", "name": "The Haddad Farm", "kind": "Farm", "x": 1720, "y": 1380, "r": 80, "tx": 1700, "ty": 1420 },
+        { "id": "shrine", "name": "Shrine of Tu'whacca", "kind": "Shrine", "x": 1500, "y": 1100, "r": 50, "tx": 1500, "ty": 1130 },
+        { "id": "cave", "name": "Gull Rock Cave", "kind": "Cave", "x": 1430, "y": 960, "r": 60, "tx": 1430, "ty": 1000 },
+        { "id": "camp", "name": "Coast Road Camp", "kind": "Bandit camp", "x": 1900, "y": 800, "r": 175, "tx": 1820, "ty": 1060 },
+        { "id": "stair", "name": "The Drowned Stair", "kind": "Yokudan ruin", "x": 620, "y": 230, "r": 130, "tx": 700, "ty": 380 },
+        { "id": "cove", "name": "The Cove", "kind": "Cove", "x": 1200, "y": 2000, "r": 90, "tx": 1210, "ty": 1950 },
+        { "id": "desert", "name": "Edge of the Alik'r", "kind": "Desert", "x": 2700, "y": 1100, "r": 220, "tx": 2600, "ty": 1120 }
+      ],
+      "triggers": [
+        { "id": "fenceSmoke", "x": 1192, "y": 1460, "r": 40, "if": "fence.mended", "ifNot": "tavi.smoke", "talk": "tavi", "dialogue": "tavi" },
+        { "id": "haddadDog", "x": 1720, "y": 1380, "r": 45, "if": "dune.follow", "say": "Dune stops at the gate, hackles up, and will not come any closer." },
+        { "id": "eveningHome", "x": 1250, "y": 1520, "r": 60, "if": "pro03.goneHome", "ifNot": "evening.begun", "scene": "evening" },
+        { "id": "tarikMarket", "x": 805, "y": 990, "r": 60, "if": "quest:market", "ifNot": "pro03.tarikDone", "talk": "tarik", "dialogue": "tarik_market" },
+        { "id": "riders", "x": 1300, "y": 1500, "r": 110, "if": "dune.bandaged", "ifNot": "guest.arrived", "scene": "riders" },
+        { "id": "hillArrive", "x": 1250, "y": 1500, "r": 80, "if": "farm.burned", "ifNot": "hill.arrived", "flag": "hill.arrived", "say": "The house is a black stain. The goat pen is empty. The dog's bowl is still by the door." },
+        { "id": "stairWarn", "x": 700, "y": 400, "r": 60, "if": "quest:a14", "say": "Smoke over the old stair. Voices. A dog barking." }
+      ],
+      "doors": [],
+      "containers": [
+        { "id": "shed", "name": "Tool Box", "look": "crate", "x": 1302, "y": 1462, "items": { "Nails": 6, "Wood": 3 }, "ifNot": "farm.burned" },
+        { "id": "campChest", "name": "Bandit Chief's Chest", "look": "chest", "x": 1932, "y": 718, "items": { "ArmorSteelCuirassA": 1, "ArmorSteelGauntletsA": 1, "ArmorSteelBootsB": 1, "ArmorSteelHelmetA": 1, "ArmorSteelShield": 1, "SteelSword": 1, "PotionHealth": 2 }, "gold": 140 },
+        { "id": "campSupply", "name": "Supply Crate", "look": "crate", "x": 2054, "y": 848, "items": { "ArmorLeatherCuirass": 1, "ArmorLeatherBoots": 1, "ArmorLeatherGauntlets": 1, "IronWarAxe": 1, "Bread": 2, "Salt": 4 }, "gold": 0 },
+        { "id": "stairChest", "name": "Bahram's Chest", "look": "chest", "x": 700, "y": 150, "items": { "ArmorIronCuirass": 1, "ArmorIronBoots": 1, "ArmorIronGauntlets": 1, "ArmorIronHelmet": 1, "ArmorIronShield": 1, "PotionHealth": 3, "SteelWarAxe": 1, "KeshLetter": 1 }, "gold": 210 },
+        { "id": "alikrPack", "name": "Saddle Pack", "look": "sack", "x": 2730, "y": 1150, "items": { "ClothesRedguardClothes": 1, "ClothesRedguardBoots": 1, "DBClothesRedguardHood": 1, "Scimitar": 1, "Bread": 1 }, "gold": 35 }
+      ],
+      "props": [
+        { "k": "house", "x": 700, "y": 950, "o": { "w": 84, "d": 52, "h": 30, "awning": "red", "sign": "tile", "windows": 3, "clutter": true }, "door": { "to": "inn", "tx": 160, "ty": 186, "label": "The Salted Gull" } },
+        { "k": "house", "x": 905, "y": 935, "o": { "w": 56, "d": 40, "awning": "ochre", "shutter": "navy" } },
+        { "k": "house", "x": 880, "y": 1110, "o": { "w": 66, "d": 44, "wall": "sandstone", "banner": "navy", "windows": 2 }, "door": { "to": "taxhouse", "tx": 120, "ty": 148, "label": "The Tax House" } },
+        { "k": "house", "x": 995, "y": 1055, "o": { "w": 50, "d": 36, "shutter": "plum", "windows": 1, "clutter": true }, "door": { "to": "zeyna", "tx": 120, "ty": 148, "label": "Zeyna's Cottage" } },
+        { "k": "house", "x": 625, "y": 1060, "o": { "w": 52, "d": 38, "windows": 2 } },
+        { "k": "house", "x": 725, "y": 1150, "o": { "w": 54, "d": 40, "dome": true, "windows": 2, "shutter": "ochre" } },
+        { "k": "house", "x": 600, "y": 975, "o": { "w": 46, "d": 34, "wall": "sandstone", "windows": 1 } },
+        { "k": "house", "x": 960, "y": 1170, "o": { "w": 50, "d": 36, "windows": 2, "shutter": "red" } },
+        { "k": "stall", "x": 800, "y": 965, "o": { "cloth": "teal", "goods": "salt" } },
+        { "k": "stall", "x": 860, "y": 1000, "o": { "cloth": "ochre", "goods": "bread" } },
+        { "k": "stall", "x": 745, "y": 1005, "o": { "cloth": "plum", "goods": "herbs" } },
+        { "k": "stall", "x": 690, "y": 1035, "o": { "cloth": "navy", "goods": "fish" } },
+        { "k": "well", "x": 805, "y": 1045 },
+        { "k": "forge", "x": 790, "y": 1115 }, { "k": "anvil", "x": 820, "y": 1118 }, { "k": "rack", "x": 760, "y": 1125 },
+        { "k": "noticeBoard", "x": 845, "y": 1055, "use": { "id": "notice", "name": "Notice Board", "verb": "Read", "read": "BY ORDER OF THE COLLECTOR: The Patriot's Share is due at the new moon. Late payers will be visited.\n\nWANTED: men for the Coast Road. The camp above the east road has shut it for a month. The Salted Gull pays 120 gold to whoever opens it again. Ask Hassan.\n\nLOST: one goat, brown, bad-tempered. Answers to nothing." } },
+        { "k": "lampPost", "x": 760, "y": 960 }, { "k": "lampPost", "x": 850, "y": 1080 }, { "k": "lampPost", "x": 700, "y": 1090 },
+        { "k": "barrel", "x": 742, "y": 958 }, { "k": "barrel", "x": 752, "y": 966 }, { "k": "crate", "x": 655, "y": 950 }, { "k": "crate", "x": 950, "y": 950 }, { "k": "cart", "x": 910, "y": 1050 },
+        { "k": "bench", "x": 790, "y": 1075 }, { "k": "shrine", "x": 680, "y": 1115 },
+        { "k": "dock", "x": 470, "y": 1090, "o": { "len": 70 } }, { "k": "boat", "x": 525, "y": 1160 }, { "k": "boat", "x": 565, "y": 1215, "v": 1 },
+        { "k": "saltPile", "x": 650, "y": 800 }, { "k": "saltPile", "x": 705, "y": 825, "v": 1 }, { "k": "saltPile", "x": 765, "y": 790 }, { "k": "cart", "x": 820, "y": 810 },
+        { "k": "signpost", "x": 1165, "y": 1338, "use": { "id": "signpost", "name": "Signpost", "verb": "Read", "read": "North-west: Saltreach.\nEast: the Coast Road, the Haddad farm and the Alik'r.\nSouth: the farms, and the sea." } },
+
+        { "k": "house", "x": 1250, "y": 1480, "o": { "w": 64, "d": 44, "windows": 2, "shutter": "teal", "clutter": true }, "door": { "to": "farmhouse", "tx": 130, "ty": 150, "label": "Home" }, "ifNot": "farm.burned" },
+        { "k": "house", "x": 1250, "y": 1480, "o": { "w": 64, "d": 44, "burned": true }, "if": "farm.burned" },
+        { "k": "well", "x": 1312, "y": 1508, "use": { "id": "well", "name": "Well", "verb": "Draw water", "msg": "You draw a bucket of water. Cold, and tasting of stone.", "ifNot": "farm.burned" } },
+        { "k": "well", "x": 1312, "y": 1508, "if": "farm.burned", "use": { "id": "wellstone", "name": "Well Stone", "verb": "Lift", "if": "quest:a12", "ifNot": "tin.found", "msg": "The stone is loose. Under it, wrapped in oilcloth, a rusted tin.", "give": { "GullKey": 1, "LedgerPage": 1 }, "setFlag": "tin.found" } },
+        { "k": "fence", "x": 1192, "y": 1455, "o": { "len": 44, "broken": true }, "ifNot": "fence.mended", "use": { "id": "northFence", "name": "Broken Fence", "verb": "Mend", "need": "Nails", "needMsg": "You need nails. There are some in the tool box by the house.", "consume": true, "setFlag": "fence.mended", "msg": "You hammer the rails back on. Something dragged them off." } },
+        { "k": "fence", "x": 1192, "y": 1455, "o": { "len": 44 }, "if": "fence.mended" },
+        { "k": "fence", "x": 1192, "y": 1502, "o": { "len": 44 } },
+        { "k": "fence", "x": 1168, "y": 1500, "o": { "vert": true, "len": 40 } }, { "k": "fence", "x": 1216, "y": 1500, "o": { "vert": true, "len": 40 } },
+        { "k": "hay", "x": 1150, "y": 1480, "ifNot": "farm.burned", "use": { "id": "goats", "name": "Hay", "verb": "Feed the goats", "msg": "You fork hay over the rails. The goats stop complaining, briefly.", "ifNot": "goats.fed", "setFlag": "goats.fed" } },
+        { "k": "pomegranate", "x": 1335, "y": 1445 },
+        { "k": "cairn", "x": 1318, "y": 1472, "v": 0, "if": "farm.burned" }, { "k": "cairn", "x": 1338, "y": 1474, "v": 1, "if": "farm.burned" }, { "k": "cairn", "x": 1356, "y": 1471, "v": 2, "if": "farm.burned" },
+        { "k": "bench", "x": 1290, "y": 1530, "ifNot": "farm.burned" }, { "k": "barrel", "x": 1215, "y": 1520 }, { "k": "cart", "x": 1180, "y": 1530, "ifNot": "farm.burned" },
+        { "k": "olive", "x": 1150, "y": 1420 }, { "k": "olive", "x": 1330, "y": 1560, "v": 1 }, { "k": "palm", "x": 1200, "y": 1560, "v": 1 },
+
+        { "k": "house", "x": 1720, "y": 1360, "o": { "w": 56, "d": 40, "windows": 2, "shutter": "ochre" }, "door": { "to": "haddad", "tx": 110, "ty": 138, "label": "The Haddads' House" } },
+        { "k": "fire", "x": 1770, "y": 1395 }, { "k": "fence", "x": 1660, "y": 1420, "o": { "len": 40 } }, { "k": "fence", "x": 1780, "y": 1425, "o": { "len": 36, "broken": true } }, { "k": "hay", "x": 1675, "y": 1395 }, { "k": "olive", "x": 1650, "y": 1330 },
+
+        { "k": "stake", "ring": [1900, 800, 206, 132, 158, 382, 2.6] },
+        { "k": "tent", "x": 1830, "y": 740 }, { "k": "tent", "x": 1975, "y": 732 }, { "k": "tent", "x": 1902, "y": 700, "o": { "big": true } },
+        { "k": "fire", "x": 1900, "y": 806 }, { "k": "logSeat", "x": 1880, "y": 790 }, { "k": "logSeat", "x": 1922, "y": 794 },
+        { "k": "crate", "x": 2032, "y": 832 }, { "k": "barrel", "x": 2046, "y": 822 }, { "k": "barrel", "x": 2020, "y": 846 }, { "k": "crate", "x": 1785, "y": 850 }, { "k": "barrel", "x": 1766, "y": 836 },
+        { "k": "rack", "x": 1794, "y": 810 }, { "k": "pike", "x": 1742, "y": 880 }, { "k": "pike", "x": 1784, "y": 898 },
+        { "k": "torch", "x": 1728, "y": 898 }, { "k": "torch", "x": 1796, "y": 880 }, { "k": "torch", "x": 1844, "y": 696 }, { "k": "torch", "x": 1960, "y": 696 },
+
+        { "k": "column", "x": 560, "y": 200 }, { "k": "column", "x": 610, "y": 180, "v": 1 }, { "k": "column", "x": 680, "y": 205 }, { "k": "column", "x": 590, "y": 280, "v": 1 },
+        { "k": "arch", "x": 640, "y": 260 }, { "k": "carvedBlock", "x": 540, "y": 250 }, { "k": "carvedBlock", "x": 715, "y": 270, "v": 2 }, { "k": "carvedBlock", "x": 660, "y": 160, "v": 1 },
+        { "k": "steps", "x": 505, "y": 235 }, { "k": "tent", "x": 730, "y": 220 }, { "k": "tent", "x": 590, "y": 330 }, { "k": "fire", "x": 650, "y": 300 }, { "k": "kennel", "x": 740, "y": 300 },
+        { "k": "torch", "x": 700, "y": 340 }, { "k": "torch", "x": 600, "y": 370 }, { "k": "rack", "x": 690, "y": 330 }, { "k": "crate", "x": 712, "y": 160 }, { "k": "barrel", "x": 690, "y": 145 },
+
+        { "k": "house", "x": 1240, "y": 1985, "o": { "w": 42, "d": 30, "wall": "sandstone", "windows": 1, "door": 0.3 } },
+        { "k": "dummy", "x": 1170, "y": 2015 }, { "k": "boat", "x": 1130, "y": 2050 }, { "k": "driftwood", "x": 1260, "y": 2030 }, { "k": "fire", "x": 1205, "y": 2020 },
+
+        { "k": "arch", "x": 1430, "y": 962 }, { "k": "boulder", "x": 1395, "y": 950 }, { "k": "boulder", "x": 1468, "y": 955, "v": 1 }, { "k": "boulder", "x": 1440, "y": 925 },
+        { "k": "shrine", "x": 1500, "y": 1100, "use": { "id": "shrine", "name": "Shrine of Tu'whacca", "verb": "Pray", "msg": "You kneel at the old stone. Tu'whacca, keeper of the Far Shores, guide the ones I lost." } },
+
+        { "k": "tent", "x": 2700, "y": 1080 }, { "k": "fire", "x": 2740, "y": 1120 }, { "k": "palm", "x": 2660, "y": 1060 }, { "k": "palm", "x": 2790, "y": 1050, "v": 2 }
+      ],
+      "doorsExtra": [],
+      "scatter": [
+        { "k": ["palm"], "on": ["sand"], "count": 60, "seed": 11 },
+        { "k": ["olive", "tree", "bush", "olive"], "on": ["grass"], "count": 150, "seed": 12 },
+        { "k": ["scrub", "bush", "boulder", "olive"], "on": ["dry"], "count": 110, "seed": 13 },
+        { "k": ["scrub", "boulder", "palm"], "on": ["desert"], "count": 40, "seed": 14 },
+        { "k": ["reeds", "driftwood"], "on": ["sand"], "count": 30, "seed": 15 },
+        { "k": ["boulder"], "on": ["rock"], "count": 6, "seed": 16 }
+      ]
+    },
+    "farmhouse": {
+      "id": "farmhouse", "name": "", "kind": "interior", "w": 260, "h": 170, "floor": "floorWood", "wall": "plaster", "from": [1250, 1484],
+      "doors": [{ "x": 130, "y": 164, "to": "coast", "tx": 1250, "ty": 1500, "label": "Outside" }],
+      "props": [
+        { "k": "rug", "x": 130, "y": 120, "o": { "w": 60, "h": 30 } },
+        { "k": "hearth", "x": 50, "y": 66 },
+        { "k": "table", "x": 130, "y": 100, "o": { "laid": true }, "ifNot": "salt.table" },
+        { "k": "table", "x": 130, "y": 100, "o": { "laid": true, "salt": true }, "if": "salt.table" },
+        { "k": "chair", "x": 104, "y": 104 }, { "k": "chair", "x": 156, "y": 104 },
+        { "k": "shelf", "x": 100, "y": 60 }, { "k": "barrel", "x": 30, "y": 150 },
+        { "k": "bed", "x": 222, "y": 96 },
+        { "k": "bed", "x": 190, "y": 150, "o": { "cloth": "teal" } }
+      ],
+      "uses": [
+        { "x": 222, "y": 96, "id": "bedDay2", "name": "Bed", "verb": "Sleep", "if": "evening.ready", "ifNot": "day2", "scene": "day2" },
+        { "x": 222, "y": 96, "id": "bedNight", "name": "Bed", "verb": "Sleep", "if": "quest:night", "ifNot": "night.fight", "scene": "night" },
+        { "x": 222, "y": 96, "id": "bed", "name": "Bed", "verb": "Sleep", "sleep": true, "ifNot": "guest.arrived" }
+      ],
+      "triggers": [{ "id": "guest", "x": 130, "y": 120, "r": 300, "if": "guest.arrived", "ifNot": "kerrash.left", "talk": "kerrash" }],
+      "containers": [{ "id": "homeChest", "name": "Chest", "look": "chest", "x": 228, "y": 150, "items": { "Bread": 2, "Bandage": 2, "GoatCheese": 3, "Eggs": 6 }, "gold": 0 }],
+      "lights": [{ "x": 50, "y": 50, "r": 110, "c": [255, 150, 70], "a": 0.35 }]
+    },
+    "haddad": {
+      "id": "haddad", "name": "", "kind": "interior", "w": 220, "h": 150, "floor": "floorWood", "wall": "plaster", "from": [1720, 1364],
+      "doors": [{ "x": 110, "y": 144, "to": "coast", "tx": 1720, "ty": 1380, "label": "Outside" }],
+      "props": [
+        { "k": "table", "x": 110, "y": 90, "o": { "laid": true, "food": "field" }, "use": { "id": "haddad.table", "name": "The Table", "verb": "Look at", "msg": "Laid for four. The lentils are cold and skinned over. A spoon still in one bowl. Nobody has eaten here in days." } },
+        { "k": "chair", "x": 84, "y": 94 }, { "k": "shelf", "x": 60, "y": 58 }, { "k": "bed", "x": 190, "y": 92 }, { "k": "rug", "x": 110, "y": 120, "o": { "w": 50, "h": 22, "cloth": "navy" } }
+      ]
+    },
+    "zeyna": {
+      "id": "zeyna", "name": "", "kind": "interior", "w": 240, "h": 160, "floor": "floorStone", "wall": "plaster", "from": [995, 1059],
+      "doors": [{ "x": 120, "y": 154, "to": "coast", "tx": 995, "ty": 1075, "label": "Outside" }],
+      "props": [
+        { "k": "shelf", "x": 60, "y": 60 }, { "k": "shelf", "x": 100, "y": 60 }, { "k": "hearth", "x": 180, "y": 66 },
+        { "k": "table", "x": 110, "y": 100 }, { "k": "chair", "x": 86, "y": 104 },
+        { "k": "bed", "x": 214, "y": 132, "o": { "cloth": "white" }, "use": { "id": "zeynaBed", "name": "Bed", "verb": "Sleep", "sleep": true } },
+        { "k": "sack", "x": 30, "y": 140 }, { "k": "barrel", "x": 30, "y": 120 }
+      ],
+      "lights": [{ "x": 180, "y": 50, "r": 100, "c": [255, 150, 70], "a": 0.35 }]
+    },
+    "inn": {
+      "id": "inn", "name": "", "kind": "interior", "w": 320, "h": 200, "floor": "floorWood", "wall": "plaster", "from": [700, 954],
+      "doors": [{ "x": 160, "y": 194, "to": "coast", "tx": 700, "ty": 970, "label": "Outside" }],
+      "props": [
+        { "k": "counter", "x": 160, "y": 72 }, { "k": "shelf", "x": 120, "y": 50 }, { "k": "shelf", "x": 200, "y": 50 }, { "k": "hearth", "x": 40, "y": 66 },
+        { "k": "table", "x": 90, "y": 130 }, { "k": "table", "x": 230, "y": 130 }, { "k": "chair", "x": 64, "y": 134 }, { "k": "chair", "x": 116, "y": 134 }, { "k": "chair", "x": 204, "y": 134 }, { "k": "chair", "x": 256, "y": 134 },
+        { "k": "barrel", "x": 290, "y": 70 }, { "k": "barrel", "x": 300, "y": 84 }, { "k": "rug", "x": 160, "y": 160, "o": { "w": 70, "h": 26 } },
+        { "k": "noticeBoard", "x": 285, "y": 180, "use": { "id": "innNotice", "name": "Notice", "verb": "Read", "read": "THE COAST ROAD. The camp on the rise above the east road has shut it for a month. The Salted Gull pays 120 gold to whoever opens it again.\n\nHassan.", "run": "quest roadEast" } },
+        { "k": "bed", "x": 296, "y": 150, "use": { "id": "innBed", "name": "Rented Bed", "verb": "Sleep", "sleep": true, "if": "room.inn" } }
+      ],
+      "lights": [{ "x": 40, "y": 50, "r": 120, "c": [255, 150, 70], "a": 0.35 }]
+    },
+    "taxhouse": {
+      "id": "taxhouse", "name": "", "kind": "interior", "w": 240, "h": 160, "floor": "floorTile", "wall": "sandstone", "from": [880, 1114],
+      "doors": [{ "x": 120, "y": 154, "to": "coast", "tx": 880, "ty": 1130, "label": "Outside" }],
+      "props": [{ "k": "table", "x": 120, "y": 90 }, { "k": "chair", "x": 120, "y": 76 }, { "k": "shelf", "x": 60, "y": 58 }, { "k": "shelf", "x": 180, "y": 58 }, { "k": "rug", "x": 120, "y": 125, "o": { "w": 50, "h": 22, "cloth": "navy" } }],
+      "containers": [{ "id": "taxChest", "name": "Strongbox", "look": "chest", "x": 210, "y": 130, "items": { "TaxLedger": 1 }, "gold": 85 }]
+    },
+    "cave": {
+      "id": "cave", "name": "Gull Rock Cave", "kind": "interior", "ambient": "rgb(70,62,58)", "w": 460, "h": 300, "floor": "floorDirt", "wall": "stone", "from": [1430, 966],
+      "doors": [{ "x": 230, "y": 294, "to": "coast", "tx": 1430, "ty": 985, "label": "Outside" }],
+      "props": [
+        { "k": "boulder", "x": 120, "y": 120 }, { "k": "boulder", "x": 160, "y": 210, "v": 1 }, { "k": "boulder", "x": 300, "y": 150 }, { "k": "boulder", "x": 360, "y": 230, "v": 1 }, { "k": "boulder", "x": 60, "y": 260 },
+        { "k": "boulder", "x": 420, "y": 100 }, { "k": "rock", "x": 230, "y": 90 }, { "k": "rock", "x": 260, "y": 240 }, { "k": "torch", "x": 380, "y": 70 }, { "k": "crate", "x": 410, "y": 60 }
+      ],
+      "containers": [{ "id": "caveStash", "name": "Smuggler's Stash", "look": "chest", "x": 430, "y": 70, "items": { "PotionHealth": 2, "SmugglerNote": 1, "SteelDagger": 1 }, "gold": 60 }],
+      "lights": [{ "x": 380, "y": 50, "r": 110, "c": [255, 160, 80], "a": 0.45 }, { "x": 230, "y": 270, "r": 90, "c": [200, 190, 170], "a": 0.35 }]
+    }
+  }
+}

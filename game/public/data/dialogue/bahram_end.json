@@ -1,0 +1,110 @@
+{
+ "id": "bahram_end",
+ "title": "Bahram Kesh",
+ "_note": "A1.4: the Hammer drops his weapon and sits. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "start",
+ "starts": [],
+ "nodes": {
+  "start": {
+   "speaker": "Bahram",
+   "text": "[Heavy, tired, almost respectful. He lets the hammer fall and sits down in the dirt.] You. The farmer. Gods. I did wonder if you'd come.",
+   "choices": [
+    {
+     "text": "[Flat] Count them.",
+     "spoken": "Count them. How many did you kill?",
+     "next": "leave1"
+    },
+    {
+     "text": "[Cold] You killed my wife.",
+     "spoken": "You killed my wife in front of me.",
+     "next": "leave1"
+    },
+    {
+     "text": "[Dry] You said gods, so pray.",
+     "spoken": "You said gods. Pray.",
+     "next": "leave1"
+    },
+    {
+     "text": "[Silent] Strike.",
+     "next": "end",
+     "do": {
+      "run": "finish bahram"
+     }
+    }
+   ],
+   "id": "A14_BAH_020"
+  },
+  "leave1": {
+   "speaker": "Bahram",
+   "text": "[Flat, looking at your chest.] He said to leave one. Always one. He picked you. He said you had the look.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "count"
+    }
+   ],
+   "id": "A14_BAH_024"
+  },
+  "count": {
+   "speaker": "Bahram",
+   "text": "[Almost a laugh.] You counted the graves, farmer? Did you? ...No. Course you didn't. Nobody counts.",
+   "choices": [
+    {
+     "text": "[Cold] What does that mean?",
+     "spoken": "What does that mean?",
+     "next": "smile",
+     "do": {
+      "setFlag": "heard.count"
+     }
+    },
+    {
+     "text": "[Threat] Say it again.",
+     "spoken": "Say that again.",
+     "next": "no"
+    },
+    {
+     "text": "[Flat] Strike.",
+     "next": "end",
+     "do": {
+      "run": "finish bahram"
+     }
+    }
+   ],
+   "id": "A14_BAH_026"
+  },
+  "smile": {
+   "speaker": "Bahram",
+   "text": "[He smiles, and says nothing at all.]",
+   "choices": [
+    {
+     "text": "[Finish him.]",
+     "next": "end",
+     "do": {
+      "run": "finish bahram"
+     }
+    },
+    {
+     "text": "[Let him bleed out.]",
+     "next": "end",
+     "do": {
+      "run": "kill bahram"
+     }
+    }
+   ]
+  },
+  "no": {
+   "speaker": "Bahram",
+   "text": "No.",
+   "choices": [
+    {
+     "text": "[Finish him.]",
+     "next": "end",
+     "do": {
+      "run": "finish bahram"
+     }
+    }
+   ],
+   "id": "A14_BAH_028"
+  }
+ }
+}

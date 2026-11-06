@@ -7,13 +7,15 @@ import type { Quests } from './quests';
 // nodes; each has a line and choices. Choices can be gated by conditions and carry
 // effects. Speech checks use the player's Speech skill and train it.
 
-export type Condition = { skill?: { id: SkillId; atLeast: number }; standing?: { faction: string; atLeast: number }; flag?: string; notFlag?: string; has?: string };
+export type Condition = { skill?: { id: SkillId; atLeast: number }; standing?: { faction: string; atLeast: number }; flag?: string; notFlag?: string; has?: string; gold?: number; bond?: { who: BondId; atLeast: number } };
 export type Effect = {
   standing?: Record<string, number>; infamy?: number; collateral?: number;
   give?: Record<string, number>; take?: Record<string, number>;
   train?: { skill: SkillId; amount: number }; setFlag?: string;
   startQuest?: string; questEvent?: string; // start a quest; send a "talk" event to the quests
   bond?: Partial<Record<BondId, number>>;     // hidden family bond (MAIN_QUEST 0.1), 0 to 5 each
+  gold?: number;                              // gold given (or taken, if negative)
+  run?: string;                               // a named game action (a scene, a fight, a change in the world)
 };
 export type BondId = 'wife' | 'child' | 'dog';
 // spoken: the fuller line he says aloud when the short option is picked (MAIN_QUEST 0.2).
@@ -24,7 +26,7 @@ export type DialogueNode = { speaker: string; text: string; id?: string; choices
 // starts: the first whose condition holds is where the conversation opens; otherwise `start`.
 export type Dialogue = { id: string; title: string; start: string; starts?: { node: string; if?: Condition }[]; nodes: Record<string, DialogueNode> };
 
-export type DialogueContext = { character: Character; reputation: ReputationState; flags: Set<string>; say: (m: string) => void; quests?: Quests; bond?: Record<BondId, number> };
+export type DialogueContext = { character: Character; reputation: ReputationState; flags: Set<string>; say: (m: string) => void; quests?: Quests; bond?: Record<BondId, number>; gold?: () => number; addGold?: (n: number) => void; run?: (action: string) => void };
 
 export function allowed(c: Condition | undefined, ctx: DialogueContext): boolean {
   if (!c) return true;
@@ -33,6 +35,8 @@ export function allowed(c: Condition | undefined, ctx: DialogueContext): boolean
   if (c.flag && !ctx.flags.has(c.flag)) return false;
   if (c.notFlag && ctx.flags.has(c.notFlag)) return false;
   if (c.has && !ctx.character.s.inventory[c.has]) return false;
+  if (c.gold && (ctx.gold?.() ?? 0) < c.gold) return false;
+  if (c.bond && (ctx.bond?.[c.bond.who] ?? 0) < c.bond.atLeast) return false;
   return true;
 }
 
@@ -46,7 +50,9 @@ function apply(e: Effect | undefined, what: string, ctx: DialogueContext) {
   for (const [k, n] of Object.entries(e.bond ?? {})) if (ctx.bond) ctx.bond[k as BondId] = Math.max(0, Math.min(5, ctx.bond[k as BondId] + n));
   if (e.startQuest) { ctx.flags.add(`quest:${e.startQuest}`); ctx.quests?.start(e.startQuest); }
   if (e.questEvent) ctx.quests?.notify({ type: 'talk', target: e.questEvent });
+  if (e.gold) ctx.addGold?.(e.gold);
   if (e.setFlag) ctx.quests?.checkFlags();
+  if (e.run) ctx.run?.(e.run);
 }
 
 // One conversation in progress.

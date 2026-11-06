@@ -3,89 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hammerfell</title>
+<title>The Salt Ledger</title>
 <link rel="icon" href="data:,">
 <style>
-  html, body { margin: 0; height: 100%; background: #071116; overflow: hidden; font: 13px/1.4 Georgia, serif; color: #d8c9a8; }
-  #stage canvas { display: block; }
-  .panel { position: fixed; background: rgba(12, 9, 8, 0.72); border: 1px solid #3a322a; padding: 6px 10px; pointer-events: none; }
-  #hud { top: 10px; left: 10px; }
-  #hud .dim { color: #8a7d68; font-size: 12px; }
-  #msg { bottom: 64px; left: 50%; transform: translateX(-50%); border: none; background: none; text-shadow: 0 1px 2px #000; font-size: 15px; }
-  #keys { bottom: 10px; left: 10px; right: 90px; color: #8a7d68; font-size: 12px; }
-  #version { bottom: 10px; right: 10px; color: #8a7d68; font-size: 12px; }
-  #notice { top: 10px; left: 50%; transform: translateX(-50%); color: #e6c27a; border-color: #8a6a2a; }
-  #panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(820px, 92vw); max-height: 84vh; overflow: auto;
-    background: rgba(18, 14, 12, 0.94); border: 1px solid #5a4a36; padding: 14px 18px; pointer-events: auto; }
-  #panel h2 { font-size: 16px; font-weight: normal; letter-spacing: 0.06em; margin: 0 0 8px; color: #e0cfa8; }
-  #panel h3 { font-size: 13px; font-weight: normal; color: #b3a283; margin: 10px 0 4px; }
-  #panel .dim { color: #8a7d68; font-size: 12px; }
-  #panel button { background: #2a221a; color: #e0cfa8; border: 1px solid #5a4a36; font: inherit; padding: 1px 8px; cursor: pointer; }
-  #panel .cols { display: flex; gap: 16px; margin-top: 10px; }
-  #panel .skills { width: 260px; flex: none; }
-  #panel .skill { display: grid; grid-template-columns: 1fr 28px 80px; gap: 6px; align-items: center; padding: 2px 4px; cursor: pointer; }
-  #panel .skill.sel { background: #2e261d; }
-  #panel .perks { flex: 1; }
-  #panel .perk { margin-bottom: 6px; }
-  #panel .perk.have b { color: #d8b46a; }
-  #panel .levelup { margin: 8px 0; color: #e6c27a; }
-  #vitals { bottom: 54px; left: 10px; width: 220px; }
-  #vitals .v { height: 7px; background: #231d18; border: 1px solid #3a322a; margin: 3px 0; }
-  #vitals .v span { display: block; height: 100%; }
-  #vitals .v.rage { height: 4px; }
-  #vitals .v.rage.ready span { box-shadow: 0 0 6px #f0b040; background: #e0a030 !important; }
-  #warning { position: fixed; inset: 0; background: rgba(8, 6, 5, 0.92); display: flex; align-items: center; justify-content: center; z-index: 10; }
-  #warning[hidden] { display: none; }
-  #warning > div { max-width: 520px; padding: 20px 24px; border: 1px solid #5a4a36; background: #15110e; color: #d8c8a8; }
-  #warning h2 { font-weight: normal; color: #e0cfa8; margin-top: 0; }
-  #warning button { margin: 4px 4px 0 0; }
-  #tracker { top: 10px; right: 10px; max-width: 280px; font-size: 12px; }
-  #tracker b { color: #e0cfa8; }
-  #create { position: fixed; inset: 0; background: rgba(8, 6, 5, 0.86); display: flex; align-items: center; justify-content: center; z-index: 9; }
-  #create[hidden] { display: none; }
-  #create > div { width: min(560px, 92vw); padding: 20px 24px; border: 1px solid #5a4a36; background: #15110e; color: #d8c8a8; }
-  #create h2 { font-weight: normal; color: #e0cfa8; margin-top: 0; }
-  #create input { background: #231d18; border: 1px solid #5a4a36; color: #e0cfa8; padding: 4px 6px; font: inherit; }
-  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 5; }
-  #scene { position: fixed; inset: 0; pointer-events: none; z-index: 6; }
-  #scene[hidden] { display: none; }
-  #scene .bar { position: absolute; left: 0; right: 0; height: 12vh; background: #000; }
-  #scene .top { top: 0; } #scene .bottom { bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  #scene-caption { font-size: 18px; color: #e0cfa8; letter-spacing: 0.04em; text-align: center; padding: 0 16px; }
-  #scene-line { font-size: 16px; color: #e8dcc4; text-align: center; padding: 0 16px; }
-  #scene-line b { color: #e0a030; font-weight: normal; }
-  #scene .skip { position: absolute; right: 14px; bottom: 8px; font-size: 11px; }
-  #status { font-size: 12px; color: #e0a090; min-height: 14px; }
-  #dead { top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #e0a090; text-align: center; padding: 14px 24px; }
-  .bar { display: inline-block; width: 80px; height: 6px; background: #231d18; border: 1px solid #3a322a; vertical-align: middle; }
-  .bar span { display: block; height: 100%; }
+  #notice { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 20; background: rgba(12,9,8,0.85); border: 1px solid #8a6a2a; color: #e6c27a; padding: 4px 10px; font: 13px Georgia, serif; }
 </style>
 </head>
 <body>
-<div id="stage"></div>
-<div id="hud" class="panel"></div>
-<div id="msg" class="panel"></div>
-<div id="notice" class="panel" hidden></div>
-<div id="panel" hidden></div>
-<div id="vitals" class="panel"><div class="v"><span id="hp" style="background:#8f2a22"></span></div><div class="v"><span id="sp" style="background:#3f7a52"></span></div><div class="v rage"><span id="rp" style="background:#b07a24"></span></div><div id="status"></div></div>
-<div id="dead" class="panel" hidden>You are dead.<br><span style="font-size:13px;color:#a89a82">F9 to load your last save, N for a new game.</span></div>
-<div id="keys" class="panel">WASD move &middot; Shift run &middot; Left click attack (hold: power) &middot; Right click block &middot; Space roll &middot; F finisher &middot; Q Fury (Shift+Q choose) &middot; B bandage &middot; E talk, open, search, smash &middot; C character &middot; I inventory &middot; J journal &middot; O options &middot; F5 save &middot; F9 load</div>
-<div id="version" class="panel"></div>
-<div id="tracker" class="panel" hidden></div>
-<div id="scene" hidden><div class="bar top"></div><div class="bar bottom"><div id="scene-line"></div><div id="scene-caption"></div><div class="dim skip">Esc to skip</div></div></div>
-<div id="fade"></div>
-<div id="create" hidden><div>
-  <h2>Who is he?</h2>
-  <p class="dim">A Redguard farmer on the Sentinel Coast, a husband and a father. Once, long ago, a conscript.</p>
-  <label>Name <input id="create-name" maxlength="24" autocomplete="off"></label>
-  <button id="create-go">Begin</button>
-</div></div>
-<div id="warning" hidden><div>
-  <h2>Before you play</h2>
-  <p>This game has graphic violence: blood, severed limbs and executions. It is meant for adults.</p>
-  <p>You can turn the gore down now or at any time in Options (O).</p>
-  <button data-gore="full">Play with full gore</button> <button data-gore="some">Blood, no dismemberment</button> <button data-gore="off">No gore</button>
-</div></div>
-<script type="module" src="./src/main.ts"></script>
+<div id="stage"><canvas id="view"></canvas><div id="hud"></div><div id="menu"></div></div>
+<div id="front"></div>
+<div id="notice" hidden></div>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>

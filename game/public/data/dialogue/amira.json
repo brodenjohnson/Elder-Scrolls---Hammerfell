@@ -1,0 +1,193 @@
+{
+ "id": "amira",
+ "title": "Old Amira",
+ "_note": "PRO_03 and after. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "tarikDone",
+   "if": {
+    "flag": "tarik.done",
+    "notFlag": "amira.bread"
+   }
+  },
+  {
+   "node": "a13",
+   "if": {
+    "flag": "quest:a13",
+    "notFlag": "tarik.done"
+   }
+  },
+  {
+   "node": "burned",
+   "if": {
+    "flag": "farm.burned",
+    "notFlag": "amira.sorry"
+   }
+  },
+  {
+   "node": "haddads",
+   "if": {
+    "flag": "quest:market",
+    "notFlag": "amira.told"
+   }
+  }
+ ],
+ "nodes": {
+  "haddads": {
+   "speaker": "Old Amira",
+   "text": "Eleven loaves for the road, and I'm giving the twelfth to the child. Don't argue. Have you heard about the Haddads?",
+   "choices": [
+    {
+     "text": "[Dry] Heard what?",
+     "spoken": "Heard what?",
+     "next": "gone",
+     "do": {
+      "setFlag": "amira.told",
+      "questEvent": "amira.haddads"
+     }
+    },
+    {
+     "text": "[Flat] I don't gossip.",
+     "spoken": "I don't gossip.",
+     "next": "gossip",
+     "do": {
+      "setFlag": "amira.told",
+      "questEvent": "amira.haddads"
+     }
+    },
+    {
+     "text": "[Speech 15] Who says they ran?",
+     "spoken": "Who says they ran?",
+     "do": {
+      "setFlag": "amira.told",
+      "questEvent": "amira.haddads"
+     },
+     "check": {
+      "skill": "Speech",
+      "level": 15,
+      "pass": "tarik",
+      "fail": "gone"
+     }
+    }
+   ],
+   "id": "PRO03_AMI_001"
+  },
+  "gossip": {
+   "speaker": "Old Amira",
+   "text": "[She beams.] Of course you don't. Gone in the night, the Haddads. Took nothing. Not a pot.",
+   "choices": [
+    {
+     "text": "Gone where?",
+     "next": "gone"
+    }
+   ]
+  },
+  "gone": {
+   "speaker": "Old Amira",
+   "text": "Gone in the night. Took nothing. The soldiers say they ran from a debt. Hamza Haddad never owed a copper in his life.",
+   "choices": [
+    {
+     "text": "I'll take some bread.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ],
+   "id": "PRO03_AMI_002"
+  },
+  "tarik": {
+   "speaker": "Old Amira",
+   "text": "[She lowers her voice.] The collector. Tarik. He said it before anyone knew they were gone. Stood at Dalia's stall and said it, bold as you like.",
+   "choices": [
+    {
+     "text": "Tarik knew.",
+     "next": "gone",
+     "do": {
+      "setFlag": "tarik.knew"
+     }
+    }
+   ],
+   "id": "PRO03_AMI_003"
+  },
+  "burned": {
+   "speaker": "Old Amira",
+   "text": "Oh, love. Oh, look at you. Sit. No, sit. There's bread. There's always bread. I can't do anything else, so there's bread.",
+   "choices": [
+    {
+     "text": "[Flat] Thank you.",
+     "next": "end",
+     "do": {
+      "setFlag": "amira.sorry",
+      "give": {
+       "Bread": 3
+      }
+     }
+    },
+    {
+     "text": "[Cold] I don't want bread.",
+     "next": "end",
+     "do": {
+      "setFlag": "amira.sorry"
+     }
+    }
+   ]
+  },
+  "a13": {
+   "speaker": "Old Amira",
+   "text": "Tarik? He's not been in the village since. Rides the east road past the crossroads with his riders, every day, drinks at the Haddad gate like he owns it. Maybe he does now.",
+   "choices": [
+    {
+     "text": "Let me see what you have.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "tarikDone": {
+   "speaker": "Old Amira",
+   "text": "They're saying a ghost took the Collector on the east road. A ghost. [She puts a loaf in your hands and does not look at you.] I left one at Zeyna's door for you too.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "setFlag": "amira.bread",
+      "give": {
+       "Bread": 2,
+       "SweetRoll": 1
+      }
+     }
+    }
+   ]
+  },
+  "idle": {
+   "speaker": "Old Amira",
+   "text": "Bread, love? Rolls? Something for the little one? [She remembers, sometimes, and stops.]",
+   "choices": [
+    {
+     "text": "Let me see what you have.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}

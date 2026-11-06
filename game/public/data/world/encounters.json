@@ -1,0 +1,15 @@
+{
+  "_note": "Random encounters on the coast (src/engine/game.js encounters()). Every 70 to 150 seconds away from a safe place, one is picked by weight from those whose flags fit and whose ground matches 'on', and its people (templates in people.json) appear about 210 pixels ahead. 'aggro' starts them fighting; 'say' is a line shown when they appear.",
+  "table": [
+    { "id": "jackals", "who": ["jackal", "jackal", "jackal"], "weight": 4, "on": ["dry", "desert", "grass"] },
+    { "id": "boar", "who": ["boar"], "weight": 2, "on": ["grass", "field", "dry"] },
+    { "id": "dogs", "who": ["hound", "hound"], "weight": 2, "on": ["dry", "grass", "dirt"] },
+    { "id": "bandits", "who": ["bandit", "banditAxe"], "weight": 3, "on": ["road", "dirt", "dry"], "say": "Voices on the road ahead. Steel being drawn." },
+    { "id": "banditsBig", "who": ["bandit", "banditAxe", "marauder"], "weight": 1, "on": ["road", "dry"], "if": "farm.burned", "say": "Three men step out from behind the rocks." },
+    { "id": "keshPatrol", "who": ["keshRider", "keshRider"], "weight": 3, "on": ["road", "dirt", "grass"], "if": "farm.burned", "ifNot": "act1.done", "say": "Kesh riders. They know your face.", "aggro": true },
+    { "id": "keshHunt", "who": ["keshRider", "keshHeavy", "keshRider"], "weight": 2, "on": ["road", "dry"], "if": "named:tarik_road", "say": "Kesh men, sent to find the farmer who killed the Collector.", "aggro": true },
+    { "id": "alikr", "who": ["alikr", "alikr"], "weight": 2, "on": ["desert", "dry"], "say": "Alik'r warriors, veiled, coming out of the haze." },
+    { "id": "pilgrim", "who": ["pilgrim"], "weight": 2, "on": ["road", "dirt"] },
+    { "id": "trader", "who": ["trader"], "weight": 2, "on": ["road"], "say": "A caravan trader, leading a tired camel and a lot of opinions." }
+  ]
+}

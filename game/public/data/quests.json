@@ -1,100 +1,164 @@
 {
-  "_note": "Quests (src/systems/quests.ts). Objectives are met by events: talk (a dialogue line sends it), interact (a thing used), kill, reach, or flag (a story flag set). The prologue quests (MAIN_QUEST.md section 2) will go here too.",
-  "clearRoad": {
-    "id": "clearRoad",
-    "title": "The road east",
-    "giver": "settler",
+  "_note": "Quests (src/systems/quests.ts). Objectives are met by events: talk (a dialogue choice sends it with questEvent), interact (a thing used, a parry, buy:<item>, sell:<item>), kill (an actor's questId or id), reach (a place), or flag (a story flag set). 'marker' puts the objective on the compass and the map. 'main' quests are the story (MAIN_QUEST.md sections 2 and 3); 'summary' is what the journal says once one is done. Starting a quest sets the flag quest:<id>; finishing it sets done:<id>.",
+
+  "chores": { "id": "chores", "title": "Morning Chores", "giver": "nadira", "main": true, "summary": "Water drawn, goats fed, the north fence mended. Something had dragged the rails off in the night.",
     "stages": [
-      {
-        "id": "camp",
-        "text": "The settler by the fire says bandits camp on the Coast Road, east of the settlement. Clear them out.",
+      { "id": "chores", "text": "Nadira wants the morning chores done before the day gets away.",
         "objectives": [
-          {
-            "id": "camp",
-            "text": "Clear the bandit camp on the Coast Road",
-            "on": {
-              "type": "flag",
-              "target": "cleared:coastCamp"
-            }
-          }
-        ],
-        "next": "report"
-      },
-      {
-        "id": "report",
-        "text": "The camp is quiet. The settler will want to know.",
-        "objectives": [
-          {
-            "id": "tell",
-            "text": "Tell the settler the road is clear",
-            "on": {
-              "type": "talk",
-              "target": "settler.roadClear"
-            }
-          }
-        ],
-        "then": {
-          "give": {
-            "Bandage": 2
-          },
-          "setFlag": "road.clear"
-        }
-      }
-    ]
-  },
-  "chores": {
-    "id": "chores",
-    "title": "Morning chores",
-    "giver": "nadira",
+          { "id": "water", "text": "Draw water from the well", "on": { "type": "interact", "target": "well" }, "marker": { "map": "coast", "x": 1312, "y": 1508 } },
+          { "id": "goats", "text": "Feed the goats", "on": { "type": "interact", "target": "goats" }, "marker": { "map": "coast", "x": 1150, "y": 1480 } },
+          { "id": "fence", "text": "Mend the north fence (nails are in the tool box)", "on": { "type": "flag", "target": "fence.mended" }, "marker": { "map": "coast", "x": 1192, "y": 1455 } },
+          { "id": "dune", "text": "Pet Dune", "on": { "type": "interact", "target": "dune" }, "optional": true }
+        ], "then": { "setFlag": "pro01.choresDone" }, "next": "report" },
+      { "id": "report", "text": "The chores are done. Nadira will want to hear it.",
+        "objectives": [{ "id": "tell", "text": "Tell Nadira the chores are done", "on": { "type": "talk", "target": "nadira.chores" }, "marker": { "map": "farmhouse", "x": 66, "y": 92 } }] }
+    ] },
+
+  "neighbours": { "id": "neighbours", "title": "Smoke Over the Ridge", "giver": "tavi", "main": true, "summary": "The Haddads' table was laid for dinner. Nobody had eaten at it in days. A single salt-cart track left the yard.",
     "stages": [
-      {
-        "id": "chores",
-        "text": "Nadira wants the morning chores done before the day gets away.",
+      { "id": "look", "text": "Tavi saw smoke over the Haddad farm, east along the road. It might be wash day. It might not.",
+        "objectives": [{ "id": "look", "text": "Look in on the Haddads", "on": { "type": "interact", "target": "haddad.table" }, "marker": { "map": "haddad", "x": 110, "y": 90 } }],
+        "then": { "setFlag": "haddad.seen", "say": "Nobody home. Nobody has been home for days." } }
+    ] },
+
+  "market": { "id": "market", "title": "Market Day", "giver": "nadira", "main": true, "summary": "Cheese sold, oil and cloth bought. The Collector came to Dalia's stall. Zeyna sent a bundle for Nadira, and a message about the weather.",
+    "stages": [
+      { "id": "market", "text": "Sell the cheese in Saltreach, and bring back lamp oil and a bolt of cloth for Nadira.",
         "objectives": [
-          {
-            "id": "water",
-            "text": "Draw water from the well",
-            "on": {
-              "type": "interact",
-              "target": "well"
-            }
-          },
-          {
-            "id": "goats",
-            "text": "Feed the goats",
-            "on": {
-              "type": "interact",
-              "target": "goat"
-            }
-          },
-          {
-            "id": "fence",
-            "text": "Mend the north fence of the goat pen",
-            "on": {
-              "type": "interact",
-              "target": "northFence"
-            }
-          }
-        ],
-        "next": "back",
-        "then": {
-          "setFlag": "pro01.choresDone"
-        }
-      },
-      {
-        "id": "back",
-        "text": "The chores are done. Nadira is at the house.",
+          { "id": "sell", "text": "Sell goat cheese (Old Amira buys food)", "on": { "type": "interact", "target": "sell:GoatCheese" }, "marker": { "map": "coast", "x": 860, "y": 1014 } },
+          { "id": "oil", "text": "Buy lamp oil (Dalia's stall)", "on": { "type": "interact", "target": "buy:LampOil" }, "marker": { "map": "coast", "x": 800, "y": 980 } },
+          { "id": "cloth", "text": "Buy a bolt of cloth (Dalia's stall)", "on": { "type": "interact", "target": "buy:ClothBolt" }, "marker": { "map": "coast", "x": 800, "y": 980 } },
+          { "id": "zeyna", "text": "Say hello to Zeyna at the herb stall", "on": { "type": "talk", "target": "zeyna.bundle" }, "marker": { "map": "coast", "x": 745, "y": 1018 } },
+          { "id": "tarik", "text": "Deal with the Collector at Dalia's stall", "on": { "type": "flag", "target": "pro03.tarikDone" }, "marker": { "map": "coast", "x": 812, "y": 990 } },
+          { "id": "amira", "text": "Hear Old Amira's news", "on": { "type": "talk", "target": "amira.haddads" }, "optional": true }
+        ], "then": { "setFlag": "pro03.goneHome" }, "next": "home" },
+      { "id": "home", "text": "Everything Nadira asked for. Home before dark.",
+        "objectives": [{ "id": "home", "text": "Go home", "on": { "type": "flag", "target": "evening.begun" }, "marker": { "map": "coast", "x": 1250, "y": 1500 } }],
+        "then": { "startQuest": "evening" } }
+    ] },
+
+  "evening": { "id": "evening", "title": "Evening", "giver": "nadira", "main": true, "summary": "Tavi made him a gull. Nadira read Zeyna's note and asked him something stupid.",
+    "stages": [
+      { "id": "supper", "text": "Supper at home. Tavi has made something. Nadira is waiting for Zeyna's bundle.",
         "objectives": [
-          {
-            "id": "tell",
-            "text": "Tell Nadira",
-            "on": {
-              "type": "talk",
-              "target": "nadira.chores"
-            }
-          }
-        ]
-      }
-    ]
-  }
+          { "id": "tavi", "text": "Talk to Tavi", "on": { "type": "talk", "target": "tavi.gull" }, "marker": { "map": "farmhouse", "x": 130, "y": 126 } },
+          { "id": "nadira", "text": "Give Nadira Zeyna's bundle", "on": { "type": "talk", "target": "nadira.bundle" }, "marker": { "map": "farmhouse", "x": 66, "y": 92 } }
+        ], "then": { "setFlag": "evening.ready" }, "next": "bed" },
+      { "id": "bed", "text": "It's late. Tavi wants the gull story.",
+        "objectives": [{ "id": "bed", "text": "Go to bed", "on": { "type": "flag", "target": "day2" }, "marker": { "map": "farmhouse", "x": 222, "y": 96 } }] }
+    ] },
+
+  "hunt": { "id": "hunt", "title": "The Boar in the Barley", "giver": "nadira", "main": true, "summary": "Dune found the boar. The boar found Dune's ear. Riders came up the coast road.",
+    "stages": [
+      { "id": "boar", "text": "A boar has been rooting up the barley east of the house. Dune knows where.",
+        "objectives": [{ "id": "boar", "text": "Kill the boar in the barley", "on": { "type": "flag", "target": "boar.dead" }, "marker": { "map": "coast", "x": 1480, "y": 1500 } }],
+        "then": { "setFlag": "dune.hurt", "say": "Dune yelps. The boar caught his ear." }, "next": "dune" },
+      { "id": "dune", "text": "Dune's ear is torn and bleeding.",
+        "objectives": [{ "id": "bandage", "text": "Bandage Dune (press E on him with a bandage)", "on": { "type": "flag", "target": "dune.bandaged" }, "marker": { "map": "coast", "x": 1440, "y": 1495 } }], "next": "home" },
+      { "id": "home", "text": "On the way back: a line of riders on the coast road, heading for the farm.",
+        "objectives": [{ "id": "home", "text": "Go home", "on": { "type": "flag", "target": "guest.arrived" }, "marker": { "map": "coast", "x": 1250, "y": 1500 } }],
+        "then": { "startQuest": "guest" } }
+    ] },
+
+  "guest": { "id": "guest", "title": "The Guest", "giver": "kerrash", "main": true, "summary": "A big neighbour in a clean coat ate at the table, praised the bread, scratched the dog's ear and left a pinch of salt.",
+    "stages": [
+      { "id": "table", "text": "A stranger is at the table. Nadira has gone very still.",
+        "objectives": [{ "id": "talk", "text": "Talk to the stranger", "on": { "type": "talk", "target": "kerrash.done" }, "marker": { "map": "farmhouse", "x": 104, "y": 96 } }] }
+    ] },
+
+  "night": { "id": "night", "title": "The Night", "main": true, "summary": "They came at two in the morning. There were too many.",
+    "stages": [
+      { "id": "bed", "text": "Nobody wants to talk about the salt. Go to bed.",
+        "objectives": [{ "id": "bed", "text": "Go to bed", "on": { "type": "flag", "target": "night.fight" }, "marker": { "map": "farmhouse", "x": 222, "y": 96 } }], "next": "door" },
+      { "id": "door", "text": "Torches. Four men. Keep them from the door.",
+        "objectives": [{ "id": "door", "text": "Hold the door", "on": { "type": "flag", "target": "night.over" } }] }
+    ] },
+
+  "a11": { "id": "a11", "title": "Ash and Salt", "giver": "zeyna", "main": true, "summary": "He woke at Zeyna's three days later with the Saltmaker's brand on his chest. She will tell him everything, when he has done something with his hands.",
+    "stages": [
+      { "id": "wake", "text": "A low cottage that smells of sage and boiled linen. Zeyna is grinding something and does not look up.",
+        "objectives": [{ "id": "talk", "text": "Talk to Zeyna", "on": { "type": "talk", "target": "zeyna.waking" }, "marker": { "map": "zeyna", "x": 96, "y": 104 } }],
+        "then": { "startQuest": "a12" } }
+    ] },
+
+  "a12": { "id": "a12", "title": "The Hill", "giver": "zeyna", "main": true, "summary": "Three cairns under the pomegranate. Under the well stone, a brass key and a page of initials: T.H., B.K., I.Q., S.D., F.A., V., A.K.",
+    "stages": [
+      { "id": "hill", "text": "Zeyna will meet him at the farm.",
+        "objectives": [{ "id": "hill", "text": "Go back to the farm", "on": { "type": "flag", "target": "hill.arrived" }, "marker": { "map": "coast", "x": 1250, "y": 1500 } }], "next": "graves" },
+      { "id": "graves", "text": "Zeyna is waiting by the graves under the pomegranate.",
+        "objectives": [{ "id": "graves", "text": "Go to the graves with Zeyna", "on": { "type": "talk", "target": "zeyna.graves" }, "marker": { "map": "coast", "x": 1296, "y": 1494 } }], "next": "tin" },
+      { "id": "tin", "text": "Nadira checked the well stone the night before the guest. The stone is loose.",
+        "objectives": [{ "id": "tin", "text": "Lift the well stone", "on": { "type": "flag", "target": "tin.found" }, "marker": { "map": "coast", "x": 1312, "y": 1508 } }], "next": "zeyna" },
+      { "id": "zeyna", "text": "A brass key and a torn page. Zeyna recognises them.",
+        "objectives": [{ "id": "show", "text": "Show Zeyna what was in the tin", "on": { "type": "talk", "target": "zeyna.tin" }, "marker": { "map": "coast", "x": 1296, "y": 1494 } }],
+        "then": { "startQuest": "a13" } }
+    ] },
+
+  "a13": { "id": "a13", "title": "The Collector", "giver": "zeyna", "main": true, "summary": "Tarik Hasani, the Collector, named Bahram Kesh. The first name off the list.",
+    "stages": [
+      { "id": "hunt", "text": "T.H.: Tarik Hasani, the Collector. He rides the coast road east of the crossroads with his tax riders. People in Saltreach know his habits.",
+        "objectives": [
+          { "id": "tarik", "text": "Find Tarik Hasani on the coast road", "on": { "type": "flag", "target": "tarik.done" }, "marker": { "map": "coast", "x": 1640, "y": 1296 } },
+          { "id": "ask", "text": "Ask Dalia about Tarik", "on": { "type": "talk", "target": "dalia.tarik" }, "optional": true },
+          { "id": "ledger", "text": "Read Tarik's accounts", "on": { "type": "flag", "target": "taxledger.read" }, "optional": true }
+        ], "then": { "startQuest": "a14", "say": "Saltreach will hear about this by nightfall." } }
+    ] },
+
+  "a14": { "id": "a14", "title": "The Hammer", "giver": "tarik", "main": true, "summary": "Bahram Kesh, the Hammer, at the Drowned Stair. He asked if anyone had counted the graves. Nobody counts.",
+    "stages": [
+      { "id": "stair", "text": "B.K.: Bahram Kesh, the Hammer. He led the men who burned the farm. He is camped at the Drowned Stair, a Yokudan ruin on the north shore, with a crew of sellswords and dogs.",
+        "objectives": [{ "id": "bahram", "text": "Kill Bahram Kesh at the Drowned Stair", "on": { "type": "flag", "target": "named:bahram" }, "marker": { "map": "coast", "x": 640, "y": 226 } }], "next": "seal" },
+      { "id": "seal", "text": "Bahram is dead. He wore something on his belt.",
+        "objectives": [{ "id": "seal", "text": "Search Bahram's body", "on": { "type": "flag", "target": "has:SaltHookSeal" }, "marker": { "map": "coast", "x": 640, "y": 226 } }],
+        "then": { "startQuest": "a15" } }
+    ] },
+
+  "a15": { "id": "a15", "title": "The Unbent", "giver": "khadija", "main": true, "summary": "Khadija the Unbent taught him to breathe, to hold the Rage, and what it costs. 'It's a debt. The interest is people.'",
+    "stages": [
+      { "id": "voice", "text": "A voice from behind him, at the edge of the ruin.",
+        "objectives": [{ "id": "talk", "text": "Talk to the old woman", "on": { "type": "talk", "target": "khadija.met" }, "marker": { "map": "coast", "x": 712, "y": 430 } }], "next": "cove" },
+      { "id": "cove", "text": "Khadija lives in a stone hut in the cove south of the farms. Her first lesson: breathe.",
+        "objectives": [{ "id": "cove", "text": "Meet Khadija at the cove", "on": { "type": "talk", "target": "khadija.breath" }, "marker": { "map": "coast", "x": 1190, "y": 2000 } }], "next": "breath" },
+      { "id": "breath", "text": "Breath. Khadija attacks. Block just as her blow lands (a parry).",
+        "objectives": [{ "id": "parry", "text": "Parry Khadija's blows", "count": 3, "on": { "type": "interact", "target": "parry" }, "marker": { "map": "coast", "x": 1190, "y": 2000 } }],
+        "then": { "setFlag": "spar.done", "say": "Khadija lowers her sword. 'Better. Again, later.'" }, "next": "talk2" },
+      { "id": "talk2", "text": "Khadija has a second lesson.",
+        "objectives": [{ "id": "talk", "text": "Talk to Khadija", "on": { "type": "talk", "target": "khadija.lesson2" }, "marker": { "map": "coast", "x": 1190, "y": 2000 } }], "next": "rage" },
+      { "id": "rage", "text": "Rage. Let it fill, and hold it. Do not let it go.",
+        "objectives": [{ "id": "rage", "text": "Fill the Rage bar past half while sparring", "on": { "type": "flag", "target": "khadija.rageFull" }, "marker": { "map": "coast", "x": 1190, "y": 2000 } }],
+        "then": { "setFlag": "spar.done" }, "next": "debt" },
+      { "id": "debt", "text": "Khadija has one more thing to say.",
+        "objectives": [{ "id": "talk", "text": "Talk to Khadija", "on": { "type": "talk", "target": "khadija.debt" }, "marker": { "map": "coast", "x": 1190, "y": 2000 } }],
+        "then": { "startQuest": "a16" } }
+    ] },
+
+  "a16": { "id": "a16", "title": "What Zeyna Owes", "giver": "zeyna", "main": true, "summary": "Hegathe, 4E 173. A column of refugees sold to the Dominion, and a child who lived and kept the proof. Nadira. Folio One.",
+    "stages": [
+      { "id": "zeyna", "text": "Two names crossed off. Zeyna said she would tell him everything.",
+        "objectives": [{ "id": "talk", "text": "Return to Zeyna in Saltreach", "on": { "type": "talk", "target": "zeyna.truth" }, "marker": { "map": "zeyna", "x": 96, "y": 104 } }] }
+    ] },
+
+  "roadEast": { "id": "roadEast", "title": "The Road East", "giver": "hassan", "summary": "The camp above the east road is quiet. Hassan paid.",
+    "stages": [
+      { "id": "camp", "text": "Bandits camp on the rise above the east road and have shut it for a month. Hassan at the Salted Gull pays 120 gold to whoever opens it.",
+        "objectives": [{ "id": "camp", "text": "Clear the Coast Road Camp", "on": { "type": "flag", "target": "cleared:campBandits" }, "marker": { "map": "coast", "x": 1900, "y": 800 } }], "next": "report" },
+      { "id": "report", "text": "The camp is quiet.",
+        "objectives": [{ "id": "tell", "text": "Tell Hassan at the Salted Gull", "on": { "type": "talk", "target": "hassan.road" }, "marker": { "map": "inn", "x": 132, "y": 92 } }] }
+    ] },
+
+  "skeevers": { "id": "skeevers", "title": "Nets and Teeth", "giver": "rashid", "summary": "Gull Rock Cave is clear of skeevers. Rashid's nets are safe, for now.",
+    "stages": [
+      { "id": "cave", "text": "Something in Gull Rock Cave, north-east of the crossroads, comes out at night and eats Rashid's nets.",
+        "objectives": [{ "id": "cave", "text": "Clear the skeevers from Gull Rock Cave", "on": { "type": "flag", "target": "cleared:caveSkeevers" }, "marker": { "map": "cave", "x": 300, "y": 150 } }], "next": "report" },
+      { "id": "report", "text": "The cave is quiet.",
+        "objectives": [{ "id": "tell", "text": "Tell Rashid", "on": { "type": "talk", "target": "rashid.skeevers" }, "marker": { "map": "coast", "x": 690, "y": 1048 } }] }
+    ] },
+
+  "mudcrabs": { "id": "mudcrabs", "title": "Crabs on the Beach", "giver": "kami", "summary": "Kami got his crab claws, and a story to tell.",
+    "stages": [
+      { "id": "crabs", "text": "Kami wants to be a Sword-singer. He also wants four mudcrab claws from the south beach, and is too scared to get them.",
+        "objectives": [{ "id": "crabs", "text": "Kill the mudcrabs on the south beach", "on": { "type": "flag", "target": "cleared:mudcrabs" }, "marker": { "map": "coast", "x": 900, "y": 1800 } }], "next": "report" },
+      { "id": "report", "text": "Four crabs. Kami will be thrilled.",
+        "objectives": [{ "id": "tell", "text": "Bring Kami the claws", "on": { "type": "talk", "target": "kami.crabs" }, "marker": { "map": "coast", "x": 820, "y": 1060 } }] }
+    ] }
 }

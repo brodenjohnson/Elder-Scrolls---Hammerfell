@@ -1,0 +1,122 @@
+{
+ "id": "innkeeper",
+ "title": "Hassan",
+ "_note": "The Salted Gull, Saltreach. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "road",
+   "if": {
+    "flag": "cleared:campBandits",
+    "notFlag": "hassan.paid"
+   }
+  }
+ ],
+ "nodes": {
+  "idle": {
+   "speaker": "Hassan",
+   "text": "Welcome to the Salted Gull. Ale's cold, the stew's hot, and the beds have only got a few fleas, and they're friendly.",
+   "choices": [
+    {
+     "text": "I need a room. (10 gold)",
+     "next": "room",
+     "if": {
+      "gold": 10
+     },
+     "do": {
+      "gold": -10,
+      "setFlag": "room.inn"
+     }
+    },
+    {
+     "text": "The notice about the road.",
+     "next": "notice",
+     "if": {
+      "notFlag": "quest:roadEast"
+     }
+    },
+    {
+     "text": "What's the news?",
+     "next": "news"
+    },
+    {
+     "text": "Something to eat.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "room": {
+   "speaker": "Hassan",
+   "text": "Bed in the corner, by the barrels. It's yours as long as you want it.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "notice": {
+   "speaker": "Hassan",
+   "text": "Bandits, up on the rise above the east road. A month now. Nothing comes through, and nothing goes out but salt carts with a hook on them, funnily enough. A hundred and twenty gold, from me and the stall-keepers, to whoever opens the road.",
+   "choices": [
+    {
+     "text": "I'll do it.",
+     "next": "end",
+     "do": {
+      "startQuest": "roadEast"
+     }
+    },
+    {
+     "text": "Not now.",
+     "next": "end"
+    }
+   ]
+  },
+  "news": {
+   "speaker": "Hassan",
+   "text": "News? The Kesh ride where they like and the tax goes up when it likes. Somebody burned a farm up on the hill. [He looks at you, and stops.] Sorry. Old Faris says the Alik'r are camped at the edge of the desert again, so don't go east alone.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "road": {
+   "speaker": "Hassan",
+   "text": "The road's open. Carts came through this morning. [He counts out the coins, twice.] A hundred and twenty. You earned it, and you look like you need it.",
+   "choices": [
+    {
+     "text": "[Take it.]",
+     "next": "end",
+     "if": {
+      "flag": "quest:roadEast"
+     },
+     "do": {
+      "gold": 120,
+      "setFlag": "hassan.paid",
+      "questEvent": "hassan.road"
+     }
+    },
+    {
+     "text": "[Take it.]",
+     "next": "end",
+     "if": {
+      "notFlag": "quest:roadEast"
+     },
+     "do": {
+      "gold": 120,
+      "setFlag": "hassan.paid"
+     }
+    }
+   ]
+  }
+ }
+}

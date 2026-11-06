@@ -20,12 +20,12 @@ A mature 2D open-world melee RPG for the browser, in the mould of Skyrim but del
 - Everything content-like is data: items, perks, skills, quests, dialogue, enemies, places, factions. Code reads data.
 - Testability first. Expose a debug handle (for example `window.__game`) so Playwright tests can drive and inspect the game. Write a test for each feature. Keep a regression list and run it before every release.
 - Save compatibility is non-negotiable. Use a versioned save schema with explicit migrations. Never break an old save without saying so first. Never rename an item or change saved data without a migration.
-- Stream only the slices around the player (3 by 3). Keep per-slice saved state.
+- Keep per-map saved state (what was taken, who is dead).
 - Keep the art pipeline separate from game code so art can be swapped without code changes.
 - Release flow: `VERSION` file, `CHANGELOG.md`, a release script, GitHub Pages hosting, and an in-game notice when a newer version is published.
 - Player magic is deferred, not blocked. Keep attributes, skills and equipment slots extensible. NPC magic is in from the start.
 - Skyrim numbers are data. Load from `data/skyrim/json/`, never hard-code.
-- Use `data/world/slices.json` as the source for the map. Rerun `data/world/build_map.py` after editing the grid.
+- The region's map is `game/public/data/world/maps.json`.
 
 ## Phase 0 (first job, after Broden approves)
 Four spikes, then a short report with numbers and screenshots:
@@ -36,11 +36,10 @@ Four spikes, then a short report with numbers and screenshots:
 Then ask Broden the blocking questions in section 16 of the bible before Phase 1.
 
 ## Status (keep current)
-- **v0.3 scope reset (2026-11-06):** see the top of `DESIGN_BIBLE.md`. Order: scope cut and combat feel pass (released as 0.6.0), art style A chosen; the sample (`game/public/art-sample/`, live at `/art-sample/`; not game code) is being refined with Broden, then the game moves to it, then fill the Sentinel Coast region, then the prologue.
-- Phase 0 done and approved (2026-11-05): reports in `docs/` (PHASE0, ART_SPIKE, TECH_SPIKE, COMBAT_SPIKE).
-- Phase 1 engine core: `game/` (TypeScript, Vite, PixiJS 8), released as 0.1.0. Run `npm test` in `game/` before every release; release with `npm run release`.
-- Phase 3 combat: melee against the Coast Road bandit camp (0.3.0, `game/src/combat/`); Rage and Fury, bleeding and limps, dismemberment in the world and three finishers (0.4.0). Three enemy types and two-handed combat (0.5.0): Bandit, Bandit marauder (battleaxe) at the camp, two Alik'r warriors (scimitars) at the desert edge north of it. Still to do in Phase 3: finisher animations of their own, player sprites for looted fur, hide and Alik'r gear, scars, playtesting the numbers (Broden).
-- Phase 4 prologue, started in 0.5.0: quests and journal, the clock, cutscenes, character creation, gore settings; the farm (slice 3,7) with Nadira, Tavi and Dune and PRO_01 Morning (chores, bond). Art: builds (woman, girl) and animals (`art/generator/src/creature.ts`). Still to do: PRO_02 to PRO_07 (the fence and the neighbours, Saltreach market, evening, the hunt, Kerrash's visit, the night), house interiors, scripted defeat, waking at Zeyna's.
-- Phase 2 systems core released as 0.2.0: skills, perks, inventory and equipment, reputation, dialogue (`game/src/systems/`). Game data pack: `game/public/data/game/`, built by `npm run data` from the Skyrim export.
-- Art pipeline: `art/` (code-drawn sprites). The game reads only exported PNG and JSON, copied in by `game/scripts/assets.mjs`.
-- Skyrim numbers: `data/skyrim/json/`, exported from Broden's game (`data/skyrim/extract/`), kept out of git; the game's subset (`game/public/data/game/`) is committed (Broden is fine with the repo being public).
+- **0.7.0 (2026-11-06): the game moved onto the art sample.** Engine in `game/src/engine/` (plain JavaScript, canvas 2D, no PixiJS): `art.js` (palette ramps, the posed 3D rig, characters, weapons, finishers, item icons), `props.js` (buildings, trees, furniture, item pictures), `creatures.js` (dog, goat, boar, jackal, hound, skeever, mudcrab), `world.js` (maps: terrain from shapes, props, rooms, collision), `game.js` (fighting from the sample, people, story actions, saves, test hooks on `window.__game`), `ui.js` and `ui.css` (HUD and menus), `audio.js`, `voice.js`. TypeScript systems kept: `src/systems/` (dialogue, quests, cutscenes, reputation, clock) and `src/save/save.ts` (save version 6).
+- Content is data in `game/public/data/`: `world/maps.json` (the Sentinel Coast and its rooms), `world/people.json` (everyone, their hours, factions and looks, encounter templates), `world/encounters.json`, `quests.json`, `scenes.json`, `items.json`, `dialogue/*.json` (line IDs from `MAIN_QUEST.md`). Story actions in scenes and dialogue are `runAction` commands in `game.js`.
+- Done: one full region (Sentinel Coast), the prologue PRO_01 to PRO_07, Act One A1.1 to A1.6, three side quests, random encounters, trading, day schedules, fast travel. Tests: `game/tests/` (core, story, combat, world; 21 tests). Run `npm test` in `game/` before every release; release with `npm run release`.
+- Next: Broden plays it and gives feedback; smithing at the forge; more side content on the coast; recorded voices (ElevenLabs, `npm run voices`, waits for Broden's `ELEVENLABS_API_KEY`); then Act Two's first region.
+- The art sample (`game/public/art-sample/`, live at `/art-sample/`) stays as a test bed. The old art pipeline in `art/` (raymarched sprites) is retired; nothing in the game reads it.
+- Phase 0 done and approved (2026-11-05): reports in `docs/`. Phases 1 to 4 (0.1.0 to 0.6.0) built the first engine, since replaced; the systems and save code carried over.
+- Game data pack: `game/public/data/game/`, built by `npm run data` from the Skyrim export (`data/skyrim/json/`, kept out of git; the subset is committed, Broden is fine with the repo being public).

@@ -1,48 +1,370 @@
 {
-  "id": "nadira",
-  "title": "Nadira",
-  "_note": "PRO_01 Morning (MAIN_QUEST.md section 2). Lines keep their IDs for voicing. Options show short text; `spoken` is the fuller line he says.",
-  "start": "idle",
-  "starts": [
-    { "node": "morning", "if": { "notFlag": "pro01.morning" } },
-    { "node": "report", "if": { "flag": "pro01.choresDone", "notFlag": "pro01.reported" } },
-    { "node": "busy", "if": { "flag": "quest:chores", "notFlag": "pro01.choresDone" } }
-  ],
-  "nodes": {
-    "morning": {
-      "speaker": "Nadira", "id": "PRO01_WIF_001",
-      "text": "He lives. Come eat before the goats do it for you.",
-      "choices": [
-        { "text": "[Warm] Morning.", "spoken": "Morning. You've been up for hours.", "next": "bread", "do": { "bond": { "wife": 1 }, "setFlag": "pro01.morning" } },
-        { "text": "[Dry] Is that bread or a brick?", "spoken": "Is that bread, or did you build a wall?", "next": "bread", "do": { "bond": { "wife": 1 }, "setFlag": "pro01.morning" } },
-        { "text": "[Flat] Later.", "spoken": "Later. Water first.", "next": "chores", "do": { "setFlag": "pro01.morning" } }
-      ]
-    },
-    "bread": {
-      "speaker": "Nadira", "id": "PRO01_WIF_002",
-      "text": "Brick, wall, whatever it is. Eat it.",
-      "choices": [{ "text": "What needs doing?", "next": "chores" }]
-    },
-    "chores": {
-      "speaker": "Nadira", "id": "PRO01_WIF_003 (P)",
-      "text": "Water from the well. The goats fed. And the north fence is down again. Something dragged it in the night.",
-      "choices": [{ "text": "I'll see to it.", "spoken": "I'll see to it.", "next": "end", "do": { "startQuest": "chores" } }]
-    },
-    "busy": {
-      "speaker": "Nadira", "id": "PRO01_WIF_004 (P)",
-      "text": "The goats won't feed themselves. Well, they would. Everything we own.",
-      "choices": [{ "text": "Going.", "next": "end" }]
-    },
-    "report": {
-      "speaker": "Nadira", "id": "PRO01_WIF_005 (P)",
-      "text": "All done? And the fence? Good. Now eat, before Tavi gives your bread to the dog.",
-      "choices": [{ "text": "[Warm] Save me some.", "spoken": "Save me the end. The burnt end.", "next": "end", "do": { "bond": { "wife": 1 }, "questEvent": "nadira.chores", "setFlag": "pro01.reported" } },
-        { "text": "[Flat] Done.", "spoken": "Done.", "next": "end", "do": { "questEvent": "nadira.chores", "setFlag": "pro01.reported" } }]
-    },
-    "idle": {
-      "speaker": "Nadira", "id": "PRO01_WIF_006 (P)",
-      "text": "Go on. I'll still be here.",
-      "choices": [{ "text": "Leave.", "next": "end" }]
-    }
+ "id": "nadira",
+ "title": "Nadira",
+ "_note": "PRO_01, PRO_04, PRO_06. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "night",
+   "if": {
+    "flag": "quest:night",
+    "notFlag": "night.fight"
+   }
+  },
+  {
+   "node": "guest",
+   "if": {
+    "flag": "guest.arrived",
+    "notFlag": "kerrash.left"
+   }
+  },
+  {
+   "node": "day2",
+   "if": {
+    "flag": "day2"
+   }
+  },
+  {
+   "node": "bundle",
+   "if": {
+    "flag": "evening.begun",
+    "notFlag": "pro04.secret"
+   }
+  },
+  {
+   "node": "evening",
+   "if": {
+    "flag": "evening.begun"
+   }
+  },
+  {
+   "node": "morning",
+   "if": {
+    "notFlag": "pro01.morning"
+   }
+  },
+  {
+   "node": "report",
+   "if": {
+    "flag": "pro01.choresDone",
+    "notFlag": "pro01.reported"
+   }
+  },
+  {
+   "node": "busy",
+   "if": {
+    "flag": "quest:chores",
+    "notFlag": "pro01.choresDone"
+   }
+  },
+  {
+   "node": "market",
+   "if": {
+    "flag": "quest:market",
+    "notFlag": "pro03.goneHome"
+   }
   }
+ ],
+ "nodes": {
+  "morning": {
+   "speaker": "Nadira",
+   "text": "He lives. Come eat before the goats do it for you.",
+   "choices": [
+    {
+     "text": "[Warm] Morning.",
+     "spoken": "Morning. You've been up for hours.",
+     "next": "bread",
+     "do": {
+      "bond": {
+       "wife": 1
+      },
+      "setFlag": "pro01.morning"
+     }
+    },
+    {
+     "text": "[Dry] Is that bread or a brick?",
+     "spoken": "Is that bread, or did you build a wall?",
+     "next": "bread",
+     "do": {
+      "bond": {
+       "wife": 1
+      },
+      "setFlag": "pro01.morning"
+     }
+    },
+    {
+     "text": "[Flat] Later.",
+     "spoken": "Later. Water first.",
+     "next": "chores",
+     "do": {
+      "setFlag": "pro01.morning"
+     }
+    }
+   ],
+   "id": "PRO01_WIF_001"
+  },
+  "bread": {
+   "speaker": "Nadira",
+   "text": "Brick, wall, whatever it is. Eat it.",
+   "choices": [
+    {
+     "text": "What needs doing?",
+     "next": "chores"
+    }
+   ],
+   "id": "PRO01_WIF_002"
+  },
+  "chores": {
+   "speaker": "Nadira",
+   "text": "Water from the well. The goats fed. And the north fence is down again. Something dragged it in the night. The nails are in the tool box.",
+   "choices": [
+    {
+     "text": "I'll see to it.",
+     "spoken": "I'll see to it.",
+     "next": "end",
+     "do": {
+      "startQuest": "chores"
+     }
+    }
+   ],
+   "id": "PRO01_WIF_003"
+  },
+  "busy": {
+   "speaker": "Nadira",
+   "text": "The goats won't feed themselves. Well. They would. Everything we own.",
+   "choices": [
+    {
+     "text": "Going.",
+     "next": "end"
+    }
+   ],
+   "id": "PRO01_WIF_004"
+  },
+  "report": {
+   "speaker": "Nadira",
+   "text": "All done? And the fence? Good. Now take the cheese and the eggs to Saltreach before the heat. Lamp oil, and a bolt of cloth if Dalia has the teal. Here, the purse. And say hello to Zeyna for me.",
+   "choices": [
+    {
+     "text": "[Warm] Save me some bread.",
+     "spoken": "Save me the end. The burnt end.",
+     "next": "end",
+     "do": {
+      "bond": {
+       "wife": 1
+      },
+      "questEvent": "nadira.chores",
+      "setFlag": "pro01.reported",
+      "startQuest": "market",
+      "give": {
+       "GoatCheese": 3,
+       "Eggs": 6
+      },
+      "gold": 40
+     }
+    },
+    {
+     "text": "[Flat] Done. Going.",
+     "spoken": "Done. Going.",
+     "next": "end",
+     "do": {
+      "questEvent": "nadira.chores",
+      "setFlag": "pro01.reported",
+      "startQuest": "market",
+      "give": {
+       "GoatCheese": 3,
+       "Eggs": 6
+      },
+      "gold": 40
+     }
+    }
+   ],
+   "id": "PRO01_WIF_005"
+  },
+  "market": {
+   "speaker": "Nadira",
+   "text": "Cheese, oil, cloth. Teal, not the brown. And don't let Amira talk you into a sweet roll, you'll come home with six.",
+   "choices": [
+    {
+     "text": "Teal. Got it.",
+     "next": "end"
+    }
+   ]
+  },
+  "bundle": {
+   "speaker": "Nadira",
+   "text": "You're home. Did you see Zeyna?",
+   "choices": [
+    {
+     "text": "[Give] She sent this. She said the weather is changing.",
+     "spoken": "She sent this for you. She said to tell you the weather is changing.",
+     "next": "note",
+     "if": {
+      "has": "ZeynaBundle"
+     },
+     "do": {
+      "take": {
+       "ZeynaBundle": 1
+      }
+     }
+    },
+    {
+     "text": "Not yet. I'll go back.",
+     "next": "end",
+     "if": {
+      "notFlag": "pro03.zeyna"
+     }
+    }
+   ]
+  },
+  "note": {
+   "speaker": "Nadira",
+   "text": "[She unties the string, reads the scrap of paper inside, and folds it very small.] Did she. Well. She's always been good with weather.",
+   "choices": [
+    {
+     "text": "Something wrong?",
+     "next": "secret"
+    }
+   ],
+   "id": "PRO04_WIF_010"
+  },
+  "secret": {
+   "speaker": "Nadira",
+   "text": "Can I ask you something stupid? If I had a secret, a bad one, from before you... would you hate me for it?",
+   "choices": [
+    {
+     "text": "[Warm] No.",
+     "spoken": "No. Nothing could make me.",
+     "next": "remember",
+     "do": {
+      "bond": {
+       "wife": 2
+      },
+      "questEvent": "nadira.bundle",
+      "setFlag": "pro04.secret"
+     }
+    },
+    {
+     "text": "[Truth] Depends on the secret.",
+     "spoken": "Depends on the secret. But I'd stay.",
+     "next": "remember",
+     "do": {
+      "bond": {
+       "wife": 1
+      },
+      "questEvent": "nadira.bundle",
+      "setFlag": "pro04.secret"
+     }
+    },
+    {
+     "text": "[Dry] Is this about the goat?",
+     "spoken": "Is this about the goat? I told you, it was already dead.",
+     "next": "goat",
+     "do": {
+      "questEvent": "nadira.bundle",
+      "setFlag": "pro04.secret"
+     }
+    },
+    {
+     "text": "[Flat] We've all got one.",
+     "spoken": "We've all got one. Come to bed.",
+     "next": "remember",
+     "do": {
+      "questEvent": "nadira.bundle",
+      "setFlag": "pro04.secret"
+     }
+    }
+   ],
+   "id": "PRO04_WIF_011"
+  },
+  "goat": {
+   "speaker": "Nadira",
+   "text": "[She laughs, and the moment passes.] It was not already dead. It was asleep. Go and tell your daughter her story.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "remember": {
+   "speaker": "Nadira",
+   "text": "Remember you said that.",
+   "choices": [
+    {
+     "text": "[Tell her] I will.",
+     "spoken": "I will.",
+     "next": "end",
+     "do": {
+      "setFlag": "pro04.asked"
+     }
+    },
+    {
+     "text": "Who is Zeyna to you, really?",
+     "next": "zeyna"
+    }
+   ],
+   "id": "PRO04_WIF_014"
+  },
+  "zeyna": {
+   "speaker": "Nadira",
+   "text": "The oldest friend I have. Older than you. She knew me when I was small and frightened of everything. Go on. Tavi's waiting.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "evening": {
+   "speaker": "Nadira",
+   "text": "Go and tell Tavi her story, before she tells it to herself and gets it right.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "day2": {
+   "speaker": "Nadira",
+   "text": "Both hands. I mean it. And bring the dog back, he's the only one of you with any sense.",
+   "choices": [
+    {
+     "text": "Both hands.",
+     "next": "end"
+    }
+   ]
+  },
+  "guest": {
+   "speaker": "Nadira",
+   "text": "[Very quietly.] Not now. Sit down. Be nice to him.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "night": {
+   "speaker": "Nadira",
+   "text": "Don't. I don't want to talk about him. Come to bed. Please.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "idle": {
+   "speaker": "Nadira",
+   "text": "Go on. I'll still be here.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ],
+   "id": "PRO01_WIF_006"
+  }
+ }
 }

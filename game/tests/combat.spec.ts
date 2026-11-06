@@ -1,90 +1,63 @@
 import { test, expect, type Page } from '@playwright/test';
+import { start, flag } from './start';
 
-// Phase 3 regression list (first part): melee in the world against the bandit camp.
+// The fighting (from the art sample): blows, finishers, Fury, looting bodies, Rage perks.
 
-async function boot(page: Page) {
-  await page.goto('./');
-  await page.waitForFunction(() => (window as any).__game?.ready, null, { timeout: 30_000 });
-}
-const call = <T = any>(page: Page, fn: string, ...args: unknown[]) =>
-  page.evaluate(([f, a]) => (window as any).__game[f as string](...(a as unknown[])), [fn, args] as const) as Promise<T>;
-const wait = (page: Page, s: number) => page.waitForTimeout(s * 1000);
-const player = async (page: Page) => (await call<any[]>(page, 'fighters')).find((f) => f.id === 'player');
-const bandit = async (page: Page, i = 0) => (await call<any[]>(page, 'fighters')).find((f) => f.id === `coastCamp:${i}`);
-
-// Walk into the camp's slice with a sword in hand.
-async function toCamp(page: Page) {
-  await boot(page);
-  await call(page, 'give', 'IronSword'); await call(page, 'equip', 'IronSword');
-  await call(page, 'teleport', 5 * 128 + 40, 7 * 128 + 70);
-  await wait(page, 0.3);
-  await call(page, 'calm');
+// Stand next to a bandit at the camp with a sword in hand.
+async function atCamp(page: Page) {
+  await start(page);
+  await page.evaluate(() => {
+    __game.go('coast', 1760, 920); __game.give('IronSword', 1); __game.equip('IronSword');
+    for (const id of ['bandit2', 'bandit3', 'bandit4', 'bandit5', 'banditChief']) __game.run('kill ' + id);
+  });
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { const b = __game.actor('bandit1'); __game.teleport(b.x, b.y + 22); __game.face(b.x, b.y); });
 }
 
-test('the bandit camp is there when its slice loads', async ({ page }) => {
-  await toCamp(page);
-  for (const i of [0, 1, 2]) expect((await bandit(page, i))?.state).not.toBe('dead');
+test('bandits have a quarter more health than the sample, and a blow hurts one and trains One-handed', async ({ page }) => {
+  await atCamp(page);
+  const before = await page.evaluate(() => ({ hp: __game.actor('bandit1').hp, max: __game.actor('bandit1').maxHp, xp: __game.state.skills.OneHanded.xp }));
+  expect(before.max).toBeCloseTo(5 * 1.25);
+  await page.evaluate(() => { __game.stagger('bandit1'); __game.fight('bandit1'); }); await page.waitForTimeout(700); // held still, so the blow lands
+  const after = await page.evaluate(() => ({ hp: __game.actor('bandit1').hp, xp: __game.state.skills.OneHanded.xp }));
+  expect(after.hp).toBeLessThan(before.hp);
+  expect(after.xp).toBeGreaterThan(before.xp);
 });
 
-test('a bandit hit does what the rules say', async ({ page }) => {
-  await toCamp(page);
-  const t = await call<number>(page, 'enemySwing', 'coastCamp:0');
-  await wait(page, t + 0.3);
-  const want = (await call(page, 'rules', 'coastCamp:0', 'player')).damage;
-  expect(100 - (await player(page)).health).toBeCloseTo(want, 3);
+test('a staggered enemy can be finished with F, and the body can be stripped', async ({ page }) => {
+  await atCamp(page);
+  await page.evaluate(() => __game.stagger('bandit1'));
+  await page.keyboard.press('KeyF'); await page.waitForTimeout(3000);
+  const s = await page.evaluate(() => ({ dead: __game.actor('bandit1').dead, fins: __game.state.stats.finishers }));
+  expect(s).toEqual({ dead: true, fins: 1 });
+  expect(await flag(page, 'cleared:campBandits')).toBe(true);
+  await page.evaluate(() => __game.lootFrom(__game.actor('bandit1'), 'ArmorLeatherCuirass'));
+  const body = await page.evaluate(() => ({ worn: __game.actor('bandit1').eq.body, mine: __game.state.inv.ArmorLeatherCuirass }));
+  expect(body).toEqual({ worn: null, mine: 1 });
 });
 
-test('a block raised just before the blow parries', async ({ page }) => {
-  await toCamp(page);
-  const t = await call<number>(page, 'enemySwing', 'coastCamp:0');
-  await wait(page, t - 0.1);
-  await call(page, 'block', true);
-  await wait(page, 0.3);
-  expect((await player(page)).health).toBe(100);
-  expect((await bandit(page)).state).toBe('hit');
+test('Q with a full Rage bar roars into Fury', async ({ page }) => {
+  await atCamp(page);
+  await page.evaluate(() => { __game.state.rage = 100; });
+  await page.keyboard.press('KeyQ'); await page.waitForTimeout(1500);
+  const s = await page.evaluate(() => ({ rage: __game.state.rage, fury: __game.state.fury > 0 }));
+  expect(s.fury).toBe(true);
+  expect(s.rage).toBeLessThanOrEqual(40);
 });
 
-test('a last-instant roll is a perfect dodge', async ({ page }) => {
-  await toCamp(page);
-  const t = await call<number>(page, 'enemySwing', 'coastCamp:0', true);
-  await wait(page, t - 0.08);
-  await call(page, 'roll');
-  await wait(page, 0.12);
-  expect((await player(page)).health).toBe(100);
-  expect(await call<number>(page, 'timeScale')).toBeLessThan(1);
+test('a Rage point from a name buys a Rage perk, and only a Rage perk', async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => { __game.state.ragePoints = 1; __game.state.perkPoints = 0; });
+  expect(await page.evaluate(() => __game.takePerk('Armsman00'))).toBe(false);
+  expect(await page.evaluate(() => __game.takePerk('RageBloodlust'))).toBe(true);
+  expect(await page.evaluate(() => [__game.state.perks.has('RageBloodlust'), __game.state.ragePoints])).toEqual([true, 0]);
 });
 
-test('killing a bandit trains One-handed, leaves a body to search, and stays dead after a save', async ({ page }) => {
-  await toCamp(page);
-  const before = (await call(page, 'character')).skills.OneHanded;
-  const b = await bandit(page);
-  await call(page, 'teleport', b.a + 1.2, b.b);
-  for (let i = 0; i < 4 && (await bandit(page)).state !== 'dead'; i++) { await call(page, 'attackAt', 'coastCamp:0', true); await wait(page, 1.0); }
-  expect((await bandit(page)).state).toBe('dead');
-  const after = (await call(page, 'character')).skills.OneHanded;
-  expect(after.level * 1e6 + after.xp).toBeGreaterThan(before.level * 1e6 + before.xp);
-  await call(page, 'interact');
-  expect((await call(page, 'character')).inventory.ArmorLeatherCuirass).toBe(1);
-  await call(page, 'interact'); // already searched
-  expect((await call(page, 'character')).inventory.ArmorLeatherCuirass).toBe(1);
-  await call(page, 'save', 'fight');
-  await page.reload(); await page.waitForFunction(() => (window as any).__game?.ready);
-  await call(page, 'load', 'fight');
-  await wait(page, 0.3);
-  expect((await bandit(page)).state).toBe('dead');
-  expect((await bandit(page, 1)).state).not.toBe('dead');
-});
-
-test('the player can die, and N starts again', async ({ page }) => {
-  await toCamp(page);
-  for (let i = 0; i < 8 && (await player(page)).state !== 'dead'; i++) {
-    const t = await call<number>(page, 'enemySwing', 'coastCamp:0', true);
-    await wait(page, t + 0.9);
-  }
-  expect((await player(page)).state).toBe('dead');
-  await expect(page.locator('#dead')).toBeVisible();
-  await page.keyboard.press('KeyN');
-  await wait(page, 0.3);
-  expect((await player(page)).state).not.toBe('dead');
-  expect((await call(page, 'where')).region).toBe('Sentinel Coast');
+test('the story keeps people alive who must live: a beaten Bahram yields instead of dying', async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => { __game.setFlag('quest:a14'); __game.setFlag('farm.burned'); __game.go('coast', 640, 300); });
+  await page.waitForTimeout(300);
+  const b = await page.evaluate(() => { const a = __game.actor('bahram'); return { hp: a.maxHp, yieldAt: a.yieldAt }; });
+  expect(b.hp).toBeCloseTo(16 * 1.25);
+  expect(b.yieldAt).toBe(0.2);
 });

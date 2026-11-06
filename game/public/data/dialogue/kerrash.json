@@ -1,0 +1,243 @@
+{
+ "id": "kerrash",
+ "title": "Azhar Kerrash",
+ "_note": "PRO_06: the Guest. He never raises his voice. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "start",
+ "starts": [],
+ "nodes": {
+  "start": {
+   "speaker": "The stranger",
+   "text": "[Warm, rueful, taking his hat off.] Forgive the intrusion. Hot day, long road. A man heard there was a farm on this hill with the best goat cheese on the coast.",
+   "choices": [
+    {
+     "text": "[Warm] Sit. Eat.",
+     "spoken": "Sit down. There's enough.",
+     "next": "bread",
+     "do": {
+      "setFlag": "kerrash.hospitality"
+     }
+    },
+    {
+     "text": "[Cold] Who are you?",
+     "spoken": "Who are you?",
+     "next": "neighbour"
+    },
+    {
+     "text": "[Flat] The cheese isn't for sale.",
+     "spoken": "The cheese isn't for sale today.",
+     "next": "free"
+    }
+   ],
+   "id": "PRO06_KER_001"
+  },
+  "neighbour": {
+   "speaker": "The stranger",
+   "text": "Just a neighbour. A big neighbour. [He sits anyway.]",
+   "choices": [
+    {
+     "text": "...",
+     "next": "bread"
+    }
+   ],
+   "id": "PRO06_KER_002"
+  },
+  "free": {
+   "speaker": "The stranger",
+   "text": "[He laughs.] Then I'll eat it for free and call it generosity. [He sits.]",
+   "choices": [
+    {
+     "text": "...",
+     "next": "bread"
+    }
+   ],
+   "id": "PRO06_KER_003"
+  },
+  "bread": {
+   "speaker": "The stranger",
+   "text": "[To Nadira.] Where did you learn bread like this? You don't hear a Forebear accent from those hills.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "aunt"
+    }
+   ],
+   "id": "PRO06_KER_005"
+  },
+  "aunt": {
+   "speaker": "Nadira",
+   "text": "My aunt. She was particular about bread.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "tavi"
+    }
+   ],
+   "id": "PRO06_WIF_006"
+  },
+  "tavi": {
+   "speaker": "The stranger",
+   "text": "[He ruffles Tavi's hair.] And who is this? Tavi. A good name, a sea name. [He reaches down to the dog and scratches the torn ear, very gently.] And this one's a fighter, I see.",
+   "choices": [
+    {
+     "text": "[Dune growls, very low.]",
+     "next": "war"
+    }
+   ],
+   "id": "PRO06_KER_007"
+  },
+  "war": {
+   "speaker": "The stranger",
+   "text": "[Curious, pleasant.] You've a soldier's back. Hegathe, was it? The relief column?",
+   "choices": [
+    {
+     "text": "[Truth] Conscript. Three years.",
+     "spoken": "Conscript. Three years. I don't talk about it.",
+     "next": "salt",
+     "do": {
+      "setFlag": "kerrash.toldHegathe"
+     }
+    },
+    {
+     "text": "[Lie] Never been in a war.",
+     "spoken": "I farm goats. That's my war.",
+     "next": "salt"
+    },
+    {
+     "text": "[Cold] That's not your business.",
+     "spoken": "That's not your business.",
+     "next": "gently"
+    }
+   ],
+   "id": "PRO06_KER_009"
+  },
+  "gently": {
+   "speaker": "The stranger",
+   "text": "Everything on this coast is my business. Gently.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "salt"
+    }
+   ],
+   "id": "PRO06_KER_010"
+  },
+  "salt": {
+   "speaker": "The stranger",
+   "text": "[He takes a pinch of salt from the pot and sets it on the table, a little white mound. Kind, almost sad.] Now. The Patriot's Share. I do hate this part. Twenty sacks a season, for the protection of this whole coast. Your neighbours were late. You've been so good about it.",
+   "choices": [
+    {
+     "text": "[Speech 25] We have no sacks to spare.",
+     "spoken": "We grow goats and barley. I haven't got twenty sacks to spare.",
+     "check": {
+      "skill": "Speech",
+      "level": 25,
+      "pass": "nobody",
+      "fail": "nobody"
+     }
+    },
+    {
+     "text": "[Threat] Get out of my house.",
+     "spoken": "You've eaten. Get out of my house.",
+     "next": "shame",
+     "do": {
+      "setFlag": "kerrash.refused"
+     }
+    },
+    {
+     "text": "[Warm] We'll find it.",
+     "spoken": "We'll find it. Give us time.",
+     "next": "pleased",
+     "do": {
+      "setFlag": "kerrash.appeased"
+     }
+    },
+    {
+     "text": "[Silent] Say nothing.",
+     "next": "judge"
+    }
+   ],
+   "id": "PRO06_KER_014"
+  },
+  "nobody": {
+   "speaker": "The stranger",
+   "text": "Nobody ever does. Think it over. I'll come back for the answer.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "look"
+    }
+   ],
+   "id": "PRO06_KER_015"
+  },
+  "shame": {
+   "speaker": "The stranger",
+   "text": "That's two people today who've refused me. Shame. [Outside, his men shift.]",
+   "choices": [
+    {
+     "text": "...",
+     "next": "look"
+    }
+   ],
+   "id": "PRO06_KER_016"
+  },
+  "pleased": {
+   "speaker": "The stranger",
+   "text": "[He is pleased.] There. That wasn't so hard. Hardly anything is, if people are reasonable.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "look"
+    }
+   ],
+   "id": "PRO06_KER_017"
+  },
+  "judge": {
+   "speaker": "The stranger",
+   "text": "[The room is very quiet. Dune growls.] He's a good judge of character.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "look"
+    }
+   ],
+   "id": "PRO06_KER_018"
+  },
+  "look": {
+   "speaker": "The stranger",
+   "text": "[He looks at Nadira too long. She drops a spoon.] You have the look of someone I knew.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "face"
+    }
+   ],
+   "id": "PRO06_KER_019"
+  },
+  "face": {
+   "speaker": "Nadira",
+   "text": "[Steady. Too steady.] I get that a lot. I have one of those faces.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "come"
+    }
+   ],
+   "id": "PRO06_WIF_019"
+  },
+  "come": {
+   "speaker": "The stranger",
+   "text": "[Smiling.] No. It'll come to me. [He stands, and puts his hat back on.] Thank you for the bread.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end",
+     "do": {
+      "questEvent": "kerrash.done",
+      "run": "scene kerrashLeaves"
+     }
+    }
+   ],
+   "id": "PRO06_KER_020"
+  }
+ }
+}

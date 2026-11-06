@@ -1,0 +1,272 @@
+{
+  "_note": "Everyone in the region (src/engine/game.js). 'where' is a list of placements, the first that fits wins: a map, a spot, hours (from/to), story flags (if/ifNot) and how far they wander. 'ap' is how they look (skin and hair ramps, beard, hood, hair style, and clothes worn when no armour is on); 'build' is man, big, woman, girl or old. A faction of bandit, kesh, wild, alikr or training fights you on sight. 'yield' is the share of health at which they give up and 'yieldDialogue' what they say then; 'namedTarget' puts them on the hunt list (a free Rage perk point when crossed off). Health is the art sample's scale: a bandit is 5, a chief 11. 'templates' are the people random encounters are made from.",
+  "dialogues": ["nadira", "tavi", "amira", "dalia", "zeyna", "tarik_market", "tarik_yield", "conscript", "bahram_end", "khadija", "kerrash", "innkeeper", "fisherman", "yusuf", "kami", "villager"],
+  "people": {
+    "nadira": {
+      "name": "Nadira", "build": "woman", "dialogue": "nadira", "faction": "family", "essential": true, "hp": 6,
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hairStyle": "bun", "outfit": { "top": "teal", "sleeve": "teal", "fore": "skin", "pants": "teal", "belt": "leather", "skirt": { "ramp": "teal", "len": 0.9 }, "boots": "boot" } },
+      "voice": { "pitch": 1.15, "rate": 1.0, "v": 0 },
+      "where": [
+        { "map": "farmhouse", "x": 156, "y": 92, "if": "guest.arrived", "ifNot": "farm.burned" },
+        { "map": "farmhouse", "x": 66, "y": 92, "wander": 14, "ifNot": "farm.burned" }
+      ]
+    },
+    "tavi": {
+      "name": "Tavi", "build": "girl", "dialogue": "tavi", "faction": "family", "essential": true, "hp": 4,
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hairStyle": "long", "outfit": { "top": "ochre", "sleeve": "ochre", "fore": "skin", "pants": "ochre", "belt": "leather", "skirt": { "ramp": "ochre", "len": 0.7 }, "boots": "skin" } },
+      "voice": { "pitch": 1.6, "rate": 1.1, "v": 1 },
+      "where": [
+        { "map": "coast", "x": 1206, "y": 1474, "wander": 14, "from": 7, "to": 18, "if": "quest:chores", "ifNot": ["evening.begun", "farm.burned"] },
+        { "map": "farmhouse", "x": 130, "y": 126, "ifNot": "farm.burned" }
+      ]
+    },
+    "dune": {
+      "name": "Dune", "beast": "dog", "pet": true, "follow": "dune.follow", "fights": true, "essential": true, "faction": "family", "hp": 5, "dmg": 6, "speed": 50, "mute": true,
+      "where": [
+        { "map": "coast", "x": 1430, "y": 1490, "if": "quest:hunt", "ifNot": ["boar.dead", "farm.burned"] },
+        { "map": "farmhouse", "x": 176, "y": 134, "ifNot": ["pet:dune", "farm.burned"] },
+        { "map": "coast", "x": 1276, "y": 1524, "wander": 40, "ifNot": "farm.burned" }
+      ]
+    },
+    "goat1": { "name": "Goat", "beast": "goat", "faction": "family", "hp": 3, "mute": true, "where": [{ "map": "coast", "x": 1182, "y": 1478, "wander": 14, "ifNot": "farm.burned" }] },
+    "goat2": { "name": "Goat", "beast": "goat", "faction": "family", "hp": 3, "mute": true, "where": [{ "map": "coast", "x": 1200, "y": 1488, "wander": 14, "ifNot": "farm.burned" }] },
+    "goat3": { "name": "Goat", "beast": "goat", "faction": "family", "hp": 3, "mute": true, "where": [{ "map": "coast", "x": 1196, "y": 1470, "wander": 12, "ifNot": "farm.burned" }] },
+
+    "amira": {
+      "name": "Old Amira", "build": "woman", "dialogue": "amira", "faction": "village", "hp": 4,
+      "ap": { "skin": "skin", "hair": "grey", "beard": false, "hairStyle": "bun", "outfit": { "top": "plum", "sleeve": "plum", "fore": "skin", "pants": "plum", "belt": "leather", "skirt": { "ramp": "plum", "len": 0.95 }, "boots": "boot" } },
+      "voice": { "pitch": 1.0, "rate": 0.95, "v": 2 },
+      "shop": { "gold": 220, "stock": { "Bread": 8, "GoatCheese": 2, "Eggs": 6, "SweetRoll": 4, "Apple": 6 }, "buys": ["food"] },
+      "where": [{ "map": "coast", "x": 860, "y": 1014, "from": 6, "to": 20 }, { "map": "coast", "x": 905, "y": 950, "wander": 10 }]
+    },
+    "dalia": {
+      "name": "Dalia", "build": "woman", "dialogue": "dalia", "faction": "village", "hp": 4,
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hairStyle": "long", "outfit": { "top": "teal", "sleeve": "white", "fore": "skin", "pants": "navy", "belt": "red", "skirt": { "ramp": "navy", "len": 0.9 }, "boots": "boot" } },
+      "voice": { "pitch": 1.1, "rate": 1.05, "v": 3 },
+      "shop": { "gold": 300, "stock": { "Salt": 12, "LampOil": 3, "ClothBolt": 2, "Bandage": 4, "Torch": 2 }, "buys": ["misc", "food"] },
+      "where": [{ "map": "coast", "x": 800, "y": 980, "from": 7, "to": 19 }]
+    },
+    "zeyna": {
+      "name": "Zeyna", "build": "old", "dialogue": "zeyna", "faction": "village", "essential": true, "hp": 4,
+      "ap": { "skin": "skin", "hair": "white", "beard": false, "hairStyle": "bun", "outfit": { "top": "grey", "sleeve": "grey", "fore": "skin", "pants": "grey", "belt": "plum", "skirt": { "ramp": "grey", "len": 1 }, "boots": "boot" } },
+      "voice": { "pitch": 0.95, "rate": 0.85, "v": 4 },
+      "shop": { "gold": 400, "stock": { "Bandage": 8, "PotionHealth": 4, "PotionHealthMinor": 6, "Salt": 4 }, "buys": ["potion", "food", "misc"] },
+      "where": [
+        { "map": "coast", "x": 1296, "y": 1494, "if": "quest:a12", "ifNot": "done:a12" },
+        { "map": "zeyna", "x": 96, "y": 104, "wander": 20, "if": "farm.burned" },
+        { "map": "coast", "x": 745, "y": 1018, "from": 7, "to": 18 },
+        { "map": "zeyna", "x": 96, "y": 104 }
+      ]
+    },
+    "hassan": {
+      "name": "Hassan", "build": "big", "dialogue": "innkeeper", "faction": "village", "hp": 6,
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "white", "sleeve": "white", "fore": "skin", "pants": "pants", "belt": "red", "boots": "boot" } },
+      "voice": { "pitch": 0.7, "rate": 0.95, "v": 5 },
+      "shop": { "gold": 350, "stock": { "Bread": 6, "BoarMeat": 3, "Ale": 8, "GoatCheese": 3, "Apple": 4 }, "buys": ["food"] },
+      "where": [{ "map": "inn", "x": 132, "y": 92, "wander": 16 }]
+    },
+    "hamid": {
+      "name": "Hamid the Smith", "pname": "Hamid", "build": "big", "faction": "village", "hp": 6,
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "leather", "sleeve": "skin", "fore": "skin", "pants": "pants", "belt": "leather", "boots": "boot" } },
+      "voice": { "pitch": 0.6, "rate": 0.9, "v": 6 },
+      "eq": { "weapon": "IronWarhammer" },
+      "shop": { "gold": 800, "stock": { "IronSword": 2, "IronWarAxe": 1, "IronMace": 1, "IronDagger": 2, "IronGreatsword": 1, "IronBattleaxe": 1, "SteelSword": 1, "Scimitar": 1, "SteelWarAxe": 1, "SteelGreatsword": 1, "ArmorHideShield": 1, "ArmorIronShield": 1, "ArmorHideCuirass": 1, "ArmorHideBoots": 1, "ArmorLeatherCuirass": 1, "ArmorLeatherBoots": 1, "ArmorLeatherGauntlets": 1, "ArmorLeatherHelmet": 1, "ArmorIronCuirass": 1, "ArmorIronBoots": 1, "ArmorIronGauntlets": 1, "ArmorIronHelmet": 1 }, "buys": ["weapon", "apparel"] },
+      "where": [{ "map": "coast", "x": 806, "y": 1130, "from": 7, "to": 19 }]
+    },
+    "rashid": {
+      "name": "Rashid the Fisherman", "pname": "Rashid", "build": "old", "dialogue": "fisherman", "faction": "village", "hp": 4,
+      "ap": { "skin": "skin", "hair": "grey", "beard": true, "outfit": { "top": "navy", "sleeve": "navy", "fore": "skin", "pants": "canvas", "belt": "leather", "boots": "skin" } },
+      "voice": { "pitch": 0.75, "rate": 0.85, "v": 7 },
+      "shop": { "gold": 120, "stock": { "Salmon": 5, "Salt": 2 }, "buys": ["food"] },
+      "where": [{ "map": "coast", "x": 690, "y": 1048, "from": 6, "to": 14 }, { "map": "coast", "x": 505, "y": 1100, "from": 14, "to": 20 }]
+    },
+    "yusuf": {
+      "name": "Brother Yusuf", "pname": "Yusuf", "build": "man", "dialogue": "yusuf", "faction": "village", "hp": 4,
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hood": "white", "outfit": { "top": "white", "sleeve": "white", "fore": "white", "pants": "white", "belt": "ochre", "skirt": { "ramp": "white", "len": 1 }, "boots": "boot" } },
+      "voice": { "pitch": 0.95, "rate": 1.1, "v": 8 },
+      "where": [{ "map": "coast", "x": 696, "y": 1128, "wander": 12, "from": 6, "to": 21 }]
+    },
+    "kami": {
+      "name": "Kami", "build": "girl", "dialogue": "kami", "faction": "village", "hp": 3,
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "outfit": { "top": "red", "sleeve": "skin", "fore": "skin", "pants": "canvas", "belt": "leather", "boots": "skin" } },
+      "voice": { "pitch": 1.45, "rate": 1.2, "v": 9 },
+      "where": [{ "map": "coast", "x": 820, "y": 1060, "wander": 70, "from": 7, "to": 20 }]
+    },
+    "villager1": { "name": "Villager", "pname": "Selim", "dialogue": "villager", "faction": "village", "hp": 4, "voice": { "pitch": 0.85, "rate": 1.0, "v": 10 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "ochre", "sleeve": "ochre", "fore": "skin", "pants": "pants", "belt": "leather", "boots": "boot" } },
+      "where": [{ "map": "coast", "x": 760, "y": 1060, "wander": 90, "from": 7, "to": 21 }] },
+    "villager2": { "name": "Villager", "pname": "Hana", "build": "woman", "dialogue": "villager", "faction": "village", "hp": 4, "voice": { "pitch": 1.2, "rate": 1.0, "v": 11 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hairStyle": "long", "outfit": { "top": "red", "sleeve": "red", "fore": "skin", "pants": "red", "belt": "ochre", "skirt": { "ramp": "red", "len": 0.9 }, "boots": "boot" } },
+      "where": [{ "map": "coast", "x": 860, "y": 960, "wander": 80, "from": 8, "to": 20 }] },
+    "villager3": { "name": "Salt Worker", "pname": "Omar", "dialogue": "villager", "faction": "village", "hp": 4, "voice": { "pitch": 0.7, "rate": 0.95, "v": 12 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hood": "white", "outfit": { "top": "white", "sleeve": "skin", "fore": "skin", "pants": "canvas", "belt": "leather", "boots": "skin" } },
+      "eq": { "weapon": "Axe01" },
+      "where": [{ "map": "coast", "x": 700, "y": 790, "wander": 60, "from": 6, "to": 18 }] },
+    "villager4": { "name": "Salt Worker", "pname": "Farah", "build": "woman", "dialogue": "villager", "faction": "village", "hp": 4, "voice": { "pitch": 1.25, "rate": 1.05, "v": 13 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "hairStyle": "bun", "outfit": { "top": "white", "sleeve": "white", "fore": "skin", "pants": "canvas", "belt": "teal", "skirt": { "ramp": "canvas", "len": 0.8 }, "boots": "skin" } },
+      "where": [{ "map": "coast", "x": 770, "y": 760, "wander": 60, "from": 6, "to": 18 }] },
+    "villager5": { "name": "Villager", "pname": "Old Faris", "build": "old", "dialogue": "villager", "faction": "village", "hp": 3, "voice": { "pitch": 0.7, "rate": 0.8, "v": 14 },
+      "ap": { "skin": "skin", "hair": "white", "beard": true, "outfit": { "top": "canvas", "sleeve": "canvas", "fore": "skin", "pants": "pants", "belt": "leather", "boots": "boot" } },
+      "where": [{ "map": "coast", "x": 792, "y": 1080, "from": 8, "to": 18 }, { "map": "inn", "x": 230, "y": 118 }] },
+    "patron1": { "name": "Drinker", "pname": "Nabil", "dialogue": "villager", "faction": "village", "hp": 4, "voice": { "pitch": 0.8, "rate": 1.1, "v": 15 },
+      "ap": { "skin": "pale", "hair": "hair", "beard": true, "outfit": { "top": "navy", "sleeve": "navy", "fore": "skin", "pants": "pants", "belt": "leather", "boots": "boot" } },
+      "where": [{ "map": "inn", "x": 90, "y": 118, "from": 12, "to": 2 }] },
+
+    "tarik": {
+      "name": "Tarik Hasani", "pname": "Tarik", "dialogue": "tarik_market", "faction": "collector", "hp": 6,
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "navy", "sleeve": "navy", "fore": "skin", "pants": "pants", "belt": "brass", "boots": "boot" } },
+      "voice": { "pitch": 0.9, "rate": 1.15, "v": 16 },
+      "eq": { "weapon": "Scimitar", "feet": "ClothesRedguardBoots" },
+      "where": [{ "map": "coast", "x": 818, "y": 990, "face": 3.6, "if": "quest:market", "ifNot": ["pro03.tarikDone", "farm.burned"] }]
+    },
+    "collector1": { "name": "Collector's Guard", "pname": "Guard", "faction": "collector", "hp": 6, "voice": { "pitch": 0.7, "rate": 1, "v": 17 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "head": "ArmorLeatherHelmet", "weapon": "IronSword", "shield": "ArmorHideShield" },
+      "where": [{ "map": "coast", "x": 836, "y": 1000, "face": 3.6, "if": "quest:market", "ifNot": ["pro03.tarikDone", "farm.burned"] }] },
+    "collector2": { "name": "Collector's Guard", "pname": "Guard", "faction": "collector", "hp": 6, "voice": { "pitch": 0.8, "rate": 1, "v": 18 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "IronMace" },
+      "where": [{ "map": "coast", "x": 784, "y": 1000, "face": 3.6, "if": "quest:market", "ifNot": ["pro03.tarikDone", "farm.burned"] }] },
+
+    "tarik_road": {
+      "name": "Tarik Hasani", "pname": "Tarik", "faction": "kesh", "group": "tarikRiders", "hp": 7, "yield": 0.35, "yieldDialogue": "tarik_yield", "namedTarget": true, "killFlag": "tarik.done", "questId": "tarik",
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "navy", "sleeve": "navy", "fore": "skin", "pants": "pants", "belt": "brass", "boots": "boot" } },
+      "voice": { "pitch": 0.9, "rate": 1.15, "v": 16 },
+      "eq": { "weapon": "Scimitar", "body": "ArmorLeatherCuirass", "feet": "ClothesRedguardBoots" },
+      "loot": { "TaxLedgerKey": 1, "Ale": 1 }, "gold": 85,
+      "where": [{ "map": "coast", "x": 1640, "y": 1296, "wander": 20, "if": "quest:a13" }]
+    },
+    "rider1": { "name": "Tax Rider", "pname": "Jalal", "faction": "kesh", "group": "tarikRiders", "hp": 6, "voice": { "pitch": 0.7, "rate": 1, "v": 17 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "hood": "navy" }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "hands": "ArmorLeatherGauntlets", "weapon": "IronSword", "shield": "ArmorHideShield" },
+      "where": [{ "map": "coast", "x": 1662, "y": 1284, "if": "quest:a13" }] },
+    "rider2": { "name": "Tax Rider", "pname": "Wasim", "faction": "kesh", "group": "tarikRiders", "hp": 6, "voice": { "pitch": 0.8, "rate": 1.05, "v": 18 },
+      "ap": { "skin": "pale", "hair": "hair", "beard": false, "hood": "navy" }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "IronWarAxe" },
+      "where": [{ "map": "coast", "x": 1620, "y": 1316, "if": "quest:a13" }] },
+    "conscript": { "name": "Conscript", "pname": "The Conscript", "faction": "kesh", "group": "tarikRiders", "hp": 4, "yield": 0.7, "yieldDialogue": "conscript", "voice": { "pitch": 1.3, "rate": 1.2, "v": 19 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false }, "eq": { "body": "ClothesFarmClothes02", "feet": "ClothesFarmBoots02", "weapon": "IronDagger" },
+      "where": [{ "map": "coast", "x": 1676, "y": 1318, "if": "quest:a13" }] },
+
+    "bahram": {
+      "name": "Bahram Kesh", "pname": "Bahram", "build": "big", "faction": "kesh", "group": "stairKesh", "hp": 16, "boss": true, "yield": 0.2, "yieldDialogue": "bahram_end", "namedTarget": true, "killFlag": "bahram.dead", "questId": "bahram", "sight": 140,
+      "ap": { "skin": "skin", "hair": "hair", "beard": true },
+      "voice": { "pitch": 0.5, "rate": 0.85, "v": 20 },
+      "eq": { "body": "ArmorIronCuirass", "hands": "ArmorIronGauntlets", "feet": "ArmorIronBoots", "weapon": "SteelWarhammer" },
+      "loot": { "SaltHookSeal": 1, "PotionHealth": 1 }, "gold": 120,
+      "where": [{ "map": "coast", "x": 640, "y": 226, "wander": 10, "if": "quest:a14" }]
+    },
+    "kesh1": { "name": "Kesh Sellsword", "pname": "Idris", "faction": "kesh", "group": "stairKesh", "hp": 6, "voice": { "pitch": 0.75, "rate": 1, "v": 21 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "hood": "navy" }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "Scimitar", "shield": "ArmorIronShield" },
+      "where": [{ "map": "coast", "x": 700, "y": 390, "face": 0, "if": "farm.burned" }] },
+    "kesh2": { "name": "Kesh Sellsword", "pname": "Munir", "faction": "kesh", "group": "stairKesh", "hp": 6, "voice": { "pitch": 0.9, "rate": 1.1, "v": 22 },
+      "ap": { "skin": "pale", "hair": "hair", "beard": false, "mask": "navy" }, "eq": { "body": "ArmorHideCuirass", "feet": "ArmorHideBoots", "weapon": "IronWarAxe" },
+      "where": [{ "map": "coast", "x": 600, "y": 380, "face": 0, "if": "farm.burned" }] },
+    "kesh3": { "name": "Kesh Bruiser", "pname": "Gharib", "build": "big", "faction": "kesh", "group": "stairKesh", "hp": 8, "voice": { "pitch": 0.55, "rate": 0.9, "v": 23 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true }, "eq": { "body": "ArmorBanditCuirass", "feet": "ArmorBanditBoots", "hands": "ArmorBanditGauntlets", "weapon": "IronBattleaxe" },
+      "where": [{ "map": "coast", "x": 660, "y": 300, "wander": 30, "if": "farm.burned" }] },
+    "kesh4": { "name": "Kesh Sellsword", "pname": "Rafiq", "faction": "kesh", "group": "stairKesh", "hp": 6, "voice": { "pitch": 0.8, "rate": 1.05, "v": 24 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "hood": "navy" }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "head": "ArmorLeatherHelmet", "weapon": "SteelSword" },
+      "where": [{ "map": "coast", "x": 560, "y": 260, "wander": 25, "if": "farm.burned" }] },
+    "kesh5": { "name": "Kesh Sellsword", "pname": "Tamir", "faction": "kesh", "group": "stairKesh", "hp": 6, "voice": { "pitch": 0.85, "rate": 1, "v": 25 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false, "mask": "navy" }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "IronMace", "shield": "ArmorHideShield" },
+      "where": [{ "map": "coast", "x": 720, "y": 250, "wander": 20, "if": "farm.burned" }] },
+    "keshHound1": { "name": "Kesh Hound", "beast": "hound", "faction": "kesh", "group": "stairKesh", "hp": 4, "dmg": 8, "speed": 58, "sight": 150, "mute": true,
+      "where": [{ "map": "coast", "x": 735, "y": 316, "if": "farm.burned" }] },
+    "keshHound2": { "name": "Kesh Hound", "beast": "hound", "faction": "kesh", "group": "stairKesh", "hp": 4, "dmg": 8, "speed": 58, "sight": 150, "mute": true,
+      "where": [{ "map": "coast", "x": 752, "y": 306, "if": "farm.burned" }] },
+
+    "khadija": {
+      "name": "Khadija the Unbent", "pname": "Khadija", "build": "old", "dialogue": "khadija", "faction": "village", "essential": true, "hp": 20, "dmg": 4, "calmOn": "spar.done",
+      "ap": { "skin": "skin", "hair": "white", "beard": false, "hairStyle": "short", "outfit": { "top": "sand", "sleeve": "sand", "fore": "skin", "pants": "sand", "belt": "red", "skirt": { "ramp": "sand", "len": 0.8 }, "boots": "leather" } },
+      "voice": { "pitch": 0.9, "rate": 0.9, "v": 26 },
+      "eq": { "weapon": "Scimitar" },
+      "where": [
+        { "map": "coast", "x": 712, "y": 430, "if": "named:bahram", "ifNot": "khadija.met" },
+        { "map": "coast", "x": 1190, "y": 2000, "wander": 10, "if": "khadija.met" }
+      ]
+    },
+
+    "kerrash": {
+      "name": "Azhar Kerrash", "pname": "The stranger", "build": "big", "dialogue": "kerrash", "faction": "guest", "essential": true, "hp": 30,
+      "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "white", "sleeve": "navy", "fore": "skin", "pants": "navy", "belt": "brass", "cape": "navy", "boots": "boot" } },
+      "voice": { "pitch": 0.75, "rate": 0.85, "v": 27 },
+      "where": [{ "map": "farmhouse", "x": 104, "y": 96, "face": 1.57, "if": "guest.arrived", "ifNot": "kerrash.left" }]
+    },
+    "kerrashMan1": { "name": "Rider", "faction": "guest", "hp": 8, "ap": { "skin": "pale", "hair": "hair", "beard": true, "hood": "navy" }, "eq": { "body": "ArmorIronCuirass", "feet": "ArmorIronBoots", "weapon": "SteelSword", "shield": "ArmorIronShield" },
+      "where": [{ "map": "coast", "x": 1226, "y": 1532, "if": "guest.arrived", "ifNot": "kerrash.left" }] },
+    "kerrashMan2": { "name": "Rider", "faction": "guest", "hp": 8, "ap": { "skin": "skin", "hair": "hair", "beard": false, "mask": "navy" }, "eq": { "body": "ArmorIronCuirass", "feet": "ArmorIronBoots", "weapon": "SteelGreatsword" },
+      "where": [{ "map": "coast", "x": 1280, "y": 1536, "if": "guest.arrived", "ifNot": "kerrash.left" }] },
+
+    "raider1": { "name": "Raider", "faction": "bandit", "group": "nightRaiders", "hp": 5, "voice": { "pitch": 0.8, "rate": 1.1, "v": 28 }, "person": "raider",
+      "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "IronSword" }, "sight": 300,
+      "where": [{ "map": "coast", "x": 1236, "y": 1570, "face": 3.14, "if": "night.fight", "ifNot": "night.over" }] },
+    "raider2": { "name": "Raider", "faction": "bandit", "group": "nightRaiders", "hp": 5, "voice": { "pitch": 0.7, "rate": 1, "v": 29 }, "person": "thug",
+      "eq": { "body": "ArmorHideCuirass", "feet": "ArmorHideBoots", "weapon": "IronMace" }, "sight": 300,
+      "where": [{ "map": "coast", "x": 1270, "y": 1580, "face": 3.14, "if": "night.fight", "ifNot": "night.over" }] },
+    "raider3": { "name": "Raider", "faction": "bandit", "group": "nightRaiders", "hp": 5, "voice": { "pitch": 0.9, "rate": 1.15, "v": 30 }, "person": "raider",
+      "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "IronWarAxe" }, "sight": 300,
+      "where": [{ "map": "coast", "x": 1210, "y": 1596, "face": 3.14, "if": "night.fight", "ifNot": "night.over" }] },
+    "raider4": { "name": "Raider", "faction": "bandit", "group": "nightRaiders", "hp": 6, "voice": { "pitch": 0.6, "rate": 0.95, "v": 31 }, "person": "marauder",
+      "eq": { "body": "ArmorBanditCuirass", "feet": "ArmorBanditBoots", "weapon": "IronBattleaxe" }, "sight": 300,
+      "where": [{ "map": "coast", "x": 1296, "y": 1600, "face": 3.14, "if": "night.fight", "ifNot": "night.over" }] },
+
+    "boar": { "name": "Boar", "beast": "boar", "faction": "wild", "hp": 6, "dmg": 10, "speed": 56, "rate": 2.0, "sight": 90, "killFlag": "boar.dead", "mute": true, "loot": { "BoarMeat": 2 },
+      "where": [{ "map": "coast", "x": 1480, "y": 1500, "wander": 30, "if": "quest:hunt", "ifNot": "farm.burned" }] },
+
+    "bandit1": { "name": "Bandit", "pname": "Hakon", "person": "raider", "faction": "bandit", "group": "campBandits", "hp": 5, "voice": { "pitch": 0.9, "rate": 1.1, "v": 1 },
+      "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "hands": "ArmorLeatherGauntlets", "weapon": "IronSword", "shield": "ArmorHideShield" },
+      "where": [{ "map": "coast", "x": 1760, "y": 900 }] },
+    "bandit2": { "name": "Bandit Thug", "pname": "Bilal", "person": "thug", "faction": "bandit", "group": "campBandits", "hp": 6, "voice": { "pitch": 0.7, "rate": 0.95, "v": 2 },
+      "eq": { "body": "ArmorHideCuirass", "feet": "ArmorHideBoots", "weapon": "IronMace" },
+      "where": [{ "map": "coast", "x": 1860, "y": 820, "wander": 30 }] },
+    "bandit3": { "name": "Bandit Marauder", "pname": "Jorund", "person": "marauder", "faction": "bandit", "group": "campBandits", "hp": 8, "voice": { "pitch": 0.55, "rate": 0.9, "v": 0 },
+      "eq": { "body": "ArmorBanditCuirass", "hands": "ArmorBanditGauntlets", "feet": "ArmorBanditBoots", "head": "ArmorBanditHelmet", "weapon": "IronBattleaxe" },
+      "where": [{ "map": "coast", "x": 1990, "y": 790, "wander": 30 }] },
+    "bandit4": { "name": "Bandit", "pname": "Fenn", "person": "raider", "faction": "bandit", "group": "campBandits", "hp": 5, "voice": { "pitch": 1.1, "rate": 1.2, "v": 3 },
+      "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "Scimitar" },
+      "where": [{ "map": "coast", "x": 1810, "y": 760 }] },
+    "bandit5": { "name": "Bandit", "pname": "Sigrun", "person": "thug", "faction": "bandit", "group": "campBandits", "hp": 5, "voice": { "pitch": 1.0, "rate": 1.1, "v": 4 },
+      "eq": { "body": "ArmorHideCuirass", "feet": "ArmorHideBoots", "weapon": "IronWarAxe", "shield": "ArmorHideShield" },
+      "where": [{ "map": "coast", "x": 2030, "y": 870 }] },
+    "banditChief": { "name": "Bandit Chief", "pname": "Qadir", "person": "chief", "faction": "bandit", "group": "campBandits", "hp": 11, "boss": true, "voice": { "pitch": 0.65, "rate": 0.85, "v": 1 },
+      "eq": { "body": "ArmorIronCuirass", "hands": "ArmorIronGauntlets", "feet": "ArmorIronBoots", "head": "ArmorIronHelmet", "weapon": "SteelGreatsword" },
+      "loot": { "BanditNote": 1, "PotionHealth": 2 }, "gold": 60,
+      "where": [{ "map": "coast", "x": 1904, "y": 736 }] },
+
+    "skeever1": { "name": "Skeever", "beast": "skeever", "faction": "wild", "group": "caveSkeevers", "hp": 2, "dmg": 4, "speed": 50, "rate": 1.2, "flees": true, "mute": true, "where": [{ "map": "cave", "x": 140, "y": 160, "wander": 30 }] },
+    "skeever2": { "name": "Skeever", "beast": "skeever", "faction": "wild", "group": "caveSkeevers", "hp": 2, "dmg": 4, "speed": 50, "rate": 1.2, "mute": true, "where": [{ "map": "cave", "x": 200, "y": 120, "wander": 30 }] },
+    "skeever3": { "name": "Skeever", "beast": "skeever", "faction": "wild", "group": "caveSkeevers", "hp": 2, "dmg": 4, "speed": 50, "rate": 1.2, "mute": true, "where": [{ "map": "cave", "x": 320, "y": 200, "wander": 30 }] },
+    "skeever4": { "name": "Skeever", "beast": "skeever", "faction": "wild", "group": "caveSkeevers", "hp": 2, "dmg": 4, "speed": 50, "rate": 1.2, "mute": true, "where": [{ "map": "cave", "x": 380, "y": 110, "wander": 20 }] },
+    "skeever5": { "name": "Giant Skeever", "beast": "skeever", "faction": "wild", "group": "caveSkeevers", "hp": 4, "dmg": 6, "speed": 46, "rate": 1.4, "mute": true, "where": [{ "map": "cave", "x": 410, "y": 90, "wander": 10 }] },
+
+    "mudcrab1": { "name": "Mudcrab", "beast": "mudcrab", "faction": "wild", "group": "mudcrabs", "questId": "mudcrab", "hp": 3, "dmg": 5, "speed": 26, "rate": 1.8, "sight": 70, "mute": true, "loot": { "CrabClaw": 1 }, "where": [{ "map": "coast", "x": 852, "y": 1744, "wander": 20 }] },
+    "mudcrab2": { "name": "Mudcrab", "beast": "mudcrab", "faction": "wild", "group": "mudcrabs", "questId": "mudcrab", "hp": 3, "dmg": 5, "speed": 26, "rate": 1.8, "sight": 70, "mute": true, "loot": { "CrabClaw": 1 }, "where": [{ "map": "coast", "x": 884, "y": 1796, "wander": 20 }] },
+    "mudcrab3": { "name": "Mudcrab", "beast": "mudcrab", "faction": "wild", "group": "mudcrabs", "questId": "mudcrab", "hp": 3, "dmg": 5, "speed": 26, "rate": 1.8, "sight": 70, "mute": true, "loot": { "CrabClaw": 1 }, "where": [{ "map": "coast", "x": 924, "y": 1842, "wander": 20 }] },
+    "mudcrab4": { "name": "Mudcrab", "beast": "mudcrab", "faction": "wild", "group": "mudcrabs", "questId": "mudcrab", "hp": 3, "dmg": 5, "speed": 26, "rate": 1.8, "sight": 70, "mute": true, "loot": { "CrabClaw": 1 }, "where": [{ "map": "coast", "x": 964, "y": 1884, "wander": 20 }] },
+
+    "jackal1": { "name": "Jackal", "beast": "jackal", "faction": "wild", "group": "jackalsEast", "hp": 3, "dmg": 6, "speed": 60, "rate": 1.5, "flees": true, "mute": true, "where": [{ "map": "coast", "x": 2380, "y": 1420, "wander": 40 }] },
+    "jackal2": { "name": "Jackal", "beast": "jackal", "faction": "wild", "group": "jackalsEast", "hp": 3, "dmg": 6, "speed": 60, "rate": 1.5, "mute": true, "where": [{ "map": "coast", "x": 2410, "y": 1450, "wander": 40 }] },
+    "jackal3": { "name": "Jackal", "beast": "jackal", "faction": "wild", "group": "jackalsEast", "hp": 3, "dmg": 6, "speed": 60, "rate": 1.5, "mute": true, "where": [{ "map": "coast", "x": 2360, "y": 1460, "wander": 40 }] },
+
+    "alikr1": { "name": "Alik'r Warrior", "pname": "Nazir", "faction": "alikr", "group": "alikrCamp", "hp": 8, "voice": { "pitch": 0.75, "rate": 0.95, "v": 32 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true }, "eq": { "body": "ClothesRedguardClothes", "feet": "ClothesRedguardBoots", "head": "DBClothesRedguardHood", "weapon": "Scimitar", "shield": "ArmorIronShield" },
+      "where": [{ "map": "coast", "x": 2700, "y": 1130, "wander": 30 }] },
+    "alikr2": { "name": "Alik'r Warrior", "pname": "Saadia", "build": "woman", "faction": "alikr", "group": "alikrCamp", "hp": 8, "voice": { "pitch": 1.1, "rate": 1.0, "v": 33 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": false }, "eq": { "body": "ClothesRedguardClothes", "feet": "ClothesRedguardBoots", "head": "DBClothesRedguardHood", "weapon": "Scimitar" },
+      "where": [{ "map": "coast", "x": 2760, "y": 1100, "wander": 30 }] },
+    "alikr3": { "name": "Alik'r Warrior", "pname": "Kematu's man", "build": "big", "faction": "alikr", "group": "alikrCamp", "hp": 10, "voice": { "pitch": 0.6, "rate": 0.9, "v": 34 },
+      "ap": { "skin": "skin", "hair": "hair", "beard": true }, "eq": { "body": "ClothesRedguardClothes", "feet": "ClothesRedguardBoots", "head": "DBClothesRedguardHood", "weapon": "SteelGreatsword" },
+      "where": [{ "map": "coast", "x": 2660, "y": 1110, "wander": 20 }] }
+  },
+  "templates": {
+    "bandit": { "name": "Bandit", "person": "raider", "faction": "bandit", "hp": 5, "voice": { "pitch": 0.9, "rate": 1.1, "v": 1 }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "IronSword", "shield": "ArmorHideShield" } },
+    "banditAxe": { "name": "Bandit", "person": "thug", "faction": "bandit", "hp": 5, "voice": { "pitch": 0.7, "rate": 1, "v": 2 }, "eq": { "body": "ArmorHideCuirass", "feet": "ArmorHideBoots", "weapon": "IronWarAxe" } },
+    "marauder": { "name": "Bandit Marauder", "person": "marauder", "faction": "bandit", "hp": 8, "voice": { "pitch": 0.55, "rate": 0.9, "v": 0 }, "eq": { "body": "ArmorBanditCuirass", "feet": "ArmorBanditBoots", "hands": "ArmorBanditGauntlets", "weapon": "IronBattleaxe" } },
+    "keshRider": { "name": "Kesh Rider", "faction": "kesh", "hp": 6, "voice": { "pitch": 0.8, "rate": 1.05, "v": 21 }, "ap": { "skin": "skin", "hair": "hair", "beard": true, "hood": "navy" }, "eq": { "body": "ArmorLeatherCuirass", "feet": "ArmorLeatherBoots", "weapon": "Scimitar" } },
+    "keshHeavy": { "name": "Kesh Enforcer", "build": "big", "faction": "kesh", "hp": 9, "voice": { "pitch": 0.6, "rate": 0.9, "v": 23 }, "ap": { "skin": "skin", "hair": "hair", "beard": true }, "eq": { "body": "ArmorIronCuirass", "feet": "ArmorIronBoots", "head": "ArmorIronHelmet", "weapon": "IronWarhammer" } },
+    "alikr": { "name": "Alik'r Warrior", "faction": "alikr", "hp": 8, "voice": { "pitch": 0.75, "rate": 0.95, "v": 32 }, "ap": { "skin": "skin", "hair": "hair", "beard": true }, "eq": { "body": "ClothesRedguardClothes", "feet": "ClothesRedguardBoots", "head": "DBClothesRedguardHood", "weapon": "Scimitar" } },
+    "jackal": { "name": "Jackal", "beast": "jackal", "faction": "wild", "hp": 3, "dmg": 6, "speed": 60, "rate": 1.5, "flees": true, "mute": true },
+    "boar": { "name": "Boar", "beast": "boar", "faction": "wild", "hp": 6, "dmg": 10, "speed": 56, "rate": 2.0, "mute": true, "loot": { "BoarMeat": 1 } },
+    "hound": { "name": "Wild Dog", "beast": "hound", "faction": "wild", "hp": 4, "dmg": 7, "speed": 58, "mute": true },
+    "pilgrim": { "name": "Pilgrim", "faction": "village", "hp": 4, "dialogue": "villager", "voice": { "pitch": 0.9, "rate": 0.9, "v": 35 }, "ap": { "skin": "skin", "hair": "grey", "beard": true, "hood": "sand", "outfit": { "top": "sand", "sleeve": "sand", "fore": "skin", "pants": "sand", "belt": "leather", "skirt": { "ramp": "sand", "len": 1 }, "boots": "leather" } } },
+    "trader": { "name": "Caravan Trader", "faction": "village", "hp": 5, "voice": { "pitch": 0.85, "rate": 1.0, "v": 36 }, "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "ochre", "sleeve": "ochre", "fore": "skin", "pants": "sand", "belt": "red", "boots": "leather" } },
+      "shop": { "gold": 500, "stock": { "Bandage": 4, "PotionHealth": 2, "Bread": 3, "Salt": 5, "Scimitar": 1, "ClothesRedguardClothes": 1, "ClothesRedguardBoots": 1, "DBClothesRedguardHood": 1 }, "buys": ["weapon", "apparel", "misc", "food", "potion"] } }
+  }
+}

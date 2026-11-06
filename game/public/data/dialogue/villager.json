@@ -1,0 +1,100 @@
+{
+ "id": "villager",
+ "title": "Villager",
+ "_note": "Gossip that follows the story. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "a1",
+   "if": {
+    "flag": "act1.done"
+   }
+  },
+  {
+   "node": "bahram",
+   "if": {
+    "flag": "named:bahram"
+   }
+  },
+  {
+   "node": "tarik",
+   "if": {
+    "flag": "tarik.done"
+   }
+  },
+  {
+   "node": "burned",
+   "if": {
+    "flag": "farm.burned"
+   }
+  },
+  {
+   "node": "haddads",
+   "if": {
+    "flag": "quest:market"
+   }
+  }
+ ],
+ "nodes": {
+  "idle": {
+   "speaker": "",
+   "text": "Hot one today. They say it'll be hotter tomorrow. They always say that.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "haddads": {
+   "speaker": "",
+   "text": "You hear about the Haddads? Just gone. The collector says a debt. Hamza Haddad never owed a copper in his life.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "burned": {
+   "speaker": "",
+   "text": "[They look at the brand showing at your collar, and then they don't.] I'm sorry about your farm. I'm sorry. I have to go.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "tarik": {
+   "speaker": "",
+   "text": "Someone did the Collector on the east road. Nobody's paying the tax this week. Nobody knows who to pay. [Quieter.] They're saying it was a ghost.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "bahram": {
+   "speaker": "",
+   "text": "The Hammer's dead. The Hammer. At the old stair. People are saying a farmer did it. [They look at you.] Well. Good.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "a1": {
+   "speaker": "",
+   "text": "Kesh riders came asking about a farmer with a brand. Nobody knew anything. Funny, that. Nobody ever does.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}

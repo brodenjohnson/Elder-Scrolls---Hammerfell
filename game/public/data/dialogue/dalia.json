@@ -1,0 +1,111 @@
+{
+ "id": "dalia",
+ "title": "Dalia",
+ "_note": "PRO_03, A1.3. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "idle",
+ "starts": [
+  {
+   "node": "a13",
+   "if": {
+    "flag": "quest:a13",
+    "notFlag": "tarik.done"
+   }
+  },
+  {
+   "node": "tarikDone",
+   "if": {
+    "flag": "tarik.done",
+    "notFlag": "dalia.after"
+   }
+  },
+  {
+   "node": "afterMarket",
+   "if": {
+    "flag": "pro03.tarikDone",
+    "notFlag": "farm.burned"
+   }
+  }
+ ],
+ "nodes": {
+  "afterMarket": {
+   "speaker": "Dalia",
+   "text": "You shouldn't have looked at him like that. He remembers faces. That's the only thing he's good at. [Quieter.] Thank you.",
+   "choices": [
+    {
+     "text": "Let me see what you have.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "a13": {
+   "speaker": "Dalia",
+   "text": "You want Tarik. Everybody can see it on you. He rides the east road every morning with two riders and a boy they pressed into service last month. Past the crossroads, past the Haddad place. He stops to drink where nobody can see.",
+   "choices": [
+    {
+     "text": "The boy?",
+     "next": "boy",
+     "do": {
+      "questEvent": "dalia.tarik"
+     }
+    },
+    {
+     "text": "Thank you.",
+     "next": "end",
+     "do": {
+      "questEvent": "dalia.tarik"
+     }
+    }
+   ]
+  },
+  "boy": {
+   "speaker": "Dalia",
+   "text": "Fifteen, sixteen. Holds a spear like a broom. He's not one of them. Not yet.",
+   "choices": [
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  },
+  "tarikDone": {
+   "speaker": "Dalia",
+   "text": "The tax is suspended for a week. Nobody knows who to pay. [She taps a ledger of her own.] I've been keeping my own numbers for years. What he took, what he said he took. If anyone ever asks.",
+   "choices": [
+    {
+     "text": "Keep it safe.",
+     "next": "end",
+     "do": {
+      "setFlag": "dalia.after",
+      "standing": {
+       "saltreach": 1
+      }
+     }
+    }
+   ]
+  },
+  "idle": {
+   "speaker": "Dalia",
+   "text": "Salt, oil, cloth. Bandages, since everyone seems to need them lately.",
+   "choices": [
+    {
+     "text": "Let me see what you have.",
+     "next": "end",
+     "do": {
+      "run": "trade"
+     }
+    },
+    {
+     "text": "Goodbye.",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}

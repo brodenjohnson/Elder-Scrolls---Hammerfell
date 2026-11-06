@@ -1,23 +1,78 @@
 {
-  "_note": "Cutscenes (src/systems/cutscene.ts). Steps run in order: fade, caption (letterbox text), say (a spoken line), camera (pan to a ground point or back to the player), wait, setFlag, startQuest. [PLAYER] is the character's name. The prologue scenes (MAIN_QUEST.md section 2) will go here.",
-  "opening": {
-    "id": "opening",
-    "steps": [
-      {
-        "caption": "[PLAYER]. A farmer on the Sentinel Coast, with a wife, a daughter and a dog.",
-        "seconds": 3.2
-      },
-      {
-        "fade": "in",
-        "seconds": 1.8
-      },
-      {
-        "caption": "Dawn. Salt pans glitter below the hill. The goats are complaining.",
-        "seconds": 3.2
-      },
-      {
-        "setFlag": "seen:opening"
-      }
-    ]
-  }
+  "_note": "Cutscenes (src/systems/cutscene.ts). Steps run in order: fade, caption (letterbox text), say (a spoken line), camera (pan to a ground point or back to the player), wait, setFlag, startQuest, run (game actions, src/engine/game.js runAction: go, time, flag, refresh, give, take, equip, strip, heal, banner and so on, separated by ';'). [PLAYER] is the character's name. startFade 1 opens on black. Line IDs are MAIN_QUEST.md's. Escape skips a scene but still applies every flag, quest and action.",
+  "opening": { "id": "opening", "startFade": 1, "steps": [
+    { "caption": "[PLAYER]. A goat farmer on the Sentinel Coast, with a wife, a daughter and a dog.", "seconds": 3.6 },
+    { "caption": "Fourth Era, 201. Hammerfell won its war with the Dominion alone, and has been paying for it since.", "seconds": 3.8 },
+    { "fade": "in", "seconds": 1.6 },
+    { "caption": "Dawn. The salt pans glitter below the hill. The goats are complaining.", "seconds": 3.0 },
+    { "setFlag": "seen:opening" }
+  ] },
+  "evening": { "id": "evening", "steps": [
+    { "fade": "out", "seconds": 0.8 },
+    { "run": "time 19; go farmhouse 130 140; flag evening.begun; refresh" },
+    { "caption": "Home before dark. Nadira has the lamp lit. Tavi has been waiting by the door with something behind her back.", "seconds": 3.6 },
+    { "fade": "in", "seconds": 1.0 }
+  ] },
+  "day2": { "id": "day2", "steps": [
+    { "fade": "out", "seconds": 1.0 },
+    { "caption": "He tells Tavi the story of the gull who got lost. He gets the ending wrong. She corrects him, twice.", "seconds": 3.8 },
+    { "caption": "Day two.", "seconds": 2.0 },
+    { "run": "time day+1 6; go farmhouse 196 120; flag day2; give Bandage 2; refresh" },
+    { "say": { "speaker": "Nadira", "text": "The boar's been in the barley again. Dune's beside himself. Take the knife, and come back with both your hands." }, "seconds": 4.2 },
+    { "run": "equip IronDagger" },
+    { "startQuest": "hunt" },
+    { "fade": "in", "seconds": 1.0 }
+  ] },
+  "riders": { "id": "riders", "steps": [
+    { "camera": [1560, 1310], "seconds": 2.0 },
+    { "caption": "A line of riders on the coast road. Not tax riders. Clean coats, good horses.", "seconds": 3.2 },
+    { "caption": "They stop at the farm gate. One of them waves.", "seconds": 2.6 },
+    { "camera": "player", "seconds": 1.2 },
+    { "fade": "out", "seconds": 0.8 },
+    { "run": "time 12; flag guest.arrived; go farmhouse 150 140; refresh" },
+    { "caption": "Midday. A big man in a clean coat gets down first and takes his hat off. He is delighted to be here.", "seconds": 3.6 },
+    { "fade": "in", "seconds": 1.0 }
+  ] },
+  "kerrashLeaves": { "id": "kerrashLeaves", "steps": [
+    { "say": { "speaker": "The stranger", "text": "I did try to be pleasant. People always make me do it the hard way." }, "seconds": 4.0 },
+    { "fade": "out", "seconds": 1.0 },
+    { "run": "flag kerrash.left; flag salt.table; time 21; refresh" },
+    { "caption": "He rides out. The little white mound of salt stays on the table. Nobody touches it.", "seconds": 3.6 },
+    { "say": { "speaker": "Nadira", "text": "Leave it. I'll clean it in the morning. Go to bed. Please." }, "seconds": 3.4 },
+    { "startQuest": "night" },
+    { "fade": "in", "seconds": 1.0 }
+  ] },
+  "night": { "id": "night", "steps": [
+    { "fade": "out", "seconds": 1.0 },
+    { "caption": "The dog barks.", "seconds": 2.2 },
+    { "caption": "Torches on the road. He takes the old knife from under the bed.", "seconds": 3.0 },
+    { "run": "time 2; go coast 1250 1516; equip IronDagger; flag night.fight; nightFight; refresh" },
+    { "say": { "speaker": "Nadira", "text": "Keep the door. Tavi, under the bed. Now." }, "seconds": 2.4 },
+    { "fade": "in", "seconds": 0.6 }
+  ] },
+  "nightEnd": { "id": "nightEnd", "steps": [
+    { "caption": "He is hit from behind. His knees go.", "seconds": 2.2 },
+    { "fade": "out", "seconds": 0.5 },
+    { "caption": "A big man steps over him. A hammer on his shoulder, and a face he will remember for the rest of his life.", "seconds": 3.6 },
+    { "say": { "speaker": "Nadira", "text": "I'm sorry. I should have told you. Find Zeyna." }, "seconds": 4.0 },
+    { "caption": "A dog's last cry. A door. A child's voice, saying 'Da?'. Then a silence that is worse.", "seconds": 4.4 },
+    { "say": { "speaker": "Kerrash", "text": "I'm going to let you live. Somebody ought to know what happens, and it can't be a stranger." }, "seconds": 4.6 },
+    { "caption": "A pinch of salt in his mouth. The smell of a heated iron.", "seconds": 3.0 },
+    { "say": { "speaker": "Kerrash", "text": "Burn it. The dog's made his point." }, "seconds": 3.2 },
+    { "caption": "The carved gull on the floor, one wing crooked. His hand moves toward it.", "seconds": 3.6 },
+    { "run": "flag night.over; flag farm.burned; flag family.gone; unflag night.fight; unflag dune.follow; unflag salt.table; strip; take IronDagger; take CarvedGull; heal; dynamicClear" },
+    { "caption": "HAMMERFELL", "seconds": 3.0 },
+    { "caption": "Act One. Waking.", "seconds": 2.6 },
+    { "run": "time day+3 10; go zeyna 150 110; refresh" },
+    { "startQuest": "a11" },
+    { "fade": "in", "seconds": 2.0 }
+  ] },
+  "act1End": { "id": "act1End", "steps": [
+    { "fade": "out", "seconds": 1.4 },
+    { "caption": "Four more names. Two more folios: one with an Alik'r caravan elder, Mother Anwar, one with an advocate in Sentinel, Leyla Rasul.", "seconds": 4.6 },
+    { "caption": "A road leads inland to a ferry, and a smuggler captain called Juma Redtide.", "seconds": 3.6 },
+    { "run": "flag act1.done; banner Act_One_complete What_Zeyna_Owes" },
+    { "caption": "The coast is yours to walk for now. Act Two is still being built.", "seconds": 3.6 },
+    { "fade": "in", "seconds": 1.4 }
+  ] }
 }

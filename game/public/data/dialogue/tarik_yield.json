@@ -1,0 +1,99 @@
+{
+ "id": "tarik_yield",
+ "title": "Tarik Hasani",
+ "_note": "A1.3: the Collector, cornered. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "start",
+ "starts": [
+  {
+   "node": "brave",
+   "if": {
+    "flag": "tarik.remembers"
+   }
+  }
+ ],
+ "nodes": {
+  "brave": {
+   "speaker": "Tarik",
+   "text": "You. Farmer. The one who was so brave at the market.",
+   "choices": [
+    {
+     "text": "...",
+     "next": "start"
+    }
+   ],
+   "id": "A13_TAR_008"
+  },
+  "start": {
+   "speaker": "Tarik",
+   "text": "[Shaking, trying jovial.] The farmer! From the market! Brave. You were so brave. Look, it was never personal.",
+   "choices": [
+    {
+     "text": "[Cold] You ate at my table.",
+     "spoken": "He ate at my table. You put him there.",
+     "next": "babble"
+    },
+    {
+     "text": "[Flat] Who gave the order?",
+     "spoken": "Who gave the order for my farm?",
+     "next": "babble"
+    },
+    {
+     "text": "[Threat] You'll tell me everything.",
+     "spoken": "You're going to tell me everything. Then we'll see.",
+     "next": "babble"
+    },
+    {
+     "text": "[Infamy] I'm the message.",
+     "spoken": "I'm the message. You get to read it.",
+     "next": "babble",
+     "do": {
+      "infamy": 1
+     }
+    }
+   ],
+   "id": "A13_TAR_010"
+  },
+  "babble": {
+   "speaker": "Tarik",
+   "text": "It was Bahram! Bahram Kesh! He picks the farms! He said the woman was special, a woman from the old country, he said she had something! I didn't know what! He's at the old stair on the north shore, him and his dogs! Please!",
+   "choices": [
+    {
+     "text": "[Kill him.]",
+     "next": "end",
+     "do": {
+      "setFlag": "tarik.done",
+      "run": "finish tarik_road"
+     }
+    },
+    {
+     "text": "[Spare him] Run. Tell them who sent you.",
+     "spoken": "Run. Tell every one of them who sent you.",
+     "next": "end",
+     "do": {
+      "setFlag": "tarik.spared",
+      "give": {
+       "TaxLedgerKey": 1
+      },
+      "run": "flag tarik.done; free tarik_road; name tarik_road"
+     }
+    },
+    {
+     "text": "[Village] Saltreach can decide.",
+     "spoken": "Walk. Saltreach can decide what you're worth.",
+     "next": "end",
+     "do": {
+      "setFlag": "tarik.village",
+      "standing": {
+       "saltreach": 2
+      },
+      "give": {
+       "TaxLedgerKey": 1
+      },
+      "run": "flag tarik.done; free tarik_road; name tarik_road"
+     }
+    }
+   ],
+   "id": "A13_TAR_014"
+  }
+ }
+}

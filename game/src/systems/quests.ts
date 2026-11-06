@@ -26,6 +26,7 @@ export class Quests {
     const q = this.defs[id];
     if (!q || this.isActive(id) || this.isDone(id)) return false;
     this.s.active[id] = { stage: q.stages[0].id, progress: {} };
+    this.hooks.flags().add(`quest:${id}`);
     this.hooks.say(`New quest: ${q.title}.`);
     this.checkFlags();
     return true;
@@ -60,7 +61,7 @@ export class Quests {
     if (t?.say) this.hooks.say(t.say);
     const next = st.next ? q.stages.find((x) => x.id === st.next) : undefined;
     if (next) { a.stage = next.id; a.progress = {}; this.checkFlags(); }
-    else { delete this.s.active[id]; this.s.done.push(id); this.hooks.say(`Quest complete: ${q.title}.`); }
+    else { delete this.s.active[id]; this.s.done.push(id); this.hooks.flags().add(`done:${id}`); this.hooks.say(`Quest complete: ${q.title}.`); }
     if (t?.startQuest) this.start(t.startQuest);
   }
 

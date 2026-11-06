@@ -1,0 +1,55 @@
+{
+ "id": "conscript",
+ "title": "The Conscript",
+ "_note": "A1.3: the boy with the spear. Killing him adds Collateral. Lines keep MAIN_QUEST.md IDs where they have one, for voicing. Options show short text; spoken is the fuller line he says. starts: the first whose condition holds opens the conversation.",
+ "start": "start",
+ "starts": [],
+ "nodes": {
+  "start": {
+   "speaker": "Conscript",
+   "text": "[He drops the knife. He is about sixteen.] Please. They said it was just the tax. They said nobody would fight. I'm from Tava's Blessing, I'm not one of them, please.",
+   "choices": [
+    {
+     "text": "[Spare] Go home.",
+     "spoken": "Go home. Tell your mother you were never here.",
+     "next": "home",
+     "do": {
+      "setFlag": "conscript.spared",
+      "standing": {
+       "saltreach": 1
+      },
+      "run": "free conscript"
+     }
+    },
+    {
+     "text": "[Cold] Run.",
+     "spoken": "Run.",
+     "next": "end",
+     "do": {
+      "setFlag": "conscript.spared",
+      "run": "free conscript"
+     }
+    },
+    {
+     "text": "[Kill him.]",
+     "next": "end",
+     "do": {
+      "collateral": 1,
+      "setFlag": "conscript.killed",
+      "run": "finish conscript"
+     }
+    }
+   ]
+  },
+  "home": {
+   "speaker": "Conscript",
+   "text": "[He is already running.]",
+   "choices": [
+    {
+     "text": "...",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}
