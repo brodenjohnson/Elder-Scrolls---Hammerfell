@@ -9,48 +9,40 @@
   body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Georgia, serif; }
   main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 40px; }
   h1 { font-size: 22px; margin: 0 0 4px; color: #f0d090; }
-  h2 { font-size: 17px; margin: 22px 0 6px; color: #f0d090; }
+  h2 { font-size: 17px; margin: 20px 0 6px; color: #f0d090; }
   p { margin: 6px 0; }
   .dim { color: var(--dim); }
-  nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 10px; }
-  nav button, .who button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 7px 12px; font: inherit; cursor: pointer; }
-  nav button.on, .who button.on { border-color: var(--gold); color: #f0d090; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+  .row b { min-width: 70px; color: var(--dim); font-weight: normal; }
+  button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 5px 10px; font: inherit; font-size: 14px; cursor: pointer; }
+  button.on { border-color: var(--gold); color: #f0d090; }
   #view { width: 100%; max-width: 960px; aspect-ratio: 320 / 190; image-rendering: pixelated; display: block; border: 1px solid var(--line); cursor: crosshair; }
-  #sheet { image-rendering: pixelated; border: 1px solid var(--line); max-width: 100%; }
+  #lineup { image-rendering: pixelated; width: 100%; max-width: 960px; border: 1px solid var(--line); cursor: pointer; }
   .keys { background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; margin: 10px 0; }
   #msg { min-height: 1.5em; color: #f0d090; }
-  #now img { width: 100%; max-width: 960px; border: 1px solid var(--line); }
-  .who { display: flex; gap: 6px; margin: 6px 0; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Hammerfell: art sample</h1>
-  <p class="dim">Two candidate styles for the reset (design bible v0.3). Both are drawn by code while the page runs: small pixel figures posed from one skeleton, shaded with palette ramps, outlined. Pick one, or say what to take from each.</p>
-  <nav>
-    <button data-tab="A">Style A: top-down</button>
-    <button data-tab="B">Style B: small isometric</button>
-    <button data-tab="now">Now: the current game</button>
-  </nav>
-  <section id="play">
-    <h2 id="style-name"></h2>
-    <p id="style-note"></p>
-    <div class="keys">WASD walk &middot; Shift run &middot; J or left click attack (tap three times for the combo: forehand, backhand, overhead) &middot; hold J or left click for a power attack &middot; K or right click block. The bandit glows before he swings: block then, or step away.</div>
-    <canvas id="view" width="320" height="190"></canvas>
-    <p id="msg"></p>
-    <h2>Every animation, every direction</h2>
-    <div class="who"><button data-who="kasim" class="on">Kasim</button><button data-who="bandit">Bandit</button></div>
-    <canvas id="sheet"></canvas>
-  </section>
-  <section id="now" hidden>
-    <h2>Now: the current game</h2>
-    <p>The current game, for comparison: large figures built from 3D shapes and rendered into sprite sheets ahead of time, eight directions.</p>
-    <img src="now.png" alt="The farm in the current game: Kasim, Nadira, Tavi and the dog outside the house">
-  </section>
-  <h2>What is the same in both</h2>
-  <p>The figures are about 40 pixels tall, shown three times larger. The bodies, clothes and weapons are separate pieces, so new armour and weapons are cheap and limbs can come off. Swings have their own frames with held timings and a blade smear, and hits freeze for a split second, shake and knock back, as the game now does.</p>
-  <h2>What this sample does not show</h2>
-  <p>Buildings, towns, interiors, the desert, night lighting, finishers and gore beyond blood. Faces are a few pixels, so close-up expression would come from portraits in dialogue, not the sprites.</p>
+  <h1>Hammerfell: art sample, round two</h1>
+  <p class="dim">Style A, in a bandit camp at dusk. Every armour set and weapon class on Kasim, dismemberment and the finishers. All drawn by code while the page runs.</p>
+  <div class="keys">WASD walk &middot; Shift run &middot; J or left click attack (three in a row: forehand, backhand, overhead) &middot; hold for a power attack &middot; K or right click block (just before a blow lands: parry) &middot; Space dodge &middot; <b>F finisher</b> on a staggered or badly hurt bandit &middot; R reset the camp.<br>
+  Bandits glow before they swing. A third hit, a power attack, a parry or a two-handed blow staggers them: a flashing F shows who can be finished.</div>
+  <canvas id="view" width="320" height="190"></canvas>
+  <p id="msg"></p>
+  <div class="row"><b>Armour</b><span id="armour" class="row"></span></div>
+  <div class="row"><b>Weapon</b><span id="weapon" class="row"></span></div>
+  <p class="dim" id="fin-note"></p>
+  <div class="row"><b>Gore</b><button data-gore="full" class="on">Full</button><button data-gore="some">Blood only</button><button data-gore="off">Off</button>
+    <b style="margin-left:16px">Light</b><button data-light="dusk" class="on">Dusk</button><button data-light="day">Day</button>
+    <button id="reset" style="margin-left:16px">Reset the camp</button></div>
+  <h2>The armoury</h2>
+  <p class="dim">Top two rows: every armour set, front and side, with the weapon you have chosen. Bottom row: every weapon, mid-swing, in the armour you have chosen. Click one to wear it.</p>
+  <canvas id="lineup"></canvas>
+  <h2>Notes</h2>
+  <p>The bandits are a raider (leather, sword), a thug (hide, mace), a marauder (fur, battleaxe), a second raider with a scimitar, and their chief (iron, greatsword) by his tent.</p>
+  <p>Each weapon class has its own finisher: blades behead, axes cleave through the shoulder, blunt weapons crush the skull, daggers cut the throat. Heavy killing blows can also take a head or an arm off without a finisher; blunt weapons crush instead.</p>
+  <p>Not in this sample: towns, interiors, the desert, dedicated hit reactions per direction, and the player's own wounds.</p>
 </main>
 <script src="sample.js"></script>
 </body>

@@ -36,7 +36,7 @@ Four spikes, then a short report with numbers and screenshots:
 Then ask Broden the blocking questions in section 16 of the bible before Phase 1.
 
 ## Status (keep current)
-- **v0.3 scope reset (2026-11-06):** see the top of `DESIGN_BIBLE.md`. Order: scope cut and combat feel pass (released as 0.6.0), art sample for Broden to choose (`game/public/art-sample/`, live at `/art-sample/`; not game code), then fill the Sentinel Coast region, then the prologue.
+- **v0.3 scope reset (2026-11-06):** see the top of `DESIGN_BIBLE.md`. Order: scope cut and combat feel pass (released as 0.6.0), art style A chosen; the sample (`game/public/art-sample/`, live at `/art-sample/`; not game code) is being refined with Broden, then the game moves to it, then fill the Sentinel Coast region, then the prologue.
 - Phase 0 done and approved (2026-11-05): reports in `docs/` (PHASE0, ART_SPIKE, TECH_SPIKE, COMBAT_SPIKE).
 - Phase 1 engine core: `game/` (TypeScript, Vite, PixiJS 8), released as 0.1.0. Run `npm test` in `game/` before every release; release with `npm run release`.
 - Phase 3 combat: melee against the Coast Road bandit camp (0.3.0, `game/src/combat/`); Rage and Fury, bleeding and limps, dismemberment in the world and three finishers (0.4.0). Three enemy types and two-handed combat (0.5.0): Bandit, Bandit marauder (battleaxe) at the camp, two Alik'r warriors (scimitars) at the desert edge north of it. Still to do in Phase 3: finisher animations of their own, player sprites for looted fur, hide and Alik'r gear, scars, playtesting the numbers (Broden).
