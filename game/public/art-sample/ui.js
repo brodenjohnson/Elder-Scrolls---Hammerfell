@@ -64,8 +64,11 @@ addEventListener('hf-ready', () => {
     else p.classList.remove('on');
   }
   // What people say, over their heads, for as long as it takes to say it.
+  // Subtitles can be turned off in System; the choice is remembered in this browser.
+  let subtitles = true; try { subtitles = localStorage.getItem('hf.subtitles') !== 'off'; } catch { /* private window */ }
   function bubbles() {
     const B = window.HFV?.bubbles || [], t = performance.now(), el = $('#bubbles');
+    if (!subtitles) { el.innerHTML = ''; return; }
     for (let i = B.length - 1; i >= 0; i--) if (B[i].until < t || (B[i].f.dead && B[i].f !== HF.pl)) B.splice(i, 1);
     el.innerHTML = B.map((b) => { const [x, y] = HF.screenOf(b.f.x, b.f.y - 64); return `<div class="bubble ${b.f === HF.pl ? 'you' : ''}" style="left:${x}%;top:${y}%"><b>${esc(b.f.pname || 'Kasim')}</b> ${esc(b.text)}</div>`; }).join('');
   }
@@ -188,6 +191,7 @@ addEventListener('hf-ready', () => {
           <div class="opt"><span>Gore</span>${['full', 'some', 'off'].map((g) => `<button data-gore="${g}" class="${HF.settings.gore === g ? 'on' : ''}">${{ full: 'Full', some: 'Blood only', off: 'Off' }[g]}</button>`).join('')}</div>
           <div class="opt"><span>Light</span>${['dusk', 'day'].map((l) => `<button data-light="${l}" class="${HF.settings.light === l ? 'on' : ''}">${l === 'dusk' ? 'Dusk' : 'Day'}</button>`).join('')}</div>
           <div class="opt"><span>Sound</span><button data-sound="on" class="${HFA.on ? 'on' : ''}">On</button><button data-sound="off" class="${HFA.on ? '' : 'on'}">Off</button></div>
+          <div class="opt"><span>Subtitles</span><button data-subs="on" class="${subtitles ? 'on' : ''}">On</button><button data-subs="off" class="${subtitles ? '' : 'on'}">Off</button></div>
           <div class="opt"><span>Voices</span><button data-voice="on" class="${HFV.on ? 'on' : ''}">On</button><button data-voice="off" class="${HFV.on ? '' : 'on'}">Off</button>${HFV.available ? '' : ' <i>(this browser has no speech voices)</i>'}</div>
           <div class="opt"><span>Testing</span><button data-sys="perks">+3 perk points</button><button data-sys="skills">+10 to combat skills</button></div>
           <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; E search or open &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal</div></div>`;
@@ -260,7 +264,8 @@ addEventListener('hf-ready', () => {
     }
   }, true);
   menu.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-go],[data-cat],[data-i],[data-skill],[data-tab],[data-sys],[data-gore],[data-light],[data-perk],[data-sound],[data-voice]'); if (!t) return;
+    const t = e.target.closest('[data-go],[data-cat],[data-i],[data-skill],[data-tab],[data-sys],[data-gore],[data-light],[data-perk],[data-sound],[data-voice],[data-subs]'); if (!t) return;
+    if (t.dataset.subs) { subtitles = t.dataset.subs === 'on'; try { localStorage.setItem('hf.subtitles', t.dataset.subs); } catch { /* private window */ } return render(); }
     if (t.dataset.voice) { HFV.setOn(t.dataset.voice === 'on'); return render(); }
     if (t.dataset.perk) { HF.takePerk(t.dataset.perk); return render(); }
     if (t.dataset.sound) { HFA.setOn(t.dataset.sound === 'on'); return render(); }
