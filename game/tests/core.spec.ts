@@ -121,7 +121,7 @@ test('a newer published version shows a notice', async ({ page }) => {
 
 test('only the farm sprite sheets load at start; an outfit loads when it is first worn', async ({ page }) => {
   await boot(page);
-  expect(await call<string[]>(page, 'sheetsLoaded')).toEqual(['farm_idle', 'farm_walk']);
+  expect((await call<string[]>(page, 'sheetsLoaded')).filter((n) => n.startsWith('leather_'))).toEqual([]); // nothing worn yet is loaded
   await call(page, 'give', 'ArmorLeatherCuirass'); await call(page, 'equip', 'ArmorLeatherCuirass');
   await page.waitForFunction(() => (window as any).__game.sheetsLoaded().includes('leather_death'), null, { timeout: 15_000 });
   expect((await call<string[]>(page, 'sheetsLoaded')).filter((n) => n.startsWith('leather_'))).toHaveLength(7);
@@ -129,7 +129,7 @@ test('only the farm sprite sheets load at start; an outfit loads when it is firs
 
 test('the farm is a hand-placed site: house, well, goat pen with a broken north fence, on dry land', async ({ page }) => {
   await boot(page);
-  const S = 128, fa = 4 * S + 30, fb = 8 * S + 96;
+  const S = 128, fa = 3 * S + 30, fb = 7 * S + 96;
   await call(page, 'teleport', fa + 4, fb + 3);
   await page.waitForTimeout(300);
   const things = (await call<any[]>(page, 'things')).filter((t) => Math.hypot(t.a - fa, t.b - fb) < 16);

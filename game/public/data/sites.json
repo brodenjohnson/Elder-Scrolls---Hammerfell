@@ -2,7 +2,7 @@
   "_note": "Hand-placed sites (src/world/terrain.ts). Each is in one slice (zero-based x, y); at is the tile within the slice that its things are placed around. clear: a radius (tiles) around at where no random props grow. Things are placed exactly, without the spacing rules random props follow.",
   "sites": [
     {
-      "id": "farm", "name": "The farm (prologue home, MAIN_QUEST PRO_01)", "slice": [4, 8], "at": [30, 96], "clear": 16,
+      "id": "farm", "name": "The farm (prologue home, MAIN_QUEST PRO_01)", "slice": [3, 7], "at": [30, 96], "clear": 16,
       "things": [
         { "id": "house", "a": 0, "b": 0 },
         { "id": "well", "a": 6, "b": 4.5 },

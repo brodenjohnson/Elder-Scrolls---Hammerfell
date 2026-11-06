@@ -25,8 +25,8 @@ type Manifest = {
 
 const PLAYER_RADIUS = 0.3;          // tiles
 const WALK = 3.2, RUN = 5;          // tiles a second (bible: about 5 running)
-// A new game wakes at the farm (MAIN_QUEST PRO_01): slice 4,8, outside the house door.
-const FARM = { a: 4 * 128 + 30, b: 8 * 128 + 96 };
+// A new game wakes at the farm (MAIN_QUEST PRO_01): slice 3,7 ("Farm valley", 4,8 in slices.json, which counts from 1), outside the house door.
+const FARM = { a: 3 * 128 + 30, b: 7 * 128 + 96 };
 const START = { a: FARM.a + 1.5, b: FARM.b + 5.6 };
 type Npc = { id: string; outfit: string; dialogue?: string; a: number; b: number; facing: Facing; tint?: number; home: [number, number]; moving?: boolean; follow?: boolean };
 const PEOPLE = (): Npc[] => [
@@ -388,7 +388,8 @@ export class Game {
       this.say(`Searched the body: ${body.gear.map((g) => this.data.weapons.get(g)?.name ?? this.data.armour.get(g)?.name ?? this.data.items[g]?.name ?? g).join(', ')}.`);
       return;
     }
-    const npc = this.npcs.find((n) => Math.hypot(n.a - p.a, n.b - p.b) < 1.8);
+    // The nearest person in reach, not the first listed.
+    const npc = this.npcs.map((n) => ({ n, d: Math.hypot(n.a - p.a, n.b - p.b) })).filter((x) => x.d < 1.8).sort((x, y) => x.d - y.d)[0]?.n;
     if (npc?.id === 'dune') { this.petDog(npc); return; }
     if (npc?.dialogue) { this.talk(npc.dialogue); return; }
     const chest = [...this.streamer.things()].find((t) => t.id === 'chest' && Math.hypot(t.a - p.a, t.b - p.b) < 1.6);

@@ -15,7 +15,9 @@ Newest first. Each release says what changed for the player, and any save change
 - **Character creation.** Name him on your first visit, or after N for a new game. All ten races are listed with Skyrim's skill bonuses; only the Redguard can be picked until the others are drawn.
 - **Gore setting and warning.** A mature content warning on first launch, and Options (O) to turn gore down: off (no blood), some (blood, nothing cut off), or full.
 - **Cutscenes.** A short opening plays after you name him; Esc skips.
-- **The farm and the family (the prologue begins).** A new game now wakes at the farm on the hill south of the settlement: the house, the well, a goat pen. Nadira, Tavi and Dune are there. Nadira sets the morning chores (water from the well, feed the goats, mend the north fence), Tavi has found a bone, and Dune can be petted, then called to heel (press E again). What you say moves a hidden bond with each of them. The rest of the prologue (the market, Kerrash's visit, the night) comes in later releases.
+- Unarmed in farm clothes, you now flinch and fall when hit and killed (before, the body stayed standing).
+- Talking (E) picks the nearest person in reach, not the first one listed.
+- **The farm and the family (the prologue begins).** A new game now wakes at the farm in the valley west of the settlement: the house, the well, a goat pen. Nadira, Tavi and Dune are there. Nadira sets the morning chores (water from the well, feed the goats, mend the north fence), Tavi has found a bone, and Dune can be petted, then called to heel (press E again). What you say moves a hidden bond with each of them. The rest of the prologue (the market, Kerrash's visit, the night) comes in later releases.
 - **Saves:** save version 4 (quests, the clock, the character's name and the family bond). Older saves load: no quests, the clock set from time played, the name Kasim, and you stay where you saved.
 
 ## 0.4.0 (2026-11-06): combat, second part

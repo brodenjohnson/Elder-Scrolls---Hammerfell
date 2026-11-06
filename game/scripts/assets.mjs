@@ -31,7 +31,7 @@ for (const id of objects) for (const part of ['body', 'shadow']) {
   if (fs.existsSync(src)) copy(src, path.join(out, 'assets/objects', `${id}__${part}.png`));
 }
 const COMBAT = ['idle', 'walk', 'attack', 'block', 'roll', 'hit', 'death'];
-const sheets = ['farm_idle', 'farm_walk', ...['leather', 'farmSword', 'bandit', 'steel', 'marauder', 'alikr'].flatMap((o) => COMBAT.map((a) => `${o}_${a}`))];
+const sheets = ['farm_idle', 'farm_walk', 'farm_hit', 'farm_death', ...['nadira', 'tavi', 'dune'].flatMap((o) => [`${o}_idle`, `${o}_walk`]), ...['leather', 'farmSword', 'bandit', 'steel', 'marauder', 'alikr'].flatMap((o) => COMBAT.map((a) => `${o}_${a}`))];
 for (const s of sheets) {
   copy(path.join(art, 'sprites', `${s}.json`), path.join(out, 'assets/sprites', `${s}.json`));
   copy(path.join(art, 'sprites', `${s}.png`), path.join(out, 'assets/sprites', `${s}.png`));

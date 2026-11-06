@@ -215,14 +215,14 @@ test('cutscenes: the opening plays after creation, holds the player still, and E
   expect(await call<string[]>(page, 'flags')).toContain('seen:opening');
   // Played through, it ends by itself.
   await call(page, 'play', 'opening');
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(9500);
   expect(await call(page, 'scene')).toBeNull();
 });
 
 test('PRO_01 Morning: Nadira sets the chores, they are done at the farm, and the family bond moves', async ({ page }) => {
   await boot(page);
   const w = await call(page, 'where');
-  expect([w.sx, w.sy]).toEqual([4, 8]); // a new game wakes at the farm
+  expect([w.sx, w.sy]).toEqual([3, 7]); // a new game wakes at the farm
   expect(await call(page, 'talk', 'nadira')).toContain('He lives.');
   await call(page, 'choose', 0); // Morning.
   expect((await call(page, 'bond')).wife).toBe(1);

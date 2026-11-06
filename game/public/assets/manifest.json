@@ -376,13 +376,54 @@
    "ox": 23,
    "oy": 27,
    "shadow": true
+  },
+  "well": {
+   "w": 106,
+   "h": 116,
+   "ox": 34,
+   "oy": 90,
+   "shadow": true
+  },
+  "fenceA": {
+   "w": 90,
+   "h": 76,
+   "ox": 36,
+   "oy": 53,
+   "shadow": true
+  },
+  "fenceB": {
+   "w": 90,
+   "h": 76,
+   "ox": 36,
+   "oy": 53,
+   "shadow": true
+  },
+  "fenceABroken": {
+   "w": 101,
+   "h": 79,
+   "ox": 36,
+   "oy": 56,
+   "shadow": true
+  },
+  "goat": {
+   "w": 60,
+   "h": 69,
+   "ox": 24,
+   "oy": 59,
+   "shadow": true
   }
  },
  "sheets": [
   "farm_idle",
   "farm_walk",
-  "steel_idle",
-  "steel_walk",
+  "farm_hit",
+  "farm_death",
+  "nadira_idle",
+  "nadira_walk",
+  "tavi_idle",
+  "tavi_walk",
+  "dune_idle",
+  "dune_walk",
   "leather_idle",
   "leather_walk",
   "leather_attack",
@@ -403,6 +444,27 @@
   "bandit_block",
   "bandit_roll",
   "bandit_hit",
-  "bandit_death"
+  "bandit_death",
+  "steel_idle",
+  "steel_walk",
+  "steel_attack",
+  "steel_block",
+  "steel_roll",
+  "steel_hit",
+  "steel_death",
+  "marauder_idle",
+  "marauder_walk",
+  "marauder_attack",
+  "marauder_block",
+  "marauder_roll",
+  "marauder_hit",
+  "marauder_death",
+  "alikr_idle",
+  "alikr_walk",
+  "alikr_attack",
+  "alikr_block",
+  "alikr_roll",
+  "alikr_hit",
+  "alikr_death"
  ]
 }

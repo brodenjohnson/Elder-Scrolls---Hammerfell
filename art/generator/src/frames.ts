@@ -44,7 +44,7 @@ type Outfit = {
 const TWO_HANDED = { attack: attack2HPose, block: block2HPose };
 const COMBAT = ['idle', 'walk', 'attack', 'block', 'roll', 'hit', 'death'];
 export const OUTFITS: Record<string, Outfit> = {
-  farm: { ...OUTFIT_DATA.farm, anims: ['idle', 'walk'], layers: farmClothesLayers },
+  farm: { ...OUTFIT_DATA.farm, anims: ['idle', 'walk', 'hit', 'death'], layers: farmClothesLayers }, // unarmed, he can still be hurt and killed
   leather: { ...OUTFIT_DATA.leather, anims: COMBAT, layers: (p, b) => [...leatherArmourLayers(p, b), ...ironSwordLayers(p)] },
   // The farmer with a sword in his own clothes, and a Nord bandit in leather: the first fight.
   farmSword: { ...OUTFIT_DATA.farmSword, anims: COMBAT, layers: (p, b) => [...farmClothesLayers(p, b), ...ironSwordLayers(p)] },
