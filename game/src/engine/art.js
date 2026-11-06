@@ -181,6 +181,8 @@ export function rig(pose, face, wpn, R = RIG) {
   // A shield arm holds the shield out in front, or across the body in a block.
   // A shield is held close in front of the body, raised across it in a block, thrust out in a bash.
   if (wpn.shield && wpn.hands === 1 && !P.free) Object.assign(P, P.guard ? { aLp: 1.25, aLr: -0.45, aLe: 1.4 } : P.bash ? { aLp: 1.5, aLr: -0.15, aLe: 0.2 } : { aLp: 0.8, aLr: 0.02, aLe: 1.3 });
+  // A torch is held up and out to the side, away from the blade.
+  else if (wpn.torch && !P.free && !P.spin) Object.assign(P, { aLp: 0.75, aLr: 0.35, aLe: 1.1 });
   const legR = [limb(P.lRp, P.lRr, 1), limb(P.lRp - P.lRk, P.lRr, 1)], legL = [limb(P.lLp, P.lLr, -1), limb(P.lLp - P.lLk, P.lLr, -1)];
   const low = (l) => Math.max(-l[0][2] * R.thigh, -(l[0][2] * R.thigh + l[1][2] * R.shin));
   const pelvis = [0, 0, Math.max(low(legR), low(legL))];
@@ -200,7 +202,8 @@ export function rig(pose, face, wpn, R = RIG) {
     capeA: add(neck, [0, -2.4, -1.5]), capeB: add(pelvis, [0, -3.5 - Math.max(0, P.lean) * 9, -R.thigh * 1.45 + Math.max(0, P.lean) * 4]),
     tabA: add(chest, rotZ([0, R.chestMin * 0.3, -2], P.tw * 0.5)), tabB: add(pelvis, [0, R.waistMin * 0.36 + Math.max(0, P.lean) * 3, -R.thigh * 0.95]),
     crA: add(head, add([0, R.headR * 0.55, 0], up, R.headR * 0.95)), crB: add(head, add(back, up, R.headR * 0.5)),
-    tlA: add(head, back, R.headR * 0.85), tlB: add(neck, [1.5, -R.headR * 1.5, -R.spine * 0.45]) };
+    tlA: add(head, back, R.headR * 0.85), tlB: add(neck, [1.5, -R.headR * 1.5, -R.spine * 0.45]),
+    torB: add(haL, rotZ([-0.15, 0.25, 1], P.tw), -2.5), torT: add(haL, rotZ([-0.15, 0.25, 1], P.tw), 7.5) };
   // A roll turns the whole body about the hips, and lifts it so the lowest point stays on the ground.
   if (P.spin) {
     const piv = [0, 0, pelvis[2] * 0.55];
@@ -267,7 +270,7 @@ export const PEOPLE = {
 const apOf = (who) => (typeof who === 'string' ? PEOPLE[who] || PEOPLE.kasim : who);
 // A figure's look from who he is and what he wears, piece by piece.
 export function lookFor(who, eq) {
-  const h = apOf(who), at = (slot) => (eq[slot] && PIECE[eq[slot]] ? SETS[PIECE[eq[slot]][0]][slot] : null);
+  const h = apOf(who), at = (slot) => (eq[slot] && PIECE[baseOf(eq[slot])] ? SETS[PIECE[baseOf(eq[slot])][0]][slot] : null);
   const look = { skin: h.skin, hair: h.hair, beard: h.beard, hairStyle: h.hairStyle || 'short', top: h.skin, sleeve: h.skin, fore: h.skin, pants: 'pants', belt: 'leather', boots: h.skin };
   if (h.outfit && !at('body')) Object.assign(look, h.outfit);
   Object.assign(look, at('body') || {}, at('hands') || {}, at('feet') || {});
@@ -278,7 +281,9 @@ export function lookFor(who, eq) {
   if (look.helm || look.hood) look.hairStyle = 'short';
   return look;
 }
-export const weaponOf = (eq) => { const w = ITEMS[eq.weapon] || ITEMS.Fists || { shape: 'none', hands: 1, metal: 'iron' }, s = SHAPES[w.shape]; return { ...s, hands: w.hands, metal: w.metal, shield: w.hands === 1 && eq.shield ? SHIELDS[eq.shield] : null }; };
+// An improved item (IronSword+2) looks like the item it was made from.
+export const baseOf = (edid) => (edid ? String(edid).split('+')[0] : edid);
+export const weaponOf = (eq) => { const w = ITEMS[eq.weapon] || ITEMS.Fists || { shape: 'none', hands: 1, metal: 'iron' }, s = SHAPES[w.shape]; return { ...s, hands: w.hands, metal: w.metal, shield: w.hands === 1 && eq.shield ? SHIELDS[baseOf(eq.shield)] || null : null, torch: w.hands === 1 && eq.shield === 'Torch' }; };
 
 // ---------- drawing a character ----------
 // cut: parts taken off (head, armR, armL). only: draw just that part (a severed piece). crushed: the head is pulp.
@@ -365,6 +370,8 @@ export function drawCharacter(look, wpn, pose, face, o = {}) {
   // the weapon goes with the right arm, the shield with the left
   push('armR', (Z('wb') + Z('wt')) / 2 - 0.3, () => drawWeapon(p, wpn, S('wb'), S('haR'), S('wt'), S('wg')));
   if (wpn.shield) push('armL', Z('haL') - 0.6, () => drawShield(p, g, wpn.shield));
+  // A torch: the stick in the left hand and a charred head (the flame is drawn live, over the figure).
+  if (wpn.torch) push('armL', (Z('torB') + Z('torT')) / 2 - 0.3, () => { const [x0, y0] = S('torB'), [x1, y1] = S('torT'); rod(p, x0, y0, x1, y1, 1.6, 1.4, 'wood'); blob(p, x1, y1, 1.8, 1.6, 'leather', { tex: 0.1 }); });
   // the head, or what is left of it
   if (o.crushed && !only) push('body', Z('head'), () => { const [x, y] = S('neck'); blob(p, x, y - 2, R.headR * 0.9, R.headR * 0.5, 'blood', { rough: 0.5, seed: 3, tex: 0.4, fn: (xx, yy, v) => (hash(xx, yy, 4) < 0.15 ? tone('bone', v + 0.2, xx, yy) : hash(xx, yy, 5) < 0.2 ? tone('meat', v, xx, yy) : null) }); });
   else {
@@ -381,7 +388,8 @@ export function drawCharacter(look, wpn, pose, face, o = {}) {
   parts.sort((a, b) => b.z - a.z);
   for (const q of parts) q.draw();
   finish(p, 0.2);
-  const pt = {}; for (const k of ['head', 'neck', 'shR', 'shL', 'chest', 'pelvis', 'haR', 'haL']) pt[k] = S(k);
+  const pt = {}; for (const k of ['head', 'neck', 'shR', 'shL', 'chest', 'pelvis', 'haR', 'haL', 'torT']) pt[k] = S(k);
+  pt.torchBehind = Z('torT') > Z('chest');
   return { canvas: p.canvas(), blade: [S('wg'), S('wt')], pt };
 }
 

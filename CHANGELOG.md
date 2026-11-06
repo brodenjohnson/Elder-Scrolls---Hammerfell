@@ -2,6 +2,28 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.8.0 (2026-11-06): smithing, torches and the dark, a proper title
+
+- **A title sequence.** Black, then "Press any key". The title theme rises (strings, a low choir, a horn and timpani, our own tune), the coast fades in at dusk with the camera drifting along the shore, and the seal and the name, **The Salt Ledger**, come up on a timpani roll. Then the menu: Continue, New Game, Load (every save, with name, level and date), Credits. Any key skips straight to the menu.
+- **Smithing, as in Skyrim.** Hamid's smithy in Saltreach now has a forge (and anvil), a smelter, a tanning rack, a grindstone and a workbench. Press E at one.
+  - **Forge:** make iron, hide and leather weapons and armour from ingots, leather and leather strips. Steel needs the Steel Smithing perk, Orcish needs Orcish Smithing. Torches from firewood and lamp oil.
+  - **Smelter:** iron ore into iron ingots, iron and corundum ore into steel, orichalcum ore into orichalcum.
+  - **Tanning rack:** hides into leather, leather into strips. Boars, jackals and hounds now leave a hide.
+  - **Grindstone and workbench:** improve weapons and armour, Fine to Legendary, by your Smithing skill. It costs one of the item's material. Steel Smithing and Orcish Smithing double the gain on their metal. Improved gear keeps its look and stays equipped.
+  - Making and improving train Smithing by the item's value, on Skyrim's curve. Smelting and tanning do not, as in Skyrim.
+  - Ore veins in Gull Rock Cave (iron and corundum) and at the edge of the Alik'r (orichalcum). Mining needs a pickaxe; Hamid sells one, along with ingots, ore, leather and strips.
+  - The Smithing perks can be taken now. Perks for metals the coast does not have (Dwarven, Elven, Glass and the rest) are greyed out, and the perks after them need only what those needed.
+- **Trading, finished.**
+  - Merchants' gold and stock come back every two days, as in Skyrim.
+  - The Speech perks work: Haggling (10 to 30 percent better prices), Allure (10 percent better with women), Merchant (sell anything to anyone), Investor (500 gold into a shop for a bigger purse, V in the shop), Master Trader (every merchant has 1000 more gold) and Persuasion (Speech checks are 30 percent easier). Bribery, Intimidation and Fence have nothing to do yet and are greyed out.
+  - R buys or sells the whole stack. Selling the last of something you are wearing takes it off first.
+- **Nights are dark.** Moonlight is about a fifth of daylight. Fires, lamps, the forge and torches now light the ground around them instead of only glowing.
+- **Torches.** Carry one in the off hand (Equip it, or press L). Two-handed weapons and torches do not mix. After dark, people outdoors carry torches too: villagers out late, travellers, bandits, and the raiders on the night of the prologue. A body drops its torch.
+- **Gull Rock Cave has walls**: rock all round, darker inside, so a torch matters.
+- **Talking and searching reach further**: people from about twice as far as before, bodies, chests and doors a little further.
+- Hamid now stands beside his anvil instead of in front of the forge.
+- **Saves:** no change (still version 6). Improved items are stored by name (IronSword+2) and rebuilt on load.
+
 ## 0.7.0 (2026-11-06): the new game, the whole coast, the prologue and Act One
 
 The game now runs on the art sample's look and combat, and the story goes past the prologue for the first time.

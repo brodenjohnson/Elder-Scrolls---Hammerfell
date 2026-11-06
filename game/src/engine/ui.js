@@ -4,8 +4,9 @@
    the activate prompt, Rage, Health and Stamina, speech bubbles, cutscene captions.
    Menus (the game pauses): Tab the four-way hub; I Items; P Skills; M Map (fast travel);
    Esc the Journal (quests, stats, system: save, load, settings); T to wait; E to talk,
-   search, open and enter. Conversations, trading, reading notes, the title screen,
-   naming him, the content warning, and the screen when he dies.
+   search, open and enter. Conversations, trading, smithing, reading notes, the title
+   (the coast at dusk, the theme, the name), naming him, the content warning, and the
+   screen when he dies.
    ===================================================================== */
 import './ui.css';
 addEventListener('hf-ready', () => {
@@ -108,17 +109,17 @@ addEventListener('hf-ready', () => {
       compass(); bars(); bubbles(); sceneView();
       stage.classList.toggle('scene', !!HF.scene);
       window.HFA?.update({ combat: HF.inCombat(), fury: S.fury > 0 || HF.pl.anim === 'roar' });
-      if (menuOpen === 'items' || menuOpen === 'loot' || menuOpen === 'shop') refreshFooter();
+      if (menuOpen === 'items' || menuOpen === 'loot' || menuOpen === 'shop' || menuOpen === 'smith') refreshFooter();
       if (menuOpen === 'talk' && !HF.convo) close();
     }
     requestAnimationFrame(hudLoop);
   }
 
   // ---------- menus ----------
-  let menuOpen = null, sel = 0, cat = 'all', lootRef = null, skillSel = 'OneHanded', journalTab = 'quests', readRef = null, shopSide = 'buy', waitHours = 1;
+  let menuOpen = null, sel = 0, cat = 'all', lootRef = null, skillSel = 'OneHanded', journalTab = 'quests', readRef = null, shopSide = 'buy', waitHours = 1, smithRef = null;
   function open(which, ref) {
     menuOpen = which; S.paused = which !== 'talk'; HF.keys.clear(); sel = 0;
-    if (which === 'loot') lootRef = ref; if (which === 'read') readRef = ref;
+    if (which === 'loot') lootRef = ref; if (which === 'read') readRef = ref; if (which === 'smith') smithRef = ref;
     menu.className = `on ${which}`; stage.classList.add('menu-open'); render();
   }
   function close() {
@@ -171,7 +172,7 @@ addEventListener('hf-ready', () => {
       const name = (e, n) => (e === 'Gold' ? `${box.gold} Gold` : `${HF.nameOf(e)}${n > 1 ? ` (${n})` : ''}`);
       const listHtml = list.length ? list.map(([e, n], i) => `<div class="row ${i === sel ? 'sel' : ''} ${!loot && isEquipped(e) ? 'eq' : ''}" data-i="${i}"><span>${esc(name(e, n))}</span>${!loot && isEquipped(e) ? '<em>equipped</em>' : ''}</div>`).join('') : `<div class="none">${loot ? 'Empty' : 'Nothing here'}</div>`;
       const cur = list[sel]?.[0], it = HF.ITEMS[cur];
-      const verb = it && (it.cat === 'weapon' || it.cat === 'apparel') ? (isEquipped(cur) ? 'Unequip' : 'Equip') : it?.read ? 'Read' : 'Use';
+      const verb = it && (it.cat === 'weapon' || it.cat === 'apparel' || it.torch) ? (isEquipped(cur) ? 'Unequip' : 'Equip') : it?.read ? 'Read' : 'Use';
       menu.innerHTML = `<div class="items">
         ${loot ? `<div class="cats"><h2>${esc(lootRef.name || lootRef.pname)}</h2><p class="dim">${lootRef.loot ? 'A body' : 'A container'}</p></div>` : `<div class="cats"><h2>Items</h2>${CATS.map(([k, n]) => `<div class="cat ${k === cat ? 'sel' : ''}" data-cat="${k}">${n}</div>`).join('')}</div>`}
         <div class="list">${listHtml}</div>
@@ -182,16 +183,43 @@ addEventListener('hf-ready', () => {
       return;
     }
     if (m === 'shop') {
-      const sh = HF.shop, mine = rows(S.inv, 'all').filter(([e]) => !HF.ITEMS[e].quest && (!sh.npc.shop.buys || sh.npc.shop.buys.includes(HF.ITEMS[e].cat)));
+      const sh = HF.shop, mine = rows(S.inv, 'all').filter(([e]) => HF.buysIt(e));
       const theirs = Object.entries(sh.s.stock).filter(([, n]) => n > 0);
       const list = shopSide === 'buy' ? theirs : mine;
       sel = Math.max(0, Math.min(sel, list.length - 1));
       const cur = list[sel]?.[0], price = (e) => (shopSide === 'buy' ? HF.buyPrice(e) : HF.sellPrice(e));
       menu.innerHTML = `<div class="items shop">
-        <div class="cats"><h2>${esc(sh.npc.pname)}</h2><div class="cat ${shopSide === 'buy' ? 'sel' : ''}" data-side="buy">Buy</div><div class="cat ${shopSide === 'sell' ? 'sel' : ''}" data-side="sell">Sell</div><p class="dim">Prices follow your Speech.</p></div>
+        <div class="cats"><h2>${esc(sh.npc.pname)}</h2><div class="cat ${shopSide === 'buy' ? 'sel' : ''}" data-side="buy">Buy</div><div class="cat ${shopSide === 'sell' ? 'sel' : ''}" data-side="sell">Sell</div><p class="dim">Prices follow your Speech. Stock and gold come back every two days.</p>${sh.s.invested ? '<p class="dim">You have invested here.</p>' : ''}</div>
         <div class="list">${list.length ? list.map(([e, n], i) => `<div class="row ${i === sel ? 'sel' : ''}" data-i="${i}"><span>${esc(HF.nameOf(e))}${n > 1 ? ` (${n})` : ''}</span><em>${price(e)} gold</em></div>`).join('') : '<div class="none">Nothing</div>'}</div>
         ${itemCard(cur, cur ? price(cur) : undefined)}
-        <div class="keys">${key('E')} ${shopSide === 'buy' ? 'Buy' : 'Sell'} &middot; ${key('A')}${key('D')} Buy or sell &middot; ${key('Tab')} Close</div><div class="footer"></div></div>`;
+        <div class="keys">${key('E')} ${shopSide === 'buy' ? 'Buy' : 'Sell'} &middot; ${key('R')} ${shopSide === 'buy' ? 'Buy' : 'Sell'} all &middot; ${key('A')}${key('D')} Buy or sell${HF.has('Investor') && !sh.s.invested ? ` &middot; ${key('V')} Invest 500` : ''} &middot; ${key('Tab')} Close</div><div class="footer"></div></div>`;
+      paintIcons(); refreshFooter(); menu.querySelector('.row.sel')?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    if (m === 'smith') {
+      const st = smithRef.station, list = smithList(), improving = st === 'grindstone' || st === 'workbench';
+      sel = Math.max(0, Math.min(sel, list.length - 1));
+      const cur = list[sel], have = (e) => S.inv[e] || 0;
+      let lastGroup = null;
+      const listHtml = list.length ? list.map((x, i) => {
+        const head = !improving && x.group !== lastGroup ? `<div class="grp">${esc(x.group)}</div>` : ''; lastGroup = x.group;
+        const note = improving ? (isEquipped(x.e) ? 'equipped' : '') : !x.r.perkOk ? HF.PERK[x.r.perk].name : x.r.have ? '' : 'missing materials';
+        return `${head}<div class="row ${i === sel ? 'sel' : ''} ${!improving && !(x.r.perkOk && x.r.have) ? 'cant' : ''}" data-i="${i}"><span>${esc(HF.nameOf(x.e))}${(x.n || 1) > 1 ? ` (${x.n})` : ''}</span>${note ? `<em>${esc(note)}</em>` : ''}</div>`;
+      }).join('') : `<div class="none">${improving ? `Nothing to improve here. ${st === 'grindstone' ? 'Weapons' : 'Armour'} you carry show here.` : 'Nothing'}</div>`;
+      let needs = '';
+      if (cur && improving) {
+        const imp = HF.improvement(cur.e), it = HF.ITEMS[cur.e];
+        if (imp.to) { const to = HF.ITEMS[imp.to], stat = it.cat === 'weapon' ? `Damage ${it.damage} to <b>${to.damage}</b>` : `Armour ${it.rating} to <b>${to.rating}</b>`; needs = `<div class="needs"><div>Improves to <b>${esc(to.name)}</b></div><div>${stat}</div><div class="${have(imp.mat) ? 'ok' : 'no'}">${esc(HF.nameOf(imp.mat))} ${have(imp.mat)}/1</div></div>`; }
+        else needs = `<div class="needs"><div class="no">${esc(imp.why)}</div></div>`;
+      } else if (cur) {
+        needs = `<div class="needs">${Object.entries(cur.r.need).map(([e, k]) => `<div class="${have(e) >= k ? 'ok' : 'no'}">${esc(HF.nameOf(e))} ${have(e)}/${k}</div>`).join('')}${cur.r.perk ? `<div class="${cur.r.perkOk ? 'ok' : 'no'}">Perk: ${esc(HF.PERK[cur.r.perk].name)}</div>` : ''}${(cur.r.n || 1) > 1 ? `<div>Makes ${cur.r.n}</div>` : ''}</div>`;
+      }
+      const blurb = { forge: 'Make weapons and armour from ingots and leather.', smelter: 'Smelt ore into ingots.', tanning: 'Tan hides into leather, and cut leather into strips.', grindstone: 'Sharpen and balance a weapon. Better Smithing, better results.', workbench: 'Mend and fit armour. Better Smithing, better results.' }[st];
+      menu.innerHTML = `<div class="items smith">
+        <div class="cats"><h2>${esc(smithRef.name || HF.SMITH.stations[st])}</h2><p class="dim">${blurb}</p><p>Smithing <b>${S.skills.Smithing.level}</b></p>${improving ? `<p class="dim">Best you can do: ${HF.SMITH.qualities[HF.smithTier()]}</p>` : ''}</div>
+        <div class="list">${listHtml}</div>
+        <div>${cur ? itemCard(cur.e) : ''}${needs}</div>
+        <div class="keys">${key('E')} ${improving ? 'Improve' : 'Make'} &middot; ${key('W')}${key('S')} Choose &middot; ${key('Tab')} Close</div><div class="footer"></div></div>`;
       paintIcons(); refreshFooter(); menu.querySelector('.row.sel')?.scrollIntoView({ block: 'nearest' });
       return;
     }
@@ -224,7 +252,7 @@ addEventListener('hf-ready', () => {
         <div class="trees">${Object.keys(HF.SKILL_NAMES).map((k) => `<div class="tree ${k === skillSel ? 'sel' : ''}" data-skill="${k}"><div class="lv">${sk[k].level}</div><div class="nm">${HF.SKILL_NAMES[k]}</div><div class="bar"><i style="width:${Math.min(100, (sk[k].xp / HF.toNext(k)) * 100)}%"></i></div></div>`).join('')}</div>
         <div class="perks"><h2>${HF.SKILL_NAMES[skillSel]}</h2>${first.sort((a, b) => (a.skillReq[0]?.level || 0) - (b.skillReq[0]?.level || 0)).map((p) => {
           const chain = HF.chainOf(p.edid), r = HF.rank(p.edid), why = HF.canTake(p.edid), nextReq = HF.PERK[chain[Math.min(r, chain.length - 1)]].skillReq[0]?.level || 0;
-          return `<div class="perk ${r ? 'own' : ''} ${why === 'ok' ? 'can' : ''} ${HF.NOT_HERE[p.edid] || p.skill === 'Smithing' || p.skill === 'Speech' ? 'na' : ''}" data-perk="${p.edid}">
+          return `<div class="perk ${r ? 'own' : ''} ${why === 'ok' ? 'can' : ''} ${HF.NOT_HERE[p.edid] ? 'na' : ''}" data-perk="${p.edid}">
             <div class="pn">${esc(p.name)}${chain.length > 1 ? ` <span class="rk">${r}/${chain.length}</span>` : r ? ' <span class="rk">taken</span>' : ''}</div><div class="pd">${esc(p.description)}</div>
             <div class="pr">${r < chain.length ? (nextReq ? `${HF.SKILL_NAMES[skillSel]} ${nextReq}` : 'Any level') + ' &middot; ' : ''}<i>${esc(why === 'ok' ? 'Click to take' : why)}</i></div></div>`;
         }).join('')}</div>
@@ -253,7 +281,7 @@ addEventListener('hf-ready', () => {
           <div class="opt"><span>Sound</span><button data-sound="on" class="${window.HFA?.on ? 'on' : ''}">On</button><button data-sound="off" class="${window.HFA?.on ? '' : 'on'}">Off</button></div>
           <div class="opt"><span>Voices</span><button data-voice="on" class="${voiceOn() ? 'on' : ''}">On</button><button data-voice="off" class="${voiceOn() ? '' : 'on'}">Off</button></div>
           <div class="opt"><span>Subtitles</span><button data-subs="on" class="${subtitles ? 'on' : ''}">On</button><button data-subs="off" class="${subtitles ? '' : 'on'}">Off</button></div>
-          <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; E talk, search, open, enter &middot; T wait &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal &middot; F5 quick save, F9 quick load</div></div>`;
+          <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; L torch &middot; E talk, search, open, enter, use (a forge, a grindstone) &middot; T wait &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal &middot; F5 quick save, F9 quick load</div></div>`;
       menu.innerHTML = `<div class="journal"><div class="tabs">${tabs.map(([k, n]) => `<div class="tab ${k === journalTab ? 'sel' : ''}" data-tab="${k}">${n}</div>`).join('')}</div><div class="page">${body}</div>
         <div class="keys">${key('A')}${key('D')} Tab &middot; ${key('Esc')} Close</div></div>`;
       return;
@@ -264,9 +292,17 @@ addEventListener('hf-ready', () => {
   }
 
   // ---------- actions ----------
+  // What a smithing station offers: recipes (grouped by material) or the things you carry that it can improve.
+  const GROUP = { iron: 'Iron', steel: 'Steel', orc: 'Orcish', hide: 'Hide', fur: 'Fur', leather: 'Leather' };
+  function smithList() {
+    const st = smithRef.station;
+    if (st === 'grindstone' || st === 'workbench') return rows(S.inv, st === 'grindstone' ? 'weapon' : 'apparel').filter(([e]) => HF.materialOf(e)).map(([e, n]) => ({ e, n }));
+    return HF.recipes(st).map((r) => ({ e: r.make, r, n: r.n, group: GROUP[HF.materialOf(r.make)] || 'Other' }));
+  }
   function curList() {
+    if (menuOpen === 'smith') return smithList().map((x) => [x.e, x.n || 1]);
     if (menuOpen === 'loot') { const box = lootRef.loot || lootRef.box; return Object.entries({ ...box.items, ...(box.gold ? { Gold: 1 } : {}) }).filter(([, n]) => n > 0); }
-    if (menuOpen === 'shop') { const sh = HF.shop; return shopSide === 'buy' ? Object.entries(sh.s.stock).filter(([, n]) => n > 0) : rows(S.inv, 'all').filter(([e]) => !HF.ITEMS[e].quest && (!sh.npc.shop.buys || sh.npc.shop.buys.includes(HF.ITEMS[e].cat))); }
+    if (menuOpen === 'shop') { const sh = HF.shop; return shopSide === 'buy' ? Object.entries(sh.s.stock).filter(([, n]) => n > 0) : rows(S.inv, 'all').filter(([e]) => HF.buysIt(e)); }
     return rows(S.inv, cat);
   }
   function act(kind) {
@@ -274,7 +310,13 @@ addEventListener('hf-ready', () => {
     if (menuOpen === 'loot') {
       if (kind === 'take' && cur) HF.lootFrom(lootRef, cur, false);
       if (kind === 'all') { for (const [e] of list) HF.lootFrom(lootRef, e, true); close(); return; }
-    } else if (menuOpen === 'shop' && cur) { if (shopSide === 'buy') HF.buy(cur); else HF.sell(cur); }
+    } else if (menuOpen === 'shop' && cur) {
+      const one = () => (shopSide === 'buy' ? HF.buy(cur) : HF.sell(cur));
+      if (kind === 'all') { for (let k = 0; k < 200 && one(); k++); } else one();
+    } else if (menuOpen === 'smith' && cur) {
+      const st = smithRef.station;
+      if (st === 'grindstone' || st === 'workbench') { if (HF.improve(cur)) sel = Math.max(0, curList().findIndex(([e]) => e.split('+')[0] === cur.split('+')[0] && e !== cur)); } else HF.craft(st, cur);
+    }
     else if (menuOpen === 'items' && cur) { if (kind === 'take') { HF.useItem(cur); if (menuOpen !== 'items') return; } if (kind === 'drop') HF.drop(cur); }
     render();
   }
@@ -285,7 +327,7 @@ addEventListener('hf-ready', () => {
   // E in the world: talk, search, open, enter, use.
   function activate() {
     const r = HF.activate(); if (!r) return;
-    if (r.kind === 'talk') open('talk'); else if (r.kind === 'shop') open('shop'); else if (r.kind === 'sleep') { waitHours = 8; open('wait'); }
+    if (r.kind === 'talk') open('talk'); else if (r.kind === 'shop') open('shop'); else if (r.kind === 'sleep') { waitHours = 8; open('wait'); } else if (r.kind === 'smith') open('smith', r);
     else if (r.kind === 'body' || r.kind === 'container') open('loot', r.ref);
   }
   addEventListener('keydown', (e) => {
@@ -316,8 +358,8 @@ addEventListener('hf-ready', () => {
       else if (k === 'Tab' || k === 'Escape') { if (HF.convo?.choices.some((c) => /goodbye|leave|later/i.test(c.text))) { const i = HF.convo.choices.findIndex((c) => /goodbye|leave|later/i.test(c.text)); return choose(i); } return; }
       render(); return;
     }
-    if (k === 'Escape') { if (['journal', 'loot', 'hub', 'read', 'shop', 'wait'].includes(menuOpen)) close(); else { journalTab = 'system'; open('journal'); } return; }
-    if (k === 'Tab') { if (['hub', 'loot', 'read', 'shop', 'wait'].includes(menuOpen)) close(); else open('hub'); return; }
+    if (k === 'Escape') { if (['journal', 'loot', 'hub', 'read', 'shop', 'wait', 'smith'].includes(menuOpen)) close(); else { journalTab = 'system'; open('journal'); } return; }
+    if (k === 'Tab') { if (['hub', 'loot', 'read', 'shop', 'wait', 'smith'].includes(menuOpen)) close(); else open('hub'); return; }
     if (menuOpen === 'read') { if (k === 'KeyE') close(); return; }
     if (menuOpen === 'hub') { const go = { KeyW: 'skills', ArrowUp: 'skills', KeyA: 'items', ArrowLeft: 'items', KeyD: 'journal', ArrowRight: 'journal', KeyS: 'map', ArrowDown: 'map' }[k]; if (go) { if (go === 'journal') journalTab = 'quests'; open(go); } return; }
     if (menuOpen === 'wait') {
@@ -326,14 +368,15 @@ addEventListener('hf-ready', () => {
       if (k === 'KeyE' || k === 'Enter') { if (HF.wait(waitHours)) close(); return; }
       render(); return;
     }
-    if (menuOpen === 'items' || menuOpen === 'loot' || menuOpen === 'shop') {
+    if (menuOpen === 'items' || menuOpen === 'loot' || menuOpen === 'shop' || menuOpen === 'smith') {
       const n = curList().length;
       if (k === 'KeyW' || k === 'ArrowUp') sel = Math.max(0, sel - 1);
       else if (k === 'KeyS' || k === 'ArrowDown') sel = Math.min(n - 1, sel + 1);
       else if ((k === 'KeyA' || k === 'ArrowLeft' || k === 'KeyD' || k === 'ArrowRight') && menuOpen === 'items') { const i = CATS.findIndex(([c]) => c === cat), d = k === 'KeyA' || k === 'ArrowLeft' ? -1 : 1; cat = CATS[(i + d + CATS.length) % CATS.length][0]; sel = 0; }
       else if ((k === 'KeyA' || k === 'ArrowLeft' || k === 'KeyD' || k === 'ArrowRight') && menuOpen === 'shop') { shopSide = shopSide === 'buy' ? 'sell' : 'buy'; sel = 0; }
       else if (k === 'KeyE' || k === 'Enter') return act('take');
-      else if (k === 'KeyR') return act(menuOpen === 'loot' ? 'all' : 'drop');
+      else if (k === 'KeyR' && menuOpen !== 'smith') return act(menuOpen === 'items' ? 'drop' : 'all');
+      else if (k === 'KeyV' && menuOpen === 'shop') HF.invest();
       else if (k === 'KeyI' && menuOpen === 'items') return close();
       render(); return;
     }
@@ -378,32 +421,72 @@ addEventListener('hf-ready', () => {
   });
 
   // ---------- the title, naming him, the warning ----------
+  // The title, as the old Elder Scrolls games open: black, a key to begin, then the theme rises over
+  // the coast at dusk, the seal and the name come up on a timpani roll, and the menu follows.
+  // Any key during it goes straight to the menu.
   const front = $('#front');
+  const EMBLEM = `<svg class="emblem" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="emGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6dc9a"/><stop offset="1" stop-color="#94702e"/></linearGradient></defs>
+    <circle cx="60" cy="60" r="56" fill="none" stroke="url(#emGold)" stroke-width="2.2"/><circle cx="60" cy="60" r="50" fill="none" stroke="url(#emGold)" stroke-width="0.8"/>
+    <circle cx="60" cy="50" r="15" fill="none" stroke="url(#emGold)" stroke-width="1.4"/>
+    ${Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a); return `<line x1="${(60 + c * 19).toFixed(1)}" y1="${(50 + s * 19).toFixed(1)}" x2="${(60 + c * 25).toFixed(1)}" y2="${(50 + s * 25).toFixed(1)}" stroke="url(#emGold)" stroke-width="1.4"/>`; }).join('')}
+    <path d="M34 92 Q 52 74 63 46 Q 69 30 84 18 Q 77 38 72 52 Q 61 80 38 96 Z" fill="url(#emGold)"/><line x1="27" y1="86" x2="42" y2="100" stroke="url(#emGold)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M30 84 Q 45 78 60 85 Q 75 78 90 84 L 90 97 Q 75 91 60 98 Q 45 91 30 97 Z" fill="rgba(20,14,8,0.6)" stroke="url(#emGold)" stroke-width="1.4"/><line x1="60" y1="85" x2="60" y2="98" stroke="url(#emGold)" stroke-width="1"/></svg>`;
+  let introStage = null, introTimers = [];
+  const setStage = (s) => { introStage = s; front.className = `st-${s}`; };
   function title(fresh = false) {
-    const last = !fresh && HF.latestSlot();
-    front.hidden = false;
-    front.innerHTML = `<div class="frontbox"><h1>The Salt Ledger</h1><p class="dim">Hammerfell, 4E 201. ${esc(HF.version)}</p>
-      ${last ? '<button data-front="continue">Continue</button>' : ''}<button data-front="new">New game</button></div>`;
+    const last = !fresh && HF.latestSlot(), saves = HF.listSaves().length;
+    front.hidden = false; HF.showTitle(true); document.body.classList.add('titling');
+    front.innerHTML = `<div class="veil"></div><div class="press">Press any key</div>
+      <div class="titleblock">${EMBLEM}<h1>The Salt Ledger</h1><div class="rule"></div><p class="sub">A tale of Hammerfell</p></div>
+      <div class="menu">${last ? '<button data-front="continue">Continue</button>' : ''}<button data-front="new">New Game</button>${saves ? '<button data-front="load">Load</button>' : ''}<button data-front="credits">Credits</button></div>
+      <div class="panel"></div><div class="ver">${esc(HF.version)}</div>`;
+    introTimers.forEach(clearTimeout);
+    if (HF.pl || fresh) { setStage('menu'); window.HFA?.title(true); } else setStage('press');
   }
+  function intro() {
+    setStage('intro'); window.HFA?.title(true);
+    introTimers = [setTimeout(() => window.HFA?.play('reveal'), 1300), setTimeout(() => { if (introStage === 'intro') setStage('menu'); }, 7600)];
+  }
+  const panel = (html) => { setStage('form'); front.querySelector('.panel').innerHTML = `<div class="frontbox">${html}</div>`; };
   function naming() {
-    front.innerHTML = `<div class="frontbox"><h2>Who is he?</h2><p class="dim">A Redguard farmer on the Sentinel Coast, a husband and a father. Once, long ago, a conscript.</p>
-      <label>Name <input id="nameBox" maxlength="24" value="Kasim" autocomplete="off"></label><button data-front="begin">Begin</button></div>`;
+    panel(`<h2>Who is he?</h2><p class="dim">A Redguard farmer on the Sentinel Coast, a husband and a father. Once, long ago, a conscript.</p>
+      <label>Name <input id="nameBox" maxlength="24" value="Kasim" autocomplete="off"></label><button data-front="begin">Begin</button><button data-front="back">Back</button>`);
     $('#nameBox').focus();
   }
   function warning(then) {
-    front.innerHTML = `<div class="frontbox"><h2>Before you play</h2><p>This game has graphic violence: blood, severed limbs and executions, and strong language. It is meant for adults.</p><p class="dim">You can change this at any time in the journal's System tab (Esc).</p>
-      <button data-gore="full">Full gore</button><button data-gore="some">Blood only</button><button data-gore="off">No gore</button></div>`;
+    panel(`<h2>Before you play</h2><p>This game has graphic violence: blood, severed limbs and executions, and strong language. It is meant for adults.</p><p class="dim">You can change this at any time in the journal's System tab (Esc).</p>
+      <button data-gore="full">Full gore</button><button data-gore="some">Blood only</button><button data-gore="off">No gore</button>`);
     front.dataset.then = then;
   }
+  function loadList() {
+    const label = { quick: 'Quick save', auto: 'Autosave', manual: 'Save' };
+    const list = HF.listSaves().map((k) => { try { const s = JSON.parse(localStorage.getItem(`hammerfell.save.${k}`)); return { k, s }; } catch { return null; } }).filter((x) => x?.s?.game).sort((a, b) => (b.s.savedAt > a.s.savedAt ? 1 : -1));
+    panel(`<h2>Load</h2>${list.map(({ k, s }) => `<button data-load="${esc(k)}">${esc(label[k] || k)}: ${esc(s.game.name || 'Kasim')}, level ${s.game.level || 1} <span class="dim">${esc(new Date(s.savedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }))}</span></button>`).join('')}<button data-front="back">Back</button>`);
+  }
+  function credits() {
+    panel(`<h2>The Salt Ledger</h2><p>Made by Broden Johnson, with Claude.</p><p class="dim">Art, music and sound are drawn and played by the game's own code.</p>
+      <p class="dim">A fan work set in Hammerfell, in the world of The Elder Scrolls. Not made by or connected with Bethesda Softworks.</p><button data-front="back">Back</button>`);
+  }
+  const startGame = (fn) => { window.HFA?.title(false); front.hidden = true; document.body.classList.remove('titling'); fn(); };
   front.addEventListener('click', (e) => {
-    const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.front === 'continue') { front.hidden = true; HF.load(HF.latestSlot()); }
+    const t = e.target.closest('button');
+    if (!t) { if (introStage === 'press') intro(); else if (introStage === 'intro') setStage('menu'); return; }
+    if (t.dataset.front === 'continue') startGame(() => HF.load(HF.latestSlot()));
     if (t.dataset.front === 'new') { if (!localStorage.getItem('hf.warned')) warning('naming'); else naming(); }
-    if (t.dataset.front === 'begin') { const n = $('#nameBox').value; front.hidden = true; HF.newGame(n); }
+    if (t.dataset.front === 'load') loadList();
+    if (t.dataset.front === 'credits') credits();
+    if (t.dataset.front === 'back') setStage('menu');
+    if (t.dataset.load) startGame(() => HF.load(t.dataset.load));
+    if (t.dataset.front === 'begin') { const n = $('#nameBox').value; startGame(() => HF.newGame(n)); }
     if (t.dataset.gore) { HF.settings.gore = t.dataset.gore; HF.saveSettings(); try { localStorage.setItem('hf.warned', '1'); } catch { /* private window */ } naming(); }
   });
-  front.addEventListener('keydown', (e) => { if (e.code === 'Enter' && $('#nameBox')) { front.hidden = true; HF.newGame($('#nameBox').value); } e.stopPropagation(); });
+  front.addEventListener('keydown', (e) => { if (e.code === 'Enter' && $('#nameBox')) { const n = $('#nameBox').value; startGame(() => HF.newGame(n)); } e.stopPropagation(); });
+  addEventListener('keydown', (e) => {
+    if (front.hidden || e.target.tagName === 'INPUT') return;
+    if (introStage === 'press') { e.preventDefault(); intro(); } else if (introStage === 'intro') { e.preventDefault(); setStage('menu'); }
+    else if (introStage === 'form' && e.code === 'Escape') setStage('menu');
+  }, true);
   title();
   requestAnimationFrame(hudLoop);
-  window.HFUI = { open, close, get menu() { return menuOpen; }, choose, title };
+  window.HFUI = { open, close, get menu() { return menuOpen; }, choose, title, get introStage() { return introStage; } };
 });

@@ -1,0 +1,166 @@
+{
+ "_note": "Smithing as Skyrim does it. forge: make weapons and armour from ingots and leather (perk: the Smithing perk it needs). smelter: ore into ingots. tanning: hides into leather, leather into strips. Improving at a grindstone (weapons) or workbench (armour) costs one of the item's material (improveWith) and raises it by its quality tier, set by Smithing skill; the perk for that material (doubles) doubles it. Clothing cannot be improved.",
+ "stations": {
+  "forge": "Forge",
+  "smelter": "Smelter",
+  "tanning": "Tanning Rack",
+  "grindstone": "Grindstone",
+  "workbench": "Workbench"
+ },
+ "qualities": [
+  "",
+  "Fine",
+  "Superior",
+  "Exquisite",
+  "Flawless",
+  "Epic",
+  "Legendary"
+ ],
+ "improveWith": {
+  "iron": "IronIngot",
+  "steel": "SteelIngot",
+  "orc": "OrichalcumIngot",
+  "hide": "Leather",
+  "fur": "Leather",
+  "leather": "Leather"
+ },
+ "doubles": {
+  "steel": "SteelSmithing",
+  "orc": "OrcishSmithing"
+ },
+ "forge": [
+  { "make": "IronDagger", "need": { "IronIngot": 1, "LeatherStrips": 1 }
+  },
+  { "make": "IronSword", "need": { "IronIngot": 2, "LeatherStrips": 1 }
+  },
+  { "make": "IronWarAxe", "need": { "IronIngot": 2, "LeatherStrips": 1 }
+  },
+  { "make": "IronMace", "need": { "IronIngot": 3, "LeatherStrips": 1 }
+  },
+  { "make": "IronGreatsword", "need": { "IronIngot": 4, "LeatherStrips": 2 }
+  },
+  { "make": "IronBattleaxe", "need": { "IronIngot": 4, "LeatherStrips": 2 }
+  },
+  { "make": "IronWarhammer", "need": { "IronIngot": 5, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorIronCuirass", "need": { "IronIngot": 5, "LeatherStrips": 3 }
+  },
+  { "make": "ArmorIronBoots", "need": { "IronIngot": 3, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorIronGauntlets", "need": { "IronIngot": 2, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorIronHelmet", "need": { "IronIngot": 3, "LeatherStrips": 1 }
+  },
+  { "make": "ArmorIronShield", "need": { "IronIngot": 4, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorHideCuirass", "need": { "Leather": 4, "LeatherStrips": 3 }
+  },
+  { "make": "ArmorHideBoots", "need": { "Leather": 2, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorHideHelmet", "need": { "Leather": 2, "LeatherStrips": 1 }
+  },
+  { "make": "ArmorHideShield", "need": { "Leather": 4, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorLeatherCuirass", "need": { "Leather": 4, "IronIngot": 1, "LeatherStrips": 3 }
+  },
+  { "make": "ArmorLeatherBoots", "need": { "Leather": 2, "IronIngot": 1, "LeatherStrips": 2 }
+  },
+  { "make": "ArmorLeatherGauntlets", "need": { "Leather": 2, "LeatherStrips": 3 }
+  },
+  { "make": "ArmorLeatherHelmet", "need": { "Leather": 2, "LeatherStrips": 1 }
+  },
+  { "make": "SteelDagger", "need": { "SteelIngot": 1, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "SteelSword", "need": { "SteelIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "SteelWarAxe", "need": { "SteelIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "SteelMace", "need": { "SteelIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "Scimitar", "need": { "SteelIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "SteelGreatsword", "need": { "SteelIngot": 4, "IronIngot": 1, "LeatherStrips": 3 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "SteelBattleaxe", "need": { "SteelIngot": 4, "IronIngot": 1, "LeatherStrips": 3 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "SteelWarhammer", "need": { "SteelIngot": 4, "IronIngot": 1, "LeatherStrips": 3 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "ArmorSteelCuirassA", "need": { "SteelIngot": 4, "IronIngot": 1, "LeatherStrips": 3 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "ArmorSteelBootsB", "need": { "SteelIngot": 3, "LeatherStrips": 2 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "ArmorSteelGauntletsA", "need": { "SteelIngot": 2, "LeatherStrips": 2 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "ArmorSteelHelmetA", "need": { "SteelIngot": 2, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "ArmorSteelShield", "need": { "SteelIngot": 3, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "SteelSmithing"
+  },
+  { "make": "OrcishDagger", "need": { "OrichalcumIngot": 1, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "OrcishSword", "need": { "OrichalcumIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "OrcishWarAxe", "need": { "OrichalcumIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "OrcishMace", "need": { "OrichalcumIngot": 2, "IronIngot": 1, "LeatherStrips": 2 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "OrcishGreatsword", "need": { "OrichalcumIngot": 3, "IronIngot": 2, "LeatherStrips": 2 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "OrcishBattleaxe", "need": { "OrichalcumIngot": 3, "IronIngot": 2, "LeatherStrips": 2 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "OrcishWarhammer", "need": { "OrichalcumIngot": 4, "IronIngot": 2, "LeatherStrips": 2 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "ArmorOrcishCuirass", "need": { "OrichalcumIngot": 4, "IronIngot": 1, "LeatherStrips": 3 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "ArmorOrcishBoots", "need": { "OrichalcumIngot": 3, "LeatherStrips": 2 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "ArmorOrcishGauntlets", "need": { "OrichalcumIngot": 2, "LeatherStrips": 2 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "ArmorOrcishHelmet", "need": { "OrichalcumIngot": 2, "LeatherStrips": 1 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "ArmorOrcishShield", "need": { "OrichalcumIngot": 2, "IronIngot": 1, "LeatherStrips": 1 },
+   "perk": "OrcishSmithing"
+  },
+  { "make": "Torch", "need": { "Wood": 1, "LampOil": 1 },
+   "n": 4
+  }
+ ],
+ "smelter": [
+  { "make": "IronIngot", "need": { "IronOre": 2 }
+  },
+  { "make": "SteelIngot", "need": { "IronOre": 1, "CorundumOre": 1 }
+  },
+  { "make": "OrichalcumIngot", "need": { "OrichalcumOre": 2 }
+  }
+ ],
+ "tanning": [
+  { "make": "Leather", "need": { "Hide": 1 }
+  },
+  { "make": "LeatherStrips", "need": { "Leather": 1 },
+   "n": 4
+  }
+ ]
+}

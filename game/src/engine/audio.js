@@ -6,13 +6,14 @@
    Impacts depend on the weapon and what it hits: blades slice flesh and clang off
    steel, blunt weapons thud and crack bone, shields ring or thunk. Every sound varies
    a little each time. The roar is a synthesised war cry; a recorded voice would
-   replace it in the game.
+   replace it in the game. The title has its own theme: strings, a low choir, a horn
+   and timpani, slow and in D minor.
    ===================================================================== */
 window.HFA = (() => {
   let ac = null, master, musicBus, sfxBus, verb, noiseBuf, dist, on = true;
   const layers = {};
-  const mix = { combat: 0, fury: 0 };
-  const target = { combat: 0, fury: 0 };
+  const mix = { combat: 0, fury: 0, title: 0 };
+  const target = { combat: 0, fury: 0, title: 0 };
   const R = (a, b) => a + Math.random() * (b - a), pick = (xs) => xs[Math.floor(Math.random() * xs.length)];
   function start() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -27,6 +28,7 @@ window.HFA = (() => {
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate); const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
     dist = shaper(9);
     for (const k of ['explore', 'combat', 'fury']) { layers[k] = ac.createGain(); layers[k].gain.value = 0; layers[k].connect(musicBus); }
+    layers.title = ac.createGain(); layers.title.gain.value = 0; layers.title.connect(comp);
     drone(); guitarRig(); setInterval(schedule, 50);
   }
   addEventListener('keydown', start); addEventListener('pointerdown', start);
@@ -157,6 +159,22 @@ window.HFA = (() => {
     discover() { const t = now(); for (const [f, d] of [[146.8, 0], [220, 0.02], [293.7, 0.04], [349.2, 0.3]]) { const o = tone(t + d, 'sawtooth', f, 2.4, 0.06, verb, 0.6); const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; o.o.disconnect(); o.o.connect(lp); lp.connect(o.g); } },
     level() { const t = now(); for (const [f, d] of [[293.7, 0], [370, 0.15], [440, 0.3], [587.3, 0.45]]) tone(t + d, 'triangle', f, 1.4, 0.12, verb, 0.02); },
     finisher() { const t = now(); tone(t, 'sine', 45, 0.8, 1, sfxBus, 0.003, 26); noise(t, 0.4, 'lowpass', 300, 0.7, 0.6, verb); },
+    // At a station: hammer on the anvil, the grindstone's rasp, the smelter's roar, a hide pulled taut.
+    smith(o = {}) {
+      const t = now();
+      if (o.station === 'grindstone') { for (let i = 0; i < 3; i++) P.scrape(t + i * 0.22, 0.2); }
+      else if (o.station === 'smelter') { noise(t, 0.9, 'lowpass', 500, 0.7, 0.6, sfxBus, 0.2); P.ring(t + 0.7, R(500, 600), 0.4, 0.5); }
+      else if (o.station === 'tanning') { P.slap(t, 0.8); noise(t + 0.15, 0.3, 'bandpass', 900, 1, 0.3); }
+      else for (let i = 0; i < 3; i++) { P.ring(t + i * 0.28, R(1100, 1300), 0.5, 0.7); tone(t + i * 0.28, 'sine', 180, 0.08, 0.5, sfxBus, 0.001, 120); }
+    },
+    torch() { const t = now(); const n = noise(t, 0.4, 'bandpass', 600, 0.7, 0.4, sfxBus, 0.05); n.f.frequency.exponentialRampToValueAtTime(2400, t + 0.35); },
+    // The title appears: a timpani roll swelling into a struck chord and a crash.
+    reveal() {
+      const t = now();
+      for (let i = 0; i < 22; i++) timp(t + i * 0.07, 73.4, 0.15 + (i / 22) * 0.5, layers.title);
+      timp(t + 1.6, 73.4, 1.3, layers.title); noise(t + 1.6, 2.6, 'highpass', 4000, 0.5, 0.35, layers.title, 0.002); noise(t + 0.2, 1.4, 'highpass', 6000, 0.5, 0.2, layers.title, 1.3);
+      strings(t + 1.6, ['D2', 'A2', 'D3', 'F3', 'A3', 'D4'], 4.5, 0.9);
+    },
   };
 
   // ---------- music ----------
@@ -198,10 +216,47 @@ window.HFA = (() => {
     if (s % 2 === 0) noise(t, 0.03, 'highpass', 7000, 0.7, 0.2, layers.fury);
     if (s === 0) noise(t, 1.1, 'highpass', 4500, 0.5, 0.5, layers.fury, 0.001);
   }
+  // ---------- the title theme ----------
+  // Eight bars at 66 beats a minute: strings and a low choir hold each chord, a horn carries the tune,
+  // timpani mark the phrases. Our own melody, in the spirit of the old Elder Scrolls themes.
+  const TB = 60 / 66, TBAR = TB * 4;
+  const NOTE = (s) => { const m = s.match(/^([A-G])([#b]?)(\d)$/); return 440 * Math.pow(2, ({ C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (+m[3] - 4) * 12) / 12); };
+  const CHORDS = [['D3', 'F3', 'A3', 'D4'], ['Bb2', 'F3', 'Bb3', 'D4'], ['F2', 'C3', 'F3', 'A3'], ['C3', 'G3', 'C4', 'E4'], ['D3', 'A3', 'D4', 'F4'], ['G2', 'D3', 'G3', 'Bb3'], ['A2', 'E3', 'A3', 'C#4'], ['D3', 'A3', 'D4', 'F4']];
+  const TUNE = [[['D4', 2], ['A4', 2]], [['Bb4', 1.5], ['A4', 0.5], ['F4', 2]], [['A4', 1], ['C5', 1], ['A4', 2]], [['G4', 3], ['E4', 1]],
+    [['F4', 1], ['A4', 1], ['D5', 2]], [['D5', 1], ['C5', 1], ['Bb4', 2]], [['A4', 1], ['C#5', 1], ['E5', 1], ['C#5', 1]], [['D5', 4]]];
+  let titleOn = false, titleT = 0, titleBar = 0;
+  function strings(t, notes, dur, k = 0.6) {
+    const g = ac.createGain(); env(g, t, 0.9, k * 0.09, dur); const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; g.connect(lp); lp.connect(layers.title); lp.connect(verb);
+    for (const n of notes) for (const det of [-9, 0, 8]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = NOTE(n); o.detune.value = det; o.connect(g); o.start(t); o.stop(t + dur + 1.2); }
+  }
+  function choir(t, notes, dur) {
+    const out = ac.createGain(); env(out, t, 1.2, 0.05, dur); out.connect(layers.title); out.connect(verb);
+    for (const [f, q, g] of [[730, 8, 1], [1090, 9, 0.5], [2440, 10, 0.2]]) {
+      const b = ac.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = f; b.Q.value = q; const bg = ac.createGain(); bg.gain.value = g; b.connect(bg); bg.connect(out);
+      for (const n of notes) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = NOTE(n) / 2; const vib = ac.createOscillator(), vg = ac.createGain(); vib.frequency.value = R(4.5, 5.5); vg.gain.value = 2; vib.connect(vg); vg.connect(o.frequency); o.connect(b); o.start(t); o.stop(t + dur + 1.4); vib.start(t); vib.stop(t + dur + 1.4); }
+    }
+  }
+  function horn(t, n, dur) {
+    const g = ac.createGain(); env(g, t, 0.09, 0.16, dur * 0.95); const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(500, t); lp.frequency.linearRampToValueAtTime(1300, t + 0.15); lp.Q.value = 1.5;
+    g.connect(lp); lp.connect(layers.title); lp.connect(verb);
+    for (const [type, mul, k] of [['sawtooth', 1, 0.6], ['triangle', 1, 1], ['sine', 0.5, 0.5]]) { const o = ac.createOscillator(); o.type = type; o.frequency.value = NOTE(n) * mul; const vib = ac.createOscillator(), vg = ac.createGain(); vib.frequency.value = 5; vg.gain.value = 3; vib.connect(vg); vg.connect(o.frequency); const og = ac.createGain(); og.gain.value = k; o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.2); vib.start(t); vib.stop(t + dur + 0.2); }
+  }
+  function timp(t, f, k, dest) { tone(t, 'sine', f * 1.4, 0.9, k, dest, 0.003, f); noise(t, 0.12, 'lowpass', 400, 0.7, k * 0.5, dest); }
+  function scheduleTitle(t) {
+    const b = titleBar % 8;
+    strings(t, CHORDS[b], TBAR * 1.05, 0.7); choir(t, CHORDS[b], TBAR * 1.05);
+    // the horn comes in on the second half of the first time round
+    if (titleBar >= 4) { let at = 0; for (const [n, beats] of TUNE[b]) { horn(t + at * TB, n, beats * TB); at += beats; } }
+    if (b === 0 || b === 4) timp(t, 73.4, 0.8, layers.title);
+    if (b === 7) for (let i = 0; i < 6; i++) timp(t + TB * 2.5 + i * 0.12, 73.4, 0.2 + i * 0.08, layers.title);
+  }
   function schedule() {
     if (!ac) return;
     for (const k of ['combat', 'fury']) mix[k] += (target[k] - mix[k]) * (k === 'fury' && target.fury === 0 ? 0.05 : 0.08);
-    const t = now(), explore = (1 - mix.combat) * (1 - mix.fury);
+    mix.title += (target.title - mix.title) * 0.04;
+    const t = now(), explore = (1 - mix.combat) * (1 - mix.fury) * (1 - mix.title);
+    layers.title.gain.setTargetAtTime(0.9 * mix.title, t, 0.2);
+    if (titleOn) { if (titleT < t) titleT = t + 0.1; while (titleT < t + 0.3) { scheduleTitle(titleT); titleT += TBAR; titleBar++; } }
     layers.explore.gain.setTargetAtTime(0.8 * explore, t, 0.3);
     layers.combat.gain.setTargetAtTime(0.9 * mix.combat * (1 - mix.fury), t, 0.15);
     layers.fury.gain.setTargetAtTime(1.0 * mix.fury, t, 0.08);
@@ -225,6 +280,8 @@ window.HFA = (() => {
   return {
     play(name, o) { if (!ac || !on) return; try { SFX[name]?.(o); } catch (e) { console.warn('sound', name, e); } },
     update({ combat, fury }) { target.combat = combat ? 1 : 0; target.fury = fury ? 1 : 0; },
+    // The title theme: on while the title shows, faded out when a game starts.
+    title(v) { start(); if (v && !titleOn) { titleOn = true; titleBar = 0; titleT = 0; mix.title = 1; } if (!v) titleOn = false; target.title = v ? 1 : 0; },
     setOn(v) { on = v; if (master) master.gain.setTargetAtTime(v ? 0.8 : 0, ac.currentTime, 0.05); },
     get on() { return on; },
   };

@@ -43,7 +43,7 @@
       "name": "Dalia", "build": "woman", "dialogue": "dalia", "faction": "village", "hp": 4,
       "ap": { "skin": "skin", "hair": "hair", "beard": false, "hairStyle": "long", "outfit": { "top": "teal", "sleeve": "white", "fore": "skin", "pants": "navy", "belt": "red", "skirt": { "ramp": "navy", "len": 0.9 }, "boots": "boot" } },
       "voice": { "pitch": 1.1, "rate": 1.05, "v": 3 },
-      "shop": { "gold": 300, "stock": { "Salt": 12, "LampOil": 3, "ClothBolt": 2, "Bandage": 4, "Torch": 2 }, "buys": ["misc", "food"] },
+      "shop": { "gold": 300, "stock": { "Salt": 12, "LampOil": 3, "ClothBolt": 2, "Bandage": 4, "Torch": 5 }, "buys": ["misc", "food"] },
       "where": [{ "map": "coast", "x": 800, "y": 980, "from": 7, "to": 19 }]
     },
     "zeyna": {
@@ -70,8 +70,8 @@
       "ap": { "skin": "skin", "hair": "hair", "beard": true, "outfit": { "top": "leather", "sleeve": "skin", "fore": "skin", "pants": "pants", "belt": "leather", "boots": "boot" } },
       "voice": { "pitch": 0.6, "rate": 0.9, "v": 6 },
       "eq": { "weapon": "IronWarhammer" },
-      "shop": { "gold": 800, "stock": { "IronSword": 2, "IronWarAxe": 1, "IronMace": 1, "IronDagger": 2, "IronGreatsword": 1, "IronBattleaxe": 1, "SteelSword": 1, "Scimitar": 1, "SteelWarAxe": 1, "SteelGreatsword": 1, "ArmorHideShield": 1, "ArmorIronShield": 1, "ArmorHideCuirass": 1, "ArmorHideBoots": 1, "ArmorLeatherCuirass": 1, "ArmorLeatherBoots": 1, "ArmorLeatherGauntlets": 1, "ArmorLeatherHelmet": 1, "ArmorIronCuirass": 1, "ArmorIronBoots": 1, "ArmorIronGauntlets": 1, "ArmorIronHelmet": 1 }, "buys": ["weapon", "apparel"] },
-      "where": [{ "map": "coast", "x": 806, "y": 1130, "from": 7, "to": 19 }]
+      "shop": { "gold": 800, "stock": { "IronSword": 2, "IronWarAxe": 1, "IronMace": 1, "IronDagger": 2, "IronGreatsword": 1, "IronBattleaxe": 1, "SteelSword": 1, "Scimitar": 1, "SteelWarAxe": 1, "SteelGreatsword": 1, "ArmorHideShield": 1, "ArmorIronShield": 1, "ArmorHideCuirass": 1, "ArmorHideBoots": 1, "ArmorLeatherCuirass": 1, "ArmorLeatherBoots": 1, "ArmorLeatherGauntlets": 1, "ArmorLeatherHelmet": 1, "ArmorIronCuirass": 1, "ArmorIronBoots": 1, "ArmorIronGauntlets": 1, "ArmorIronHelmet": 1, "IronIngot": 10, "SteelIngot": 5, "OrichalcumIngot": 2, "IronOre": 6, "CorundumOre": 3, "Leather": 6, "LeatherStrips": 16, "Hide": 2, "Pickaxe": 1, "Torch": 4 }, "buys": ["weapon", "apparel", "misc"] },
+      "where": [{ "map": "coast", "x": 842, "y": 1136, "from": 7, "to": 19 }]
     },
     "rashid": {
       "name": "Rashid the Fisherman", "pname": "Rashid", "build": "old", "dialogue": "fisherman", "faction": "village", "hp": 4,

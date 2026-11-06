@@ -174,6 +174,15 @@ export function anvil() { const p = new Px(26, 20); rod(p, 13, 18, 13, 11, 6, 4,
 export function forge(i = 0) { const p = new Px(40, 40); for (let y = 6; y < 36; y++) for (let x = 3; x < 37; x++) p.set(x, y, x > 10 && x < 30 && y > 14 && y < 24 ? '#1a0d06' : tone('stone', 0.45 + ((x + (y >> 2) * 2) % 5 === 0 ? -0.1 : 0), x, y)); const c = finish(p, 0.28).canvas(); c.getContext('2d').drawImage(flame(16, 10, i * 0.6, 95), 12, 13); return { canvas: c, ox: 20, oy: 36 }; }
 export function counter() { const p = new Px(60, 22); for (let y = 2; y < 20; y++) for (let x = 2; x < 58; x++) p.set(x, y, tone('wood', y < 7 ? 0.6 : 0.38 + (x % 10 === 0 ? -0.1 : 0), x, y)); for (const x of [12, 30, 46]) blob(p, x, 4, 2.5, 1.6, ['tile', 'white', 'ochre'][x % 3], { tex: 0 }); return done(p, 30, 20); }
 export function dummy() { const p = new Px(20, 40); rod(p, 10, 38, 10, 10, 2.4, 2.4, 'wood'); rod(p, 3, 16, 17, 16, 2, 2, 'wood'); blob(p, 10, 22, 6, 9, 'canvas', { tex: 0.3, fn: (x, y, v) => ((x + y) % 5 === 0 ? tone('hay' in RAMPS ? 'hay' : 'ochre', v, x, y) : null) }); blob(p, 10, 8, 4, 4, 'canvas', { tex: 0.2 }); return done(p, 10, 38); }
+// ---------- the smithy ----------
+export function grindstone() { const p = new Px(28, 26); for (const x of [6, 22]) rod(p, x, 24, x, 12, 2, 2, 'wood'); rod(p, 4, 18, 24, 18, 1.8, 1.8, 'wood'); blob(p, 14, 12, 3.4, 9, 'stone', { tex: 0.2, bias: 0.05, fn: (x, y, v) => (Math.abs(y - 12) > 7.4 ? tone('stone', v - 0.2, x, y) : null) }); rod(p, 14, 12, 25, 9, 1.2, 1.2, 'iron'); rod(p, 25, 9, 25, 5, 1.4, 1.4, 'wood'); return done(p, 14, 24); }
+export function workbench() { const p = new Px(40, 26); for (let y = 6; y < 13; y++) for (let x = 2; x < 38; x++) p.set(x, y, tone('wood', 0.6 - (y - 6) * 0.02 + (x % 9 === 0 ? -0.1 : 0), x, y)); for (let y = 13; y < 16; y++) for (let x = 2; x < 38; x++) p.set(x, y, tone('wood', 0.32, x, y)); for (const x of [4, 35]) rod(p, x, 16, x, 24, 2, 2, 'wood'); rod(p, 9, 6, 17, 3, 1.4, 1.2, 'iron'); blob(p, 24, 8, 3, 1.6, 'iron', { tex: 0 }); for (let k = 0; k < 4; k++) p.set(28 + k * 2, 7, tone('brass', 0.6, 28, 7)); rod(p, 12, 10, 20, 10, 2.4, 2.4, 'leather'); return done(p, 20, 24); }
+export function tanningRack() { const p = new Px(32, 40); for (const x of [4, 28]) rod(p, x, 38, x, 4, 2, 2, 'wood'); rod(p, 3, 6, 29, 6, 1.8, 1.8, 'wood'); rod(p, 3, 32, 29, 32, 1.8, 1.8, 'wood'); poly(p, [[7, 8], [25, 8], [26, 20], [23, 30], [9, 30], [6, 20]], (x, y, u, v) => tone('hide', 0.55 - v * 0.1 + 0.1 * (fbm(x * 0.3, y * 0.3, 7) - 0.5), x, y)); for (const [a, b] of [[7, 8], [25, 8], [9, 30], [23, 30], [6, 20], [26, 20]]) rod(p, a, b, a < 16 ? 4 : 28, b < 20 ? 6 : b > 25 ? 32 : b, 0.8, 0.8, 'canvas'); return done(p, 16, 38); }
+export function smelter(i = 0) { const p = new Px(34, 40); blob(p, 17, 22, 13, 15, 'stone', { tex: 0.25, rough: 0.12, seed: 9, fn: (x, y, v) => ((x + (y >> 2) * 3) % 7 === 0 ? tone('stone', v - 0.12, x, y) : null) }); rod(p, 17, 8, 17, 2, 7, 6, 'stone', { bias: -0.05 }); for (let y = 24; y < 32; y++) for (let x = 11; x < 23; x++) if (Math.hypot(x - 17, (y - 28) * 1.3) < 6) p.set(x, y, '#1a0d06'); const c = finish(p, 0.28).canvas(); c.getContext('2d').drawImage(flame(10, 7, i * 0.6, 96), 12, 24); return { canvas: c, ox: 17, oy: 37 }; }
+// An ore vein: a rock shot through with its metal. v: 0 iron, 1 corundum, 2 orichalcum.
+export function oreVein(v = 0) { const ore = ['brass', 'red', 'orc'][v] || 'brass'; const p = new Px(32, 24); blob(p, 16, 13, 14, 9, 'stone', { rough: 0.3, seed: 51 + v, tex: 0.3, fn: (x, y, val) => (hash(x >> 1, y >> 1, 52 + v) < 0.16 ? tone(ore, val + 0.2, x, y) : null) }); return done(p, 16, 20); }
+// The rock of a cave wall: a tall, dark mass, lit along its top edge.
+export function caveRock(v = 0) { const p = new Px(52, 56); blob(p, 26, 30, 24 - v * 2, 25, 'stone', { rough: 0.35, seed: 61 + v, tex: 0.3, bias: -0.18 }); blob(p, 16 + v * 4, 40, 11, 12, 'stone', { rough: 0.35, seed: 64 + v, tex: 0.3, bias: -0.25 }); return done(p, 26, 52); }
 
 // ---------- what each kind is and how much ground it blocks ----------
 // SOLID: a radius (a post, a trunk) or a rectangle [x0, y0, x1, y1] about the anchor.
@@ -183,16 +192,19 @@ export const MAKERS = {
   cairn: (v) => cairn(v), shrine: () => shrine(), column: (v) => column(v), carvedBlock: (v) => carvedBlock(v), arch: () => arch(), steps: () => steps(), kennel: () => kennel(),
   bed: (v, o) => bed(o), table: (v, o) => table(o), chair: () => chair(), shelf: () => shelf(), rug: (v, o) => rug(o), anvil: () => anvil(), counter: () => counter(), dummy: () => dummy(),
   crate: () => crate(), chest: () => chest(), sack: () => sack(), barrel: () => barrel(), stake: (v) => stake(24 + v * 2, v % 5), tent: (v, o) => tent(o.big ? 1.35 : 1), logSeat: () => logSeat(), rack: () => rack(), pike: () => pike(), house: (v, o) => house(o),
+  grindstone: () => grindstone(), workbench: () => workbench(), tanningRack: () => tanningRack(), oreVein: (v) => oreVein(v), caveRock: (v) => caveRock(v),
 };
 // Animated kinds: a list of frames.
 export const ANIMATED = {
   fire: () => fireFrames(), torch: () => torchFrames(), brazier: () => [0, 1, 2, 3, 4].map((i) => brazier(i)), hearth: () => [0, 1, 2, 3, 4].map((i) => hearth(i)), forge: () => [0, 1, 2, 3].map((i) => forge(i)), lampPost: () => [0, 1].map((i) => lampPost(i)),
+  smelter: () => [0, 1, 2, 3].map((i) => smelter(i)),
 };
 export const SOLID = {
   palm: 4, olive: 5, tree: 6, pomegranate: 5, bush: 8, boulder: 13, rock: 8, well: 11, saltPile: 9, boat: [-24, -8, 24, 4], cart: [-16, -8, 16, 2], hay: 10, signpost: 3, noticeBoard: [-12, -3, 12, 1], bench: [-13, -3, 13, 2], stall: [-21, -10, 21, 1],
   shrine: [-12, -8, 12, 2], column: 6, carvedBlock: [-11, -12, 11, 1], arch: [[-24, -4, -14, 1], [14, -4, 24, 1]], kennel: [-13, -10, 13, 1], cairn: 0, fire: 9, torch: 3, brazier: 5, lampPost: 3,
   bed: [-11, -28, 11, 0], table: [-16, -14, 16, 0], chair: 0, shelf: [-13, -8, 13, 0], hearth: [-16, -10, 16, 0], anvil: [-10, -6, 10, 0], forge: [-18, -12, 18, 0], counter: [-28, -10, 28, 0], dummy: 5,
   crate: 7, chest: 7, sack: 6, barrel: 7, stake: 3.5, tent: [[-24, -16, 24, 0]], logSeat: [-12, -3, 12, 2], rack: [-18, -4, 18, 1], pike: 3, fence: 'fence', dock: 0, rug: 0, reeds: 0, driftwood: 0, scrub: 0, steps: 0,
+  grindstone: [-11, -5, 11, 1], workbench: [-18, -6, 18, 1], tanningRack: [-14, -3, 14, 1], smelter: 12, oreVein: 12, caveRock: 21,
 };
 
 // ---------- item pictures for things with no Skyrim record ----------
@@ -220,7 +232,17 @@ Object.assign(ITEM_ART, {
   Ale: art((p) => { rod(p, 12, 19, 12, 7, 5, 5, 'wood', { bias: 0.1 }); blob(p, 12, 7, 5, 2, 'cream', { tex: 0 }); rod(p, 17, 10, 19, 15, 1.4, 1.4, 'wood'); }),
   Torch: art((p) => { rod(p, 8, 20, 15, 7, 2, 1.8, 'wood'); blob(p, 16, 6, 3, 3, 'fire', { bias: 0.3, tex: 0.2 }); }),
   CrabClaw: art((p) => { rod(p, 6, 16, 14, 11, 3.2, 2.6, 'red', { bias: 0.1 }); rod(p, 14, 11, 19, 6, 2.2, 1.2, 'red', { bias: 0.2 }); rod(p, 14, 12, 20, 12, 1.8, 1, 'red', { bias: 0.15 }); }),
+  IronIngot: art((p) => { poly(p, [[4, 12], [16, 9], [21, 13], [9, 17]], (x, y, u, v) => tone('iron', 0.7 - v * 0.2, x, y)); poly(p, [[4, 12], [9, 17], [9, 20], [4, 15]], (x, y) => tone('iron', 0.35, x, y)); poly(p, [[9, 17], [21, 13], [21, 16], [9, 20]], (x, y) => tone('iron', 0.5, x, y)); }),
+  Leather: art((p) => { poly(p, [[4, 7], [19, 5], [21, 12], [18, 19], [6, 19], [3, 13]], (x, y) => tone('leather', 0.55 + 0.1 * (fbm(x * 0.3, y * 0.3, 3) - 0.5), x, y)); }),
+  LeatherStrips: art((p) => { for (let k = 0; k < 4; k++) rod(p, 4, 7 + k * 4, 20, 9 + k * 4, 1.4, 1.4, 'leather', { bias: 0.1 }); }),
+  Hide: art((p) => { poly(p, [[3, 8], [8, 5], [16, 5], [21, 8], [20, 17], [15, 20], [9, 20], [4, 17]], (x, y) => tone('fur', 0.55 + (hash(x, y, 2) < 0.2 ? 0.12 : 0), x, y)); }),
+  IronOre: art((p) => { blob(p, 12, 13, 8, 6, 'stone', { rough: 0.3, seed: 3, tex: 0.3, fn: (x, y, v) => (hash(x, y, 8) < 0.25 ? tone('brass', v + 0.15, x, y) : null) }); }),
+  Pickaxe: art((p) => { rod(p, 6, 20, 14, 6, 1.6, 1.6, 'wood'); poly(p, [[5, 7], [14, 4], [22, 9], [14, 6]], (x, y) => tone('iron', 0.6, x, y)); }),
 });
+ITEM_ART.SteelIngot = () => { const c = ITEM_ART.IronIngot(), g = c.getContext('2d'); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(150,170,190,0.35)'; g.fillRect(0, 0, 24, 24); return c; };
+ITEM_ART.OrichalcumIngot = () => { const c = ITEM_ART.IronIngot(), g = c.getContext('2d'); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(80,140,60,0.4)'; g.fillRect(0, 0, 24, 24); return c; };
+ITEM_ART.CorundumOre = () => { const c = ITEM_ART.IronOre(), g = c.getContext('2d'); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(180,60,40,0.3)'; g.fillRect(0, 0, 24, 24); return c; };
+ITEM_ART.OrichalcumOre = () => { const c = ITEM_ART.IronOre(), g = c.getContext('2d'); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(60,140,60,0.35)'; g.fillRect(0, 0, 24, 24); return c; };
 for (const k of ['BanditNote', 'SmugglerNote', 'KeshLetter', 'TaxLedger']) ITEM_ART[k] = ITEM_ART.Note;
 ITEM_ART.TaxLedgerKey = ITEM_ART.GullKey;
 export { RAMPS, clamp, stake, tent, crate, chest, sack, barrel, logSeat, rack, pike, torchPost };

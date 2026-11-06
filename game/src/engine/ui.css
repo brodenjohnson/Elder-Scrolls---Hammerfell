@@ -175,9 +175,40 @@
   .map .pin.place:hover span { color: #7a1010; }
   .journal .quest.done h3 { color: #7a6a50; font-size: 15px; }
   .shop .row em { font-style: normal; color: var(--gold); }
-  /* the title, naming him, the warning */
-  #front { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #2a1a10, #050302); z-index: 10; }
+  /* smithing: recipes grouped by material, what it takes under the item */
+  .smith .grp { color: var(--gold); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; padding: 8px 8px 2px; border-bottom: 1px solid rgba(201,164,90,0.25); }
+  .smith .row.cant span { color: var(--dim); }
+  .smith .cats p b { color: var(--gold2); font-weight: normal; }
+  .smith .needs { margin-top: 10px; text-align: center; font-size: 14px; line-height: 1.6; }
+  .smith .needs b { color: var(--gold2); font-weight: normal; }
+  .smith .needs .ok { color: #b8d08a; } .smith .needs .no { color: #e0a090; }
+  /* the title: black, a key, then the coast at dusk behind the seal and the name; naming him, the warning */
+  #front { position: fixed; inset: 0; z-index: 10; overflow: hidden; background: transparent; }
   #front[hidden] { display: none; }
+  body.titling #hud { display: none; }
+  #front::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.78)); }
+  #front .veil { position: absolute; inset: 0; background: #000; opacity: 1; transition: opacity 4.5s ease; }
+  #front.st-intro .veil { opacity: 0.2; }
+  #front.st-menu .veil { opacity: 0.3; transition-duration: .8s; }
+  #front.st-form .veil { opacity: 0.74; transition-duration: .6s; }
+  #front .press { position: absolute; bottom: 24%; left: 0; right: 0; text-align: center; color: var(--dim); letter-spacing: 5px; text-transform: uppercase; font-size: 13px; opacity: 0; z-index: 2; }
+  #front.st-press .press { animation: pulse 1.6s infinite; }
+  #front .titleblock { position: absolute; top: 13%; left: 0; right: 0; text-align: center; opacity: 0; transform: scale(1.07); transition: opacity 2.6s ease, transform 7s ease-out; z-index: 2; }
+  #front.st-intro .titleblock { opacity: 1; transform: scale(1); transition-delay: 2.9s, 2.9s; }
+  #front.st-menu .titleblock { opacity: 1; transform: none; transition: opacity .6s; }
+  #front .emblem { width: 92px; height: 92px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.9)); }
+  #front h1 { margin: 8px 0 6px; font-weight: normal; font-size: clamp(30px, 6.2vw, 68px); letter-spacing: 0.26em; text-transform: uppercase; background: linear-gradient(#fff1c8, #d6b066 55%, #7e5c26); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 6px #000); }
+  #front .rule { width: 44%; height: 1px; margin: 0 auto 8px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  #front .sub { margin: 0; letter-spacing: 0.55em; text-transform: uppercase; color: var(--ink); font-size: 13px; text-shadow: 0 2px 4px #000; }
+  #front .menu { position: absolute; top: 60%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: 0; pointer-events: none; transition: opacity 1.2s; z-index: 2; }
+  #front.st-menu .menu { opacity: 1; pointer-events: auto; }
+  #front .menu button { background: transparent; border: none; color: var(--ink); font: inherit; font-size: 19px; letter-spacing: 0.32em; text-transform: uppercase; padding: 5px 22px; cursor: pointer; text-shadow: 0 2px 5px #000; }
+  #front .menu button:hover, #front .menu button:focus-visible { color: var(--gold2); text-shadow: 0 0 12px rgba(240,208,144,0.65), 0 2px 5px #000; outline: none; }
+  #front .panel { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 3; }
+  #front.st-form .panel { display: flex; }
+  #front.st-form .titleblock { opacity: 0; }
+  #front .ver { position: absolute; right: 12px; bottom: 8px; font-size: 11px; color: var(--dim); z-index: 2; }
+  .frontbox .dim { font-size: 0.85em; }
   .frontbox { text-align: center; max-width: 520px; padding: 20px; }
   .frontbox h1 { font-weight: normal; letter-spacing: 10px; text-transform: uppercase; color: var(--gold2); font-size: 34px; margin-bottom: 4px; }
   .frontbox h2 { font-weight: normal; letter-spacing: 3px; color: var(--gold2); }

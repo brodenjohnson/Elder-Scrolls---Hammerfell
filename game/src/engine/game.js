@@ -1,9 +1,10 @@
 /* =====================================================================
-   The game (0.7.0, design bible v0.3): style A art drawn at runtime, the Sentinel Coast
+   The game (0.8.0, design bible v0.3): style A art drawn at runtime, the Sentinel Coast
    as one full region with rooms to enter, people with days of their own, Skyrim's skills
-   and perks, Rage, the prologue and Act One. The fighting was lifted from the art sample (public/art-sample).
+   and perks, Rage, smithing and trading, torches and dark nights, the prologue and Act One.
+   The fighting was lifted from the art sample (public/art-sample).
    ===================================================================== */
-import { frameOf, crop, faceOf, fwd, ANIMS, COMBO, SWINGS, FINISHERS, KNEELS, FIN_NAMES, useItems, SHAPES, SETS, SHIELDS, PIECE, icon, OX, OY, SW, SH, clamp, hash } from './art.js';
+import { frameOf, crop, faceOf, fwd, ANIMS, COMBO, SWINGS, FINISHERS, KNEELS, FIN_NAMES, useItems, SHAPES, SETS, SHIELDS, PIECE, icon, OX, OY, SW, SH, clamp, hash, baseOf, flame } from './art.js';
 import { creatureFrame, BEAST_ANIMS, BEAST_CELL } from './creatures.js';
 import { World, flagOk, MATS } from './world.js';
 import { Quests, newQuestState } from '../systems/quests';
@@ -19,9 +20,9 @@ const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 const get = (p) => fetch(`./data/${p}`).then((r) => r.json());
 
 // ---------- data: Skyrim's numbers from the game's data pack, and our own ----------
-const [WDATA, ADATA, SKILLS, PERKS, EXTRA, MAPS, NPCS, QDEFS, SCENES, ENCOUNTERS] = await Promise.all([
+const [WDATA, ADATA, SKILLS, PERKS, EXTRA, MAPS, NPCS, QDEFS, SCENES, ENCOUNTERS, SMITH] = await Promise.all([
   get('game/weapons.json'), get('game/armour.json'), get('game/skills.json'), get('game/perks.json'), get('items.json'),
-  get('world/maps.json'), get('world/people.json'), get('quests.json'), get('scenes.json'), get('world/encounters.json'),
+  get('world/maps.json'), get('world/people.json'), get('quests.json'), get('scenes.json'), get('world/encounters.json'), get('smithing.json'),
 ]);
 const ITEMS = {};
 const CLS = { sword: 'blade', scimitar: 'blade', greatsword: 'blade', waraxe: 'axe', battleaxe: 'axe', mace: 'blunt', warhammer: 'blunt', dagger: 'dagger' };
@@ -38,6 +39,15 @@ for (const a of ADATA) {
 for (const [k, v] of Object.entries(EXTRA)) if (!k.startsWith('_')) ITEMS[k] = { edid: k, weight: 0, value: 0, ...v };
 ITEMS.Fists = { edid: 'Fists', name: 'Fists', cat: 'none', damage: 4, speed: 1.2, reach: 0.7, weight: 0, value: 0, shape: 'none', metal: 'iron', hands: 1, cls: 'fist', skillName: null };
 useItems(ITEMS);
+// Improved weapons and armour are items of their own: IronSword+2 is an Iron Sword improved by 2
+// (Skyrim's Fine to Legendary). They are made the first time they are needed, so a save needs nothing new.
+function variant(e) {
+  if (ITEMS[e] || !String(e).includes('+')) return ITEMS[e];
+  const [b, n] = String(e).split('+'), it = ITEMS[b], k = +n;
+  if (!it || !(k > 0)) return undefined;
+  const weapon = it.cat === 'weapon', tier = clamp(Math.ceil(weapon ? k : k / 2), 1, 6);
+  return (ITEMS[e] = { ...it, edid: e, improved: k, name: `${it.name} (${SMITH.qualities[tier]})`, damage: weapon ? it.damage + k : it.damage, rating: weapon ? it.rating : it.rating + k, value: Math.round(it.value * (1 + 0.15 * tier)) });
+}
 const DIALOGUES = {};
 await Promise.all(NPCS.dialogues.map((id) => get(`dialogue/${id}.json`).then((d) => { DIALOGUES[id] = d; }).catch(() => {})));
 
@@ -79,9 +89,10 @@ const carried = () => Object.entries(state.inv).reduce((s, [e, n]) => {
 const sfx = (n, o) => window.HFA?.play(n, o);
 // What a blow lands on: bare or clothed flesh, leather and hide, or metal.
 const matOf = (f) => { const t = ITEMS[f.eq.body]?.armourType; return t === 'Heavy' ? 'metal' : t === 'Light' ? 'leather' : 'flesh'; };
-const guardOf = (f) => (shieldOn(f) ? (f.eq.shield === 'ArmorHideShield' ? 'wood' : 'metal') : 'blade');
+const guardOf = (f) => (shieldOn(f) ? (baseOf(f.eq.shield) === 'ArmorHideShield' ? 'wood' : 'metal') : 'blade');
 const finTurn = {}; // the next finisher of each kind, so they take turns
-const shieldOn = (f) => !!(f.eq?.shield && W8(f).hands === 1);
+const shieldOn = (f) => !!(f.eq?.shield && f.eq.shield !== 'Torch' && W8(f).hands === 1);
+const torchLit = (f) => !f.dead && !f.beast && f.eq?.shield === 'Torch' && W8(f).hands === 1;
 const BEAST_FOR = { stagger: 'hit', kneel: 'hit', clutch: 'hit', impaled: 'hit', shieldBlock: 'idle', enemyChop: 'attack', enemySlash: 'attack', run: 'run', block: 'idle' };
 const animsOf = (f) => (f.beast ? BEAST_ANIMS : ANIMS);
 const frames = (f) => animsOf(f)[f.anim].frames;
@@ -147,16 +158,21 @@ const PERK = Object.fromEntries(PERKS.map((q) => [q.edid, q]));
 const chainOf = (first) => { const c = []; for (let q = PERK[first]; q && c.length < 6; q = PERK[q.nextPerk]) c.push(q.edid); return c; };
 const rank = (first) => chainOf(first).filter((e) => state.perks.has(e)).length;
 const has = (first) => rank(first) > 0;
-// Perks for things this sample (or the game) does not have yet.
-const NOT_HERE = { DualFlurry30: 'No dual wielding yet', DualSavagery: 'No dual wielding yet', DeflectArrows: 'No archers in this camp', ElementalProtection: 'No magic in this camp', Cushioned: 'No falling in this camp' };
+// Perks for things the game does not have. A perk that needs one of these needs what that one needs.
+const NOT_HERE = {
+  DualFlurry30: 'No dual wielding', DualSavagery: 'No dual wielding', DeflectArrows: 'No archers to face yet', ElementalProtection: 'No magic in this game', Cushioned: 'No falling in this game',
+  DwarvenSmithing: 'No Dwemer metal on the coast', ElvenSmithing: 'No elven metal on the coast', AdvancedArmors: 'No such armour on the coast', GlassSmithing: 'No glass on the coast',
+  EbonySmithing: 'No ebony on the coast', DaedricSmithing: 'No daedric metal on the coast', DragonArmor: 'No dragons on the coast', ArcaneBlacksmith: 'No magic in this game',
+  fence: 'Nothing is stolen in this game', Bribery: 'No guards to bribe', Intimidation: 'No threats to make yet',
+};
+const unmet = (r) => (NOT_HERE[r] ? PERK[r].requires.map(unmet).find(Boolean) || null : state.perks.has(r) ? null : r);
 function canTake(first) {
   const e = chainOf(first).find((x) => !state.perks.has(x));
   if (!e) return 'Taken';
   const q = PERK[e], req = q.skillReq[0]?.level || 0;
   if (NOT_HERE[first]) return NOT_HERE[first];
-  if (q.skill === 'Smithing' || q.skill === 'Speech') return 'Comes with crafting and trading';
   if (state.skills[q.skill].level < req) return `Needs ${SKILL_NAMES[q.skill]} ${req}`;
-  for (const r of q.requires) if (!state.perks.has(r)) return `Needs ${PERK[r]?.name || r}`;
+  for (const r of q.requires) { const u = unmet(r); if (u) return `Needs ${PERK[u]?.name || u}`; }
   if (state.perkPoints <= 0 && !(q.skill === 'Rage' && state.ragePoints > 0)) return 'No perk points';
   return 'ok';
 }
@@ -169,7 +185,7 @@ function takePerk(first) {
 // What he is wearing, for the armour perks.
 const worn = () => ['body', 'hands', 'feet', 'head'].map((k) => ITEMS[pl.eq[k]]);
 const allOf = (type) => worn().every((it) => it && it.armourType === type);
-const matched = () => { const sets = ['body', 'hands', 'feet', 'head'].map((k) => PIECE[pl.eq[k]]?.[0]); return sets.every((x) => x && x === sets[0]); };
+const matched = () => { const sets = ['body', 'hands', 'feet', 'head'].map((k) => PIECE[baseOf(pl.eq[k])]?.[0]); return sets.every((x) => x && x === sets[0]); };
 
 // ---------- blood ----------
 // Blood: more and heavier on full gore. Drops land as spatter; a fast blow also leaves a
@@ -214,7 +230,7 @@ function lootOf(f) {
     if (Math.random() < 0.6) items.Bandage = 1 + Math.floor(Math.random() * 2);
     if (Math.random() < 0.35) items.PotionHealth = 1;
     if (Math.random() < 0.3) items.Salt = 1 + Math.floor(Math.random() * 3);
-  }
+  } else if (['boar', 'jackal', 'hound', 'wolf'].includes(f.beast)) items.Hide = 1;
   Object.assign(items, f.lootExtra || {});
   return { items, gold: f.beast ? 0 : f.gold ?? 5 + Math.floor(Math.random() * 25) };
 }
@@ -527,18 +543,32 @@ const nameOf = (e) => ITEMS[e]?.name ?? e;
 
 // ---------- carrying things ----------
 function take(edid, n) {
+  variant(edid);
   state.inv[edid] = (state.inv[edid] || 0) + n;
   if (n > 0) { flags.add(`has:${edid}`); quests?.checkFlags(); }
   if (state.inv[edid] <= 0) { delete state.inv[edid]; flags.delete(`has:${edid}`); for (const k of Object.keys(pl.eq)) if (pl.eq[k] === edid) pl.eq[k] = null; }
 }
 function equip(edid) {
   const it = ITEMS[edid]; if (!it || !state.inv[edid]) return;
-  if (it.cat === 'weapon') { pl.eq.weapon = pl.eq.weapon === edid ? null : edid; if (it.hands === 2 && pl.eq.shield) say('Two-handed: the shield goes on your back', 'info'); }
-  else if (it.cat === 'apparel') pl.eq[it.slot] = pl.eq[it.slot] === edid ? null : edid;
+  if (it.cat === 'weapon') {
+    pl.eq.weapon = pl.eq.weapon === edid ? null : edid;
+    if (it.hands === 2 && pl.eq.shield === 'Torch' && pl.eq.weapon) { pl.eq.shield = null; say('Two hands on the weapon: the torch goes out', 'info'); }
+    else if (it.hands === 2 && pl.eq.shield && pl.eq.weapon) say('Two-handed: the shield goes on your back', 'info');
+  } else if (it.torch) {
+    pl.eq.shield = pl.eq.shield === 'Torch' ? null : 'Torch';
+    if (pl.eq.shield && W8(pl).hands === 2) { pl.eq.weapon = null; say('The torch takes a hand: the two-hander goes on your back', 'info'); }
+  } else if (it.cat === 'apparel') pl.eq[it.slot] = pl.eq[it.slot] === edid ? null : edid;
+}
+// L: light a torch, or put it out.
+function toggleTorch() {
+  if (!pl || pl.dead) return;
+  if (pl.eq.shield === 'Torch') { pl.eq.shield = null; say('Torch put out', 'info'); return; }
+  if (!state.inv.Torch) { say('You have no torch. Dalia and Hamid sell them.', 'warn'); return; }
+  equip('Torch'); sfx('torch');
 }
 function useItem(edid) {
   const it = ITEMS[edid]; if (!it || !state.inv[edid]) return;
-  if (it.cat === 'weapon' || it.cat === 'apparel') return equip(edid);
+  if (it.cat === 'weapon' || it.cat === 'apparel' || it.torch) return equip(edid);
   if (it.read) { state.events.push({ kind: 'read', text: it.read, title: it.name }); if (it.readFlag) { flags.add(it.readFlag); quests.checkFlags(); } return; }
   if (it.heal) { if (pl.hp >= pl.maxHp && edid !== 'Bandage') { say('Your health is full', 'warn'); return; } pl.hp = Math.min(pl.maxHp, pl.hp + it.heal); take(edid, -1); say(`${it.name} used`, 'info'); }
 }
@@ -588,6 +618,19 @@ function spawnActors() {
     if (wp && wp.map === world.id) actors.push(mkActor(id, def, wp));
   }
   for (const d of dynamic) if (d.map === world.id) actors.push(d);
+  torches();
+}
+// After dark, outdoors, people carry torches: villagers out late, travellers, raiders. A shield or a
+// two-handed weapon leaves no hand free; a 'torch: false' in their data keeps it out of their hand.
+const nightNow = () => { const h = hourNow(); return h >= 19.5 || h < 5.5; };
+function torches() {
+  const night = !world.indoor && nightNow();
+  for (const a of actors) {
+    if (a.beast || a.dead) continue;
+    const free = !a.eq.shield || a.eq.shield === 'Torch', want = night && a.def?.torch !== false && free && W8(a).hands === 1;
+    if (want && !a.eq.shield) a.eq = { ...a.eq, shield: 'Torch' };
+    else if (!want && a.eq.shield === 'Torch' && a.def?.eq?.shield !== 'Torch') a.eq = { ...a.eq, shield: null };
+  }
 }
 // Keep what matters about the people of a map when leaving it: who is dead, where, what they carry.
 function storeActors() {
@@ -625,12 +668,12 @@ function activatable() {
   const dist = (x, y) => Math.hypot(x - pl.x, (y - pl.y) * 1.3);
   for (const a of actors) {
     const d = dist(a.x, a.y);
-    if (a.dead && a.loot && d < 22) consider(d, { kind: 'body', ref: a, name: a.pname || a.name, verb: 'Search' });
-    else if (!a.dead && !hostileTo(a) && (a.dialogue || a.shop || a.def?.pet) && d < 26) consider(d - 4, { kind: 'talk', ref: a, name: a.pname || a.name, verb: a.def?.pet ? (flags.has(a.def.follow) ? 'Send home' : 'Pet') : 'Talk to' });
-    else if (a.yielded && !a.dead && d < 30) consider(d - 6, { kind: 'talk', ref: a, name: a.pname, verb: 'Talk to' });
+    if (a.dead && a.loot && d < 30) consider(d, { kind: 'body', ref: a, name: a.pname || a.name, verb: 'Search' });
+    else if (!a.dead && !hostileTo(a) && (a.dialogue || a.shop || a.def?.pet) && d < 42) consider(d - 4, { kind: 'talk', ref: a, name: a.pname || a.name, verb: a.def?.pet ? (flags.has(a.def.follow) ? 'Send home' : 'Pet') : 'Talk to' });
+    else if (a.yielded && !a.dead && d < 44) consider(d - 6, { kind: 'talk', ref: a, name: a.pname, verb: 'Talk to' });
   }
-  for (const c of world.containers) { const d = dist(c.x, c.y); if (d < 22) consider(d, { kind: 'container', ref: containerOf(c), name: c.name, verb: 'Open' }); }
-  for (const dr of world.doors) { const d = dist(dr.x, dr.y); if (d < 18) consider(d, { kind: 'door', ref: dr, name: dr.label, verb: dr.locked && !flags.has(dr.locked) ? 'Locked:' : 'Enter' }); }
+  for (const c of world.containers) { const d = dist(c.x, c.y); if (d < 30) consider(d, { kind: 'container', ref: containerOf(c), name: c.name, verb: 'Open' }); }
+  for (const dr of world.doors) { const d = dist(dr.x, dr.y); if (d < 26) consider(d, { kind: 'door', ref: dr, name: dr.label, verb: dr.locked && !flags.has(dr.locked) ? 'Locked:' : 'Enter' }); }
   for (const u of world.uses) { if (!flagOk(u, flags)) continue; const d = dist(u.x, u.y); if (d < (u.r || 20)) consider(d, { kind: 'use', ref: u, name: u.name, verb: u.verb || 'Use' }); }
   return best;
 }
@@ -666,6 +709,7 @@ function use(u) {
   if (u.scene) playScene(u.scene);
   if (u.run) runAction(u.run);
   if (u.sleep) return { kind: 'sleep' };
+  if (u.smith) return { kind: 'smith', station: u.smith, name: u.name };
   if (u.read) state.events.push({ kind: 'read', title: u.name, text: u.read });
   return null;
 }
@@ -686,6 +730,7 @@ function dialogueCtx() {
   return {
     character: { s: { skills: state.skills, inventory: state.inv }, give: (e, n) => take(e, n), useSkill: (k, n) => train(k, n), data: { weapons: { get: (k) => ITEMS[k] }, armour: { get: (k) => ITEMS[k] }, items: ITEMS } },
     reputation: S.reputation, flags, say: (m) => say(m, 'item'), quests, bond: S.bond, gold: () => state.gold, addGold: (g) => { state.gold += g; say(g > 0 ? `${g} Gold added` : `${-g} Gold given`, 'item'); }, run: (a) => runAction(a),
+    checkEase: has('Persuasion') ? 0.7 : 1, // Persuasion: Speech checks are 30 percent easier
   };
 }
 function endConversation() {
@@ -697,24 +742,95 @@ function endConversation() {
   world.refresh(flags);
 }
 
-// ---------- trading (Skyrim's way: prices by Speech, merchants with a purse) ----------
-function shopState(n) { const sh = (S.world.shops ??= {}); return (sh[n.id] ??= { gold: n.shop.gold, stock: { ...n.shop.stock } }); }
+// ---------- trading (Skyrim's way: prices by Speech and its perks, merchants with a purse) ----------
+// A merchant's gold and stock come back every two days, as in Skyrim; what you sold them is gone by then.
+// Investor adds 500 to one merchant's purse for good; Master Trader adds 1000 to every merchant's.
+const purse = (n, s) => n.shop.gold + (s.invested ? 500 : 0) + (has('MasterTrader') ? 1000 : 0);
+function shopState(n) {
+  const sh = (S.world.shops ??= {}), s = (sh[n.id] ??= { gold: n.shop.gold, stock: { ...n.shop.stock }, at: S.time });
+  if (S.time - (s.at ?? 0) >= 2 * DAY) Object.assign(s, { gold: purse(n, s), stock: { ...n.shop.stock }, at: S.time });
+  for (const e of Object.keys(s.stock)) variant(e);
+  return s;
+}
 function openShop(n) { shop = { npc: n, s: shopState(n) }; return shop; }
-const buyPrice = (e) => Math.max(1, Math.ceil(ITEMS[e].value * (1.9 - 0.6 * Math.min(100, state.skills.Speech.level) / 100)));
-const sellPrice = (e) => Math.max(0, Math.floor(ITEMS[e].value / (2.9 - 0.9 * Math.min(100, state.skills.Speech.level) / 100)));
+// Haggling: 10, 15, 20, 25 or 30 percent better. Allure: 10 percent better with a woman.
+function haggle() {
+  let k = [0, 0.1, 0.15, 0.2, 0.25, 0.3][rank('Haggling00')];
+  if (has('Allure') && (shop?.npc.def.build === 'woman' || shop?.npc.def.female)) k += 0.1;
+  return k;
+}
+const buyPrice = (e) => Math.max(1, Math.ceil(ITEMS[e].value * (1.9 - 0.6 * Math.min(100, state.skills.Speech.level) / 100) * (1 - haggle())));
+const sellPrice = (e) => Math.max(0, Math.floor((ITEMS[e].value / (2.9 - 0.9 * Math.min(100, state.skills.Speech.level) / 100)) * (1 + haggle())));
+// What a merchant will take off you (Merchant: anything, from anyone).
+const buysIt = (n, e) => !ITEMS[e]?.quest && (has('Merchant') || !n.shop.buys || n.shop.buys.includes(ITEMS[e].cat));
 function buy(e) {
   const s = shop.s, p = buyPrice(e);
-  if (!s.stock[e]) return; if (state.gold < p) { say('Not enough gold', 'warn'); return; }
+  if (!s.stock[e]) return false; if (state.gold < p) { say('Not enough gold', 'warn'); return false; }
   state.gold -= p; s.gold += p; s.stock[e]--; if (!s.stock[e]) delete s.stock[e]; take(e, 1); train('Speech', p); sfx('pickup');
   quests.notify({ type: 'interact', target: `buy:${e}` });
+  return true;
 }
 function sell(e) {
   const s = shop.s, p = sellPrice(e), it = ITEMS[e];
-  if (!state.inv[e] || it.quest) { if (it?.quest) say('You keep that.', 'warn'); return; }
-  if (shop.npc.shop.buys && !shop.npc.shop.buys.includes(it.cat)) { say(`${shop.npc.pname} doesn't buy that.`, 'warn'); return; }
-  if (s.gold < p) { say(`${shop.npc.pname} can't afford it.`, 'warn'); return; }
+  if (!state.inv[e] || it.quest) { if (it?.quest) say('You keep that.', 'warn'); return false; }
+  if (!buysIt(shop.npc, e)) { say(`${shop.npc.pname} doesn't buy that.`, 'warn'); return false; }
+  if (s.gold < p) { say(`${shop.npc.pname} can't afford it.`, 'warn'); return false; }
+  if (Object.values(pl.eq).includes(e) && state.inv[e] === 1) for (const k of Object.keys(pl.eq)) if (pl.eq[k] === e) pl.eq[k] = null;
   state.gold += p; s.gold -= p; s.stock[e] = (s.stock[e] || 0) + 1; take(e, -1); train('Speech', p); sfx('pickup');
   quests.notify({ type: 'interact', target: `sell:${e}` }); quests.notify({ type: 'interact', target: 'sell' });
+  return true;
+}
+// Investor: 500 gold into a merchant's business, once, for a bigger purse from then on.
+function invest() {
+  const s = shop?.s; if (!s || !has('Investor') || s.invested) return false;
+  if (state.gold < 500) { say('Investing takes 500 gold', 'warn'); return false; }
+  state.gold -= 500; s.invested = true; s.gold += 500; say(`You invest 500 gold with ${shop.npc.pname}`, 'item'); return true;
+}
+
+// ---------- smithing (Skyrim's: make things at the forge, improve them at the grindstone and workbench) ----------
+// Smelting and tanning teach nothing; making and improving train Smithing by the item's value.
+const smithXp = (v) => 3 * Math.pow(Math.max(1, v), 0.65) + 25;
+const haveAll = (need, n = 1) => Object.entries(need).every(([e, k]) => (state.inv[e] || 0) >= k * n);
+function recipes(station) { return (SMITH[station] || []).map((r) => ({ ...r, perkOk: !r.perk || has(r.perk), have: haveAll(r.need) })); }
+function craft(station, make) {
+  const r = SMITH[station]?.find((x) => x.make === make); if (!r) return false;
+  if (r.perk && !has(r.perk)) { say(`Needs the ${PERK[r.perk].name} perk`, 'warn'); return false; }
+  if (!haveAll(r.need)) { say('You lack the materials', 'warn'); return false; }
+  for (const [e, k] of Object.entries(r.need)) take(e, -k);
+  take(make, r.n || 1); say(`${nameOf(make)}${(r.n || 1) > 1 ? ` (${r.n})` : ''} made`, 'item'); sfx('smith', { station });
+  if (station === 'forge') train('Smithing', smithXp(ITEMS[make].value));
+  quests.notify({ type: 'interact', target: `craft:${make}` });
+  return true;
+}
+// What an item is made of, for the material that improves it.
+function materialOf(e) {
+  const it = ITEMS[e]; if (!it) return null;
+  if (it.cat === 'weapon') return it.metal;
+  if (it.cat !== 'apparel' || it.armourType === 'Clothing') return null;
+  const b = baseOf(e), m = SHIELDS[b]?.face || PIECE[b]?.[0] || null;
+  return m === 'orcish' ? 'orc' : m;
+}
+// Skyrim's quality tiers follow Smithing (Fine at 15 up to Legendary at 100); the perk for the
+// material doubles the gain. Weapons gain damage, armour gains twice as much rating.
+const smithTier = () => clamp(1 + Math.floor((state.skills.Smithing.level - 15) / 17), 1, 6);
+function improvement(e) {
+  const it = ITEMS[e], m = materialOf(e); if (!m || !SMITH.improveWith[m]) return { why: 'This cannot be improved.' };
+  const mat = SMITH.improveWith[m], dbl = SMITH.doubles[m] && has(SMITH.doubles[m]) ? 2 : 1;
+  const k = smithTier() * dbl * (it.cat === 'weapon' ? 1 : 2);
+  if (k <= (it.improved || 0)) return { why: 'Your Smithing is not yet good enough to improve it further.', mat };
+  const to = `${baseOf(e)}+${k}`; variant(to);
+  return { to, mat };
+}
+function improve(e) {
+  const r = improvement(e); if (!r.to) { say(r.why, 'warn'); return false; }
+  if (!state.inv[e]) return false;
+  if (!state.inv[r.mat]) { say(`Improving it takes ${nameOf(r.mat)}`, 'warn'); return false; }
+  const slot = Object.keys(pl.eq).find((k) => pl.eq[k] === e);
+  take(r.mat, -1); take(e, -1); take(r.to, 1); if (slot) pl.eq[slot] = r.to;
+  say(`Improved: ${ITEMS[r.to].name}`, 'item'); sfx('smith', { station: ITEMS[e].cat === 'weapon' ? 'grindstone' : 'workbench' });
+  train('Smithing', smithXp(ITEMS[r.to].value));
+  quests.notify({ type: 'interact', target: 'improve' });
+  return true;
 }
 
 // ---------- the story's actions (from scenes, dialogue and the world's data) ----------
@@ -805,6 +921,8 @@ function begin(g, seconds = 0) {
   quests = new Quests(QDEFS, S.quests, { flags: () => flags, give: (e, n) => { take(e, n); say(`${nameOf(e)} added`, 'item'); }, say: (m) => say(m, 'quest') });
   Object.assign(state, { gold: S.gold, inv: S.inventory, rage: S.rage, fury: 0, stamina: 100, level: S.level, xp: S.xp, skills: S.skills, perkPoints: S.perkPoints, ragePoints: S.ragePoints || 0, perks: new Set(S.perks), stats: { kills: 0, finishers: 0, severed: 0, looted: 0, gold: 0, blocks: 0, parries: 0, ...S.stats }, deathless: false, flash: 0, shock: null });
   state.skills.Rage ??= { level: 15, xp: 0 };
+  for (const e of [...Object.keys(S.inventory), ...Object.values(S.eq)]) variant(e);
+  attract = null; document.body.classList.remove('titling');
   pl = { person: 'kasim', apKey: 'kasim', build: 'man', id: 'player', vid: 'kasim', voice: { pitch: 0.5, rate: 0.85, v: 0 }, eq: S.eq, x: S.x, y: S.y, face: S.face, anim: 'idle', fi: 0, ft: 0, kb: [0, 0], flash: 0, hp: S.hp, maxHp: S.maxHp,
     struck: false, combo: 0, comboT: 9, buffer: null, cut: [], crushed: false, stagger: 0, inv: 0, cool: 0, aggro: false, dead: false, prevBlade: null, curBlade: null, drawnFi: -1, drawnAnim: '', spurt: 0, pt: null, ghosts: [], blockT: 0, heading: Math.PI, hits: 0 };
   WORLDS.clear(); world = null; decalChunks = new Map(); dynamic.length = 0; scene = null; convo = null; shop = null; fin = null; attacker = null; hitStop = 0; slow = 0;
@@ -873,6 +991,7 @@ function encounters(dt) {
     a.dynamic = true; a.map = 'coast'; a.group = `enc${Date.now()}`; if (pick.aggro) a.aggro = true;
     dynamic.push(a); actors.push(a);
   });
+  torches();
   if (pick.say) say(pick.say, 'hint');
 }
 
@@ -946,9 +1065,27 @@ function clampCam() {
   camX = clamp(camX, 0, world.w - W); camY = clamp(camY, 0, world.h - H);
 }
 
+// ---------- the title's backdrop ----------
+// Behind the title the coast is shown at dusk with no one in it, the camera drifting slowly
+// along the shore from Saltreach towards the farm and back.
+let attract = null;
+function showTitle(on) {
+  if (!on) { attract = null; return; }
+  if (pl) return;
+  const e = getWorld('coast'); world = e.world; decalChunks = e.decals; actors = []; foes = [];
+  S.time = 19.4 * 3600; attract = { t: 0 };
+}
+function attractCam(rdt) {
+  attract.t += rdt;
+  const u = (1 - Math.cos((attract.t / 90) * Math.PI)) / 2; // there and back in three minutes
+  camX = 560 + u * 620 - W / 2; camY = 1000 + u * 340 - H / 2; clampCam();
+  world.warm(camX + W / 2, camY + H / 2, 2);
+}
+
 // ---------- the loop ----------
 let villagerHour = -1;
 function update(rdt) {
+  if (attract && !pl) { attractCam(rdt); return; }
   // Fading between maps.
   if (fade.to !== fade.a) { fade.a += Math.sign(fade.to - fade.a) * Math.min(Math.abs(fade.to - fade.a), rdt * 5); if (fade.a >= 1 && fade.then) { const f = fade.then; fade.then = null; f(); fade.to = 0; } }
   if (!pl || !world || state.paused) return;
@@ -965,7 +1102,7 @@ function update(rdt) {
   foes = actors.filter(hostileTo);
   // Who is where changes on the hour.
   const hr = Math.floor(hourNow());
-  if (hr !== villagerHour) { villagerHour = hr; if (!foes.some((e) => e.aggro)) refreshPeople(); }
+  if (hr !== villagerHour) { villagerHour = hr; if (!foes.some((e) => e.aggro)) refreshPeople(); else torches(); }
 
   let mx = 0, my = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) my -= 1; if (keys.has('KeyS') || keys.has('ArrowDown')) my += 1; if (keys.has('KeyA') || keys.has('ArrowLeft')) mx -= 1; if (keys.has('KeyD') || keys.has('ArrowRight')) mx += 1;
@@ -1081,12 +1218,52 @@ function drawFighter(f) {
   const white = f.flash > 0, charge = fr.charge && f === pl, furiousNow = f === pl && state.fury > 0;
   if (fr.glow || white || charge || furiousNow) src = tinted(img.canvas, SW, SH, white ? 'rgba(255,255,255,0.85)' : charge ? 'rgba(255,230,180,0.25)' : furiousNow ? 'rgba(200,30,20,0.28)' : `rgba(255,${Math.floor(performance.now() / 70) % 2 ? 190 : 140},60,0.45)`);
   ctx.drawImage(src, sx - OX, sy - OY);
+  if (torchLit(f) && f.pt.torT) { const fl = TORCH_FLAME[Math.floor(performance.now() / 90 + f.x) % TORCH_FLAME.length]; ctx.drawImage(fl, sx - OX + f.pt.torT[0] - 3, sy - OY + f.pt.torT[1] - 9); }
 }
+const TORCH_FLAME = [0, 1, 2, 3, 4].map((i) => flame(6, 10, i * 0.8, 97));
 const GROUNDED = new Set(['rug', 'dock', 'steps']);
+// The light map: the ambient light (the sun by the hour outdoors; a room or a cave sets its own), with
+// every fire, lamp and torch painted in. The scene is multiplied by it, so at night only what is lit
+// is seen properly; flames then add a soft glow of their own on top.
+const lm = document.createElement('canvas'), lg = lm.getContext('2d');
+const rgbOf = (s) => (s.match(/\d+/g) || [205, 178, 150]).map(Number);
+function lightsNow(ox, oy) {
+  const out = world.lights.map((l) => ({ ...l, x: l.x + ox, y: l.y + oy }));
+  for (const f of pl ? [pl, ...actors] : actors) if (torchLit(f) && f.pt?.torT) out.push({ x: Math.round(f.x) - OX + f.pt.torT[0] + ox, y: Math.round(f.y) - OY + f.pt.torT[1] - 4 + oy, r: 78, c: [255, 170, 90], a: 0.42, flicker: 1.6 });
+  return out;
+}
+function drawLight(ox, oy, now) {
+  if (lm.width !== W || lm.height !== H) { lm.width = W; lm.height = H; }
+  let amb;
+  if (world.indoor) amb = rgbOf(world.def.ambient || 'rgb(205,178,150)');
+  else { const c = daylight(S.time); amb = [(c >> 16) & 255, (c >> 8) & 255, c & 255]; }
+  const dark = 1 - (amb[0] + amb[1] + amb[2]) / 765;
+  lg.globalCompositeOperation = 'source-over'; lg.fillStyle = `rgb(${amb[0]},${amb[1]},${amb[2]})`; lg.fillRect(0, 0, W, H);
+  lg.globalCompositeOperation = 'lighter';
+  const lights = lightsNow(ox, oy);
+  for (const l of lights) {
+    const fl = 1 + (Math.sin(now / 90 * (l.flicker || 1) + l.x) * 0.04 + Math.sin(now / 37 + l.y) * 0.03) * (l.flicker || 1), r = l.r * fl * 1.25;
+    if (l.x < -r || l.x > W + r || l.y < -r || l.y > H + r) continue;
+    const k = Math.min(1, l.a * 2.4), [cr, cg, cb] = l.c, gr = lg.createRadialGradient(l.x, l.y, 0, l.x, l.y, r);
+    gr.addColorStop(0, `rgba(${cr},${cg},${cb},${k})`); gr.addColorStop(0.45, `rgba(${cr},${cg},${cb},${k * 0.5})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    lg.fillStyle = gr; lg.fillRect(l.x - r, l.y - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lm, 0, 0);
+  if (dark > 0.25) {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const l of lights) {
+      const r = l.r * 0.45; if (l.x < -r || l.x > W + r || l.y < -r || l.y > H + r) continue;
+      const gr = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, r); gr.addColorStop(0, `rgba(${l.c[0]},${Math.round(l.c[1] * 0.8)},${Math.round(l.c[2] * 0.6)},${0.22 * dark})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gr; ctx.fillRect(l.x - r, l.y - r, r * 2, r * 2);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
 function draw() {
   const now = performance.now();
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  if (!pl || !world) return;
+  if (!world || (!pl && !attract)) return;
+  const everyone = pl ? [pl, ...actors] : actors;
   const ox = -Math.round(camX) + Math.round((Math.random() - 0.5) * shake), oy = -Math.round(camY) + Math.round((Math.random() - 0.5) * shake);
   ctx.save(); ctx.translate(ox, oy);
   world.drawGround(ctx, camX, camY, W, H);
@@ -1094,33 +1271,21 @@ function draw() {
   const vis = (x, y, m = 70) => x > camX - m && x < camX + W + m && y > camY - 20 && y < camY + H + 90;
   for (const q of world.props) if (GROUNDED.has(q.k) && vis(q.x, q.y, 140)) ctx.drawImage(q.s.canvas, Math.round(q.x - q.s.ox), Math.round(q.y - q.s.oy));
   ctx.fillStyle = 'rgba(10,8,4,0.32)';
-  for (const f of [pl, ...actors]) if (!f.gone && !(f.dead && f.fi > 1) && vis(f.x, f.y)) { ctx.beginPath(); ctx.ellipse(Math.round(f.x), Math.round(f.y), f.beast ? 7 : 9, 3, 0, 0, 2 * Math.PI); ctx.fill(); }
+  for (const f of everyone) if (!f.gone && !(f.dead && f.fi > 1) && vis(f.x, f.y)) { ctx.beginPath(); ctx.ellipse(Math.round(f.x), Math.round(f.y), f.beast ? 7 : 9, 3, 0, 0, 2 * Math.PI); ctx.fill(); }
   const items = [];
   for (const q of world.props) {
     if (GROUNDED.has(q.k) || !vis(q.x, q.y, 120)) continue;
     items.push({ y: q.y, draw: () => { const s = q.s.frames ? q.s.frames[Math.floor(now / 110) % q.s.frames.length] : q.s; ctx.drawImage(s.canvas, Math.round(q.x - s.ox), Math.round(q.y - s.oy)); } });
   }
-  for (const f of [pl, ...actors]) if (!f.gone && vis(f.x, f.y)) items.push({ y: f.y - (f.dead && f.fi > 2 ? 8 : 0), draw: () => drawFighter(f) });
+  for (const f of everyone) if (!f.gone && vis(f.x, f.y)) items.push({ y: f.y - (f.dead && f.fi > 2 ? 8 : 0), draw: () => drawFighter(f) });
   for (const q of pieces) items.push({ y: q.y - (q.rest ? 6 : 0), draw: () => { ctx.save(); ctx.translate(Math.round(q.x), Math.round(q.y - q.z)); ctx.rotate(q.rot); ctx.drawImage(q.canvas, -Math.round(q.canvas.width / 2), -Math.round(q.canvas.height / 2)); ctx.restore(); } });
   items.sort((a, b) => a.y - b.y).forEach((i) => i.draw());
   for (const q of particles) { ctx.fillStyle = q.c; ctx.fillRect(Math.round(q.x), Math.round(q.y - q.z), q.big ? 2 : 1, q.big ? 2 : 1); }
   if (state.shock) { const s = state.shock; ctx.strokeStyle = `rgba(255,${Math.round(180 - s.r)},120,${1 - s.r / 110})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(Math.round(s.x), Math.round(s.y - 6), s.r, s.r * 0.7, 0, 0, 2 * Math.PI); ctx.stroke(); }
   for (const e of foes) if (finishable(e) && e.aggro && !fin && Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3) < 60) { const x = Math.round(e.x) - 3, y = Math.round(e.y) - 70; ctx.fillStyle = '#100a07'; ctx.fillRect(x, y, 7, 7); glyph('F', x + 2, y + 1, Math.floor(now / 200) % 2 ? '#fdd56a' : '#fff2b8'); }
   ctx.restore();
-  // Light: the sun by the hour outdoors (dim and warm indoors), firelight and lamps added back, more so at night.
-  let dark = 0.35;
-  ctx.globalCompositeOperation = 'multiply';
-  if (world.indoor) ctx.fillStyle = world.def.ambient || 'rgb(205,178,150)'; // a map can set its own (a cave is dark)
-  else { const c = daylight(S.time), r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255; ctx.fillStyle = `rgb(${r},${g},${b})`; dark = 1 - (r + g + b) / 765; }
-  ctx.fillRect(0, 0, W, H);
-  ctx.globalCompositeOperation = 'lighter';
-  for (const l of world.lights) {
-    const fl = 1 + (Math.sin(now / 90 * (l.flicker || 1)) * 0.04 + Math.sin(now / 37) * 0.03) * (l.flicker || 1), x = l.x + ox, y = l.y + oy, r = l.r * fl, a = l.a * (0.35 + dark * 1.6);
-    if (x < -r || x > W + r || y < -r || y > H + r) continue;
-    const gr = ctx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${l.c[0]},${l.c[1]},${l.c[2]},${Math.min(0.7, a)})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  ctx.globalCompositeOperation = 'source-over';
+  drawLight(ox, oy, now);
+  if (!pl) return;
   // Fury: the world goes red with anger, the edges pulse with his heartbeat.
   if (state.fury > 0 || pl.anim === 'roar') {
     const beat = Math.pow(Math.max(0, Math.sin(now / 1000 * Math.PI * 2.4)), 6), k = Math.min(1, state.fury > 0 ? Math.min(1, state.fury / 1.5) : 0.6);
@@ -1168,6 +1333,7 @@ const HF = {
   get pl() { return pl; }, get foes() { return foes; }, get actors() { return actors; }, get world() { return world; }, get S() { return S; }, get flags() { return flags; }, get quests() { return quests; },
   get convo() { return convo; }, get convoWith() { return convoWith; }, get scene() { return scene; }, get shop() { return shop; },
   icon, equip, useItem, drop, lootFrom, activatable, activate, armourRating, carried, fury, finisher, attack, endConversation, buy, sell, buyPrice, sellPrice, wait, fastTravel, placesSeen, questList, questTargets,
+  buysIt: (e) => !!shop && buysIt(shop.npc, e), invest, has, SMITH, recipes, craft, improvement, improve, materialOf, smithTier, toggleTorch, showTitle, variant,
   closeShop: () => { shop = null; }, save, load, newGame, latestSlot, listSaves, clock: () => clockText(S.time), hour: hourNow, keys, nameOf,
   inCombat: () => foes.some((e) => e.aggro && !e.dead),
   target: () => (attacker && !attacker.dead ? attacker : foes.find((e) => e.aggro && !e.dead && Math.hypot(e.x - pl.x, e.y - pl.y) < 70)) || null,
@@ -1202,6 +1368,7 @@ window.__game = Object.assign(HF, {
   yieldNow: (id) => yieldNow(actors.find((a) => a.id === id)),
   notify: (type, target) => quests.notify({ type, target }),
   encounterNow: () => { encT = 0; },
+  shopWith: (id) => openShop(actors.find((a) => a.id === id)),
   dynamic: () => dynamic.length,
   fight: (id, power = false) => { const e = actors.find((a) => a.id === id); pl.face = faceOf(e.x - pl.x, e.y - pl.y); return power ? attack(true) : attack(false); },
 });
@@ -1210,6 +1377,7 @@ window.__game = Object.assign(HF, {
 addEventListener('keydown', (e) => {
   if (state.paused || e.target.tagName === 'INPUT') return;
   if (e.code === 'F5') { e.preventDefault(); save('quick'); return; }
+  if (!pl) return; // the title is up
   if (e.code === 'F9') { e.preventDefault(); load('quick') || load(latestSlot()); return; }
   if (scene && e.code === 'Escape') { HF.skipScene(); e.stopImmediatePropagation(); return; }
   if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyJ', 'KeyK', 'KeyF', 'KeyQ', 'KeyC', 'ShiftLeft', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -1219,6 +1387,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyJ') { if (keys.has('KeyK') || keys.has('mouse2')) { bash(); return; } holdStart = performance.now(); }
   if (e.code === 'KeyF') finisher();
   if (e.code === 'KeyQ') fury();
+  if (e.code === 'KeyL') toggleTorch();
 });
 addEventListener('keyup', (e) => { keys.delete(e.code); if (e.code === 'KeyJ' && holdStart !== null) { holdStart = null; attack(false); } });
 view.addEventListener('contextmenu', (e) => e.preventDefault());

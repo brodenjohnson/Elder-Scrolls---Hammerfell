@@ -13,9 +13,10 @@ export function clockText(t: number) {
 
 // The light over the world through the day: a colour the whole scene is multiplied by.
 // Keyed by hour; between keys the colour is blended.
+// Night is dark (0.8.0): moonlight is about a fifth of the day, so fires, lamps and torches matter.
 const KEYS: [number, [number, number, number]][] = [
-  [0, [0.42, 0.48, 0.72]], [4.5, [0.45, 0.5, 0.74]], [6, [0.95, 0.72, 0.6]], [7.5, [1, 0.94, 0.86]],
-  [10, [1, 1, 1]], [16, [1, 1, 1]], [18, [1, 0.86, 0.7]], [19.5, [0.8, 0.6, 0.62]], [21, [0.46, 0.5, 0.74]], [24, [0.42, 0.48, 0.72]],
+  [0, [0.17, 0.2, 0.36]], [4.5, [0.2, 0.22, 0.38]], [6, [0.82, 0.62, 0.55]], [7.5, [1, 0.94, 0.86]],
+  [10, [1, 1, 1]], [16, [1, 1, 1]], [18, [1, 0.86, 0.7]], [19.5, [0.72, 0.52, 0.56]], [21, [0.24, 0.26, 0.42]], [24, [0.17, 0.2, 0.36]],
 ];
 export function daylight(t: number): number {
   const h = (t % DAY) / 3600;

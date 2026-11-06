@@ -70,7 +70,10 @@
         { "k": "stall", "x": 745, "y": 1005, "o": { "cloth": "plum", "goods": "herbs" } },
         { "k": "stall", "x": 690, "y": 1035, "o": { "cloth": "navy", "goods": "fish" } },
         { "k": "well", "x": 805, "y": 1045 },
-        { "k": "forge", "x": 790, "y": 1115 }, { "k": "anvil", "x": 820, "y": 1118 }, { "k": "rack", "x": 760, "y": 1125 },
+        { "k": "forge", "x": 790, "y": 1115, "use": { "id": "smith:forge", "name": "Forge", "verb": "Use", "smith": "forge", "r": 26 } }, { "k": "anvil", "x": 820, "y": 1118, "use": { "id": "smith:forge", "name": "Anvil", "verb": "Use", "smith": "forge", "r": 26 } }, { "k": "rack", "x": 760, "y": 1125 },
+        { "k": "smelter", "x": 762, "y": 1092, "use": { "id": "smith:smelter", "name": "Smelter", "verb": "Use", "smith": "smelter", "r": 26 } }, { "k": "grindstone", "x": 756, "y": 1176, "use": { "id": "smith:grindstone", "name": "Grindstone", "verb": "Use", "smith": "grindstone", "r": 26 } },
+        { "k": "workbench", "x": 796, "y": 1186, "use": { "id": "smith:workbench", "name": "Workbench", "verb": "Use", "smith": "workbench", "r": 26 } }, { "k": "tanningRack", "x": 852, "y": 1190, "use": { "id": "smith:tanning", "name": "Tanning Rack", "verb": "Use", "smith": "tanning", "r": 26 } },
+        { "k": "oreVein", "x": 2760, "y": 1060, "v": 2, "use": { "id": "veinDesert", "name": "Orichalcum Ore Vein", "verb": "Mine", "need": "Pickaxe", "needMsg": "You need a pickaxe to mine it. Hamid the Smith sells them.", "give": { "OrichalcumOre": 2 }, "setFlag": "mined:veinDesert", "ifNot": "mined:veinDesert" } },
         { "k": "noticeBoard", "x": 845, "y": 1055, "use": { "id": "notice", "name": "Notice Board", "verb": "Read", "read": "BY ORDER OF THE COLLECTOR: The Patriot's Share is due at the new moon. Late payers will be visited.\n\nWANTED: men for the Coast Road. The camp above the east road has shut it for a month. The Salted Gull pays 120 gold to whoever opens it again. Ask Hassan.\n\nLOST: one goat, brown, bad-tempered. Answers to nothing." } },
         { "k": "lampPost", "x": 760, "y": 960 }, { "k": "lampPost", "x": 850, "y": 1080 }, { "k": "lampPost", "x": 700, "y": 1090 },
         { "k": "barrel", "x": 742, "y": 958 }, { "k": "barrel", "x": 752, "y": 966 }, { "k": "crate", "x": 655, "y": 950 }, { "k": "crate", "x": 950, "y": 950 }, { "k": "cart", "x": 910, "y": 1050 },
@@ -145,7 +148,7 @@
         { "x": 222, "y": 96, "id": "bed", "name": "Bed", "verb": "Sleep", "sleep": true, "ifNot": "guest.arrived" }
       ],
       "triggers": [{ "id": "guest", "x": 130, "y": 120, "r": 300, "if": "guest.arrived", "ifNot": "kerrash.left", "talk": "kerrash" }],
-      "containers": [{ "id": "homeChest", "name": "Chest", "look": "chest", "x": 228, "y": 150, "items": { "Bread": 2, "Bandage": 2, "GoatCheese": 3, "Eggs": 6 }, "gold": 0 }],
+      "containers": [{ "id": "homeChest", "name": "Chest", "look": "chest", "x": 228, "y": 150, "items": { "Bread": 2, "Bandage": 2, "GoatCheese": 3, "Eggs": 6, "Torch": 2 }, "gold": 0 }],
       "lights": [{ "x": 50, "y": 50, "r": 110, "c": [255, 150, 70], "a": 0.35 }]
     },
     "haddad": {
@@ -186,14 +189,25 @@
       "containers": [{ "id": "taxChest", "name": "Strongbox", "look": "chest", "x": 210, "y": 130, "items": { "TaxLedger": 1 }, "gold": 85 }]
     },
     "cave": {
-      "id": "cave", "name": "Gull Rock Cave", "kind": "interior", "ambient": "rgb(70,62,58)", "w": 460, "h": 300, "floor": "floorDirt", "wall": "stone", "from": [1430, 966],
+      "id": "cave", "name": "Gull Rock Cave", "kind": "interior", "ambient": "rgb(30,27,28)", "w": 460, "h": 300, "floor": "floorDirt", "wall": "stone", "from": [1430, 966],
       "doors": [{ "x": 230, "y": 294, "to": "coast", "tx": 1430, "ty": 985, "label": "Outside" }],
       "props": [
         { "k": "boulder", "x": 120, "y": 120 }, { "k": "boulder", "x": 160, "y": 210, "v": 1 }, { "k": "boulder", "x": 300, "y": 150 }, { "k": "boulder", "x": 360, "y": 230, "v": 1 }, { "k": "boulder", "x": 60, "y": 260 },
-        { "k": "boulder", "x": 420, "y": 100 }, { "k": "rock", "x": 230, "y": 90 }, { "k": "rock", "x": 260, "y": 240 }, { "k": "torch", "x": 380, "y": 70 }, { "k": "crate", "x": 410, "y": 60 }
+        { "k": "boulder", "x": 420, "y": 100 }, { "k": "rock", "x": 230, "y": 90 }, { "k": "rock", "x": 260, "y": 240 }, { "k": "torch", "x": 380, "y": 70 }, { "k": "crate", "x": 410, "y": 60 },
+        { "k": "caveRock", "x": 10, "y": 46, "v": 0 }, { "k": "caveRock", "x": 54, "y": 52, "v": 1 }, { "k": "caveRock", "x": 98, "y": 46, "v": 2 }, { "k": "caveRock", "x": 142, "y": 52, "v": 0 },
+        { "k": "caveRock", "x": 186, "y": 46, "v": 1 }, { "k": "caveRock", "x": 230, "y": 52, "v": 2 }, { "k": "caveRock", "x": 274, "y": 46, "v": 0 }, { "k": "caveRock", "x": 318, "y": 52, "v": 1 },
+        { "k": "caveRock", "x": 362, "y": 46, "v": 2 }, { "k": "caveRock", "x": 406, "y": 52, "v": 0 }, { "k": "caveRock", "x": 450, "y": 46, "v": 1 }, { "k": "caveRock", "x": 6, "y": 96, "v": 0 },
+        { "k": "caveRock", "x": 454, "y": 96, "v": 1 }, { "k": "caveRock", "x": 12, "y": 140, "v": 1 }, { "k": "caveRock", "x": 448, "y": 140, "v": 2 }, { "k": "caveRock", "x": 6, "y": 184, "v": 2 },
+        { "k": "caveRock", "x": 454, "y": 184, "v": 0 }, { "k": "caveRock", "x": 12, "y": 228, "v": 0 }, { "k": "caveRock", "x": 448, "y": 228, "v": 1 }, { "k": "caveRock", "x": 6, "y": 272, "v": 1 },
+        { "k": "caveRock", "x": 454, "y": 272, "v": 2 }, { "k": "caveRock", "x": 40, "y": 312, "v": 0 }, { "k": "caveRock", "x": 84, "y": 312, "v": 1 }, { "k": "caveRock", "x": 128, "y": 312, "v": 2 },
+        { "k": "caveRock", "x": 172, "y": 312, "v": 0 }, { "k": "caveRock", "x": 290, "y": 312, "v": 1 }, { "k": "caveRock", "x": 334, "y": 312, "v": 2 }, { "k": "caveRock", "x": 378, "y": 312, "v": 0 },
+        { "k": "caveRock", "x": 422, "y": 312, "v": 1 }, { "k": "caveRock", "x": 190, "y": 150, "v": 1 }, { "k": "caveRock", "x": 330, "y": 200, "v": 2 },
+        { "k": "oreVein", "x": 90, "y": 170, "v": 0, "use": { "id": "veinCave1", "name": "Iron Ore Vein", "verb": "Mine", "need": "Pickaxe", "needMsg": "You need a pickaxe to mine it. Hamid the Smith sells them.", "give": { "IronOre": 3 }, "setFlag": "mined:veinCave1", "ifNot": "mined:veinCave1" } },
+        { "k": "oreVein", "x": 270, "y": 110, "v": 0, "use": { "id": "veinCave2", "name": "Iron Ore Vein", "verb": "Mine", "need": "Pickaxe", "needMsg": "You need a pickaxe to mine it. Hamid the Smith sells them.", "give": { "IronOre": 3 }, "setFlag": "mined:veinCave2", "ifNot": "mined:veinCave2" } },
+        { "k": "oreVein", "x": 400, "y": 250, "v": 1, "use": { "id": "veinCave3", "name": "Corundum Ore Vein", "verb": "Mine", "need": "Pickaxe", "needMsg": "You need a pickaxe to mine it. Hamid the Smith sells them.", "give": { "CorundumOre": 2 }, "setFlag": "mined:veinCave3", "ifNot": "mined:veinCave3" } }
       ],
       "containers": [{ "id": "caveStash", "name": "Smuggler's Stash", "look": "chest", "x": 430, "y": 70, "items": { "PotionHealth": 2, "SmugglerNote": 1, "SteelDagger": 1 }, "gold": 60 }],
-      "lights": [{ "x": 380, "y": 50, "r": 110, "c": [255, 160, 80], "a": 0.45 }, { "x": 230, "y": 270, "r": 90, "c": [200, 190, 170], "a": 0.35 }]
+      "lights": [{ "x": 380, "y": 50, "r": 110, "c": [255, 160, 80], "a": 0.45 }, { "x": 230, "y": 300, "r": 120, "c": [190, 185, 175], "a": 0.4 }]
     }
   }
 }

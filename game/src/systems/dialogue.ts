@@ -26,7 +26,7 @@ export type DialogueNode = { speaker: string; text: string; id?: string; choices
 // starts: the first whose condition holds is where the conversation opens; otherwise `start`.
 export type Dialogue = { id: string; title: string; start: string; starts?: { node: string; if?: Condition }[]; nodes: Record<string, DialogueNode> };
 
-export type DialogueContext = { character: Character; reputation: ReputationState; flags: Set<string>; say: (m: string) => void; quests?: Quests; bond?: Record<BondId, number>; gold?: () => number; addGold?: (n: number) => void; run?: (action: string) => void };
+export type DialogueContext = { character: Character; reputation: ReputationState; flags: Set<string>; say: (m: string) => void; quests?: Quests; bond?: Record<BondId, number>; gold?: () => number; addGold?: (n: number) => void; run?: (action: string) => void; checkEase?: number };
 
 export function allowed(c: Condition | undefined, ctx: DialogueContext): boolean {
   if (!c) return true;
@@ -70,7 +70,8 @@ export class Conversation {
     apply(c.do, `${this.d.id}: ${c.text}`, this.ctx);
     let next = c.next;
     if (c.check) {
-      const pass = this.ctx.character.s.skills[c.check.skill].level >= c.check.level;
+      // checkEase: the Persuasion perk makes a check need less (0.7 of the level).
+      const pass = this.ctx.character.s.skills[c.check.skill].level >= c.check.level * (this.ctx.checkEase ?? 1);
       // Skyrim trains Speech on a successful persuasion; a failure teaches a little.
       this.ctx.character.useSkill(c.check.skill, pass ? 6 : 1);
       next = pass ? c.check.pass : c.check.fail;

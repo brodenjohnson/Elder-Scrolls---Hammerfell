@@ -9,6 +9,13 @@ test('a new game through the title, warning and naming screens starts at home wi
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForFunction(() => (window as any).__game?.ready);
+  // The title: a key starts the intro over the coast at dusk, a second key skips to the menu.
+  await expect(page.locator('#front')).toHaveClass(/st-press/);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#front')).toHaveClass(/st-intro/);
+  expect(await page.evaluate(() => __game.world?.id)).toBe('coast');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#front')).toHaveClass(/st-menu/);
   await expect(page.locator('#front h1')).toHaveText(/Salt Ledger/i);
   await page.locator('[data-front="new"]').click();
   await page.locator('[data-gore="some"]').click();

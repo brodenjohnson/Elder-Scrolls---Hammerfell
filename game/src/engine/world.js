@@ -141,7 +141,7 @@ export class World {
       else if (sol === 'fence') { const len = o.o?.len ?? 24; solids.push({ rect: o.o?.vert ? [o.x - 3, o.y - len - 8, o.x + 3, o.y] : [o.x - len / 2 - 3, o.y - 4, o.x + len / 2 + 3, o.y + 1] }); }
       else if (typeof sol === 'number' && sol > 0) solids.push({ x: o.x, y: o.y, r: sol });
       else if (Array.isArray(sol)) for (const r of Array.isArray(sol[0]) ? sol : [sol]) solids.push({ rect: [o.x + r[0], o.y + r[1], o.x + r[2], o.y + r[3]] });
-      const L = { fire: [110, [255, 150, 60], 0.42], torch: [50, [255, 170, 80], 0.32], brazier: [60, [255, 160, 70], 0.34], hearth: [90, [255, 150, 70], 0.4], forge: [80, [255, 130, 50], 0.4], lampPost: [60, [255, 200, 120], 0.3] }[o.k];
+      const L = { fire: [110, [255, 150, 60], 0.42], torch: [50, [255, 170, 80], 0.32], brazier: [60, [255, 160, 70], 0.34], hearth: [90, [255, 150, 70], 0.4], forge: [80, [255, 130, 50], 0.4], smelter: [70, [255, 130, 50], 0.38], lampPost: [60, [255, 200, 120], 0.3] }[o.k];
       if (L) lights.push({ x: o.x, y: o.y - 20, r: L[0], c: L[1], a: L[2], flicker: o.k === 'lampPost' ? 0.3 : 1.2 });
       if (o.use) uses.push({ x: o.x, y: o.y, ...o.use, prop: pr });
     };
