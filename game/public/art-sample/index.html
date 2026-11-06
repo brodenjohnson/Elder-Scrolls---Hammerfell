@@ -5,45 +5,161 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hammerfell art sample</title>
 <style>
-  :root { --bg: #14110d; --panel: #1e1a14; --ink: #e2d8bb; --dim: #9b917a; --gold: #e0a030; --line: #3a3226; }
+  :root { --bg: #14110d; --panel: #1e1a14; --ink: #e2d8bb; --dim: #9b917a; --gold: #c9a45a; --gold2: #f0d090; --line: #3a3226; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Georgia, serif; }
   main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 40px; }
-  h1 { font-size: 22px; margin: 0 0 4px; color: #f0d090; }
-  h2 { font-size: 17px; margin: 20px 0 6px; color: #f0d090; }
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--gold2); }
+  h2 { font-size: 17px; margin: 20px 0 6px; color: var(--gold2); }
   p { margin: 6px 0; }
   .dim { color: var(--dim); }
-  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
-  .row b { min-width: 70px; color: var(--dim); font-weight: normal; }
-  button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 5px 10px; font: inherit; font-size: 14px; cursor: pointer; }
-  button.on { border-color: var(--gold); color: #f0d090; }
-  #view { width: 100%; max-width: 960px; aspect-ratio: 320 / 190; image-rendering: pixelated; display: block; border: 1px solid var(--line); cursor: crosshair; }
+  .keys-help { background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; margin: 10px 0; font-size: 14px; }
+  .row-btns { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .row-btns button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 5px 10px; font: inherit; font-size: 14px; cursor: pointer; }
   #lineup { image-rendering: pixelated; width: 100%; max-width: 960px; border: 1px solid var(--line); cursor: pointer; }
-  .keys { background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; margin: 10px 0; }
-  #msg { min-height: 1.5em; color: #f0d090; }
+
+  /* ---- the game screen ---- */
+  #stage { position: relative; width: 100%; max-width: 960px; aspect-ratio: 320 / 190; overflow: hidden; border: 1px solid var(--line); user-select: none; }
+  #view { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
+  #stage.menu-open #hud { opacity: 0; }
+  #hud, #menu { position: absolute; inset: 0; pointer-events: none; font-family: Georgia, serif; }
+  .kc { display: inline-block; min-width: 1.2em; padding: 0 4px; margin: 0 1px; border: 1px solid #8a7550; border-radius: 3px; background: rgba(20,15,10,0.85); color: var(--gold2); font-size: 0.85em; text-align: center; line-height: 1.35; }
+
+  /* compass, top centre */
+  #compass { position: absolute; top: 2.2%; left: 32%; width: 36%; height: 22px; background: linear-gradient(90deg, transparent, rgba(8,6,4,0.75) 15%, rgba(8,6,4,0.75) 85%, transparent); border-top: 1px solid rgba(201,164,90,0.45); border-bottom: 1px solid rgba(201,164,90,0.45); }
+  #compass .ticks span { position: absolute; top: 2px; transform: translateX(-50%); color: var(--ink); font-size: 13px; letter-spacing: 1px; }
+  #compass .ticks span.minor { color: var(--dim); font-size: 10px; top: 5px; }
+  #compass .marks i { position: absolute; top: 15px; width: 6px; height: 6px; transform: translateX(-50%) rotate(45deg); }
+  #compass .marks i.quest { background: var(--gold2); top: -4px; width: 7px; height: 7px; }
+  #compass .marks i.foe { background: #c0392b; border-radius: 50%; transform: translateX(-50%); width: 5px; height: 5px; top: 16px; }
+  #compass .marks i.place { border: 1px solid var(--ink); top: -4px; }
+  #compass .centre { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: rgba(240,208,144,0.35); }
+  /* the enemy's name and health, under the compass */
+  #foe { position: absolute; top: 9%; left: 38%; width: 24%; text-align: center; opacity: 0; transition: opacity .2s; }
+  #foe.on { opacity: 1; }
+  #foe .name { color: var(--ink); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 2px #000; }
+  #foe .bar { height: 5px; margin-top: 2px; background: rgba(0,0,0,0.6); border: 1px solid rgba(201,164,90,0.5); }
+  #foe .bar i { display: block; height: 100%; background: linear-gradient(#c24a33, #7a1d12); }
+  /* discovered, quest done, level up */
+  #banner { position: absolute; top: 20%; left: 0; right: 0; text-align: center; opacity: 0; transition: opacity .6s; text-shadow: 0 2px 4px #000; }
+  #banner.on { opacity: 1; }
+  #banner .small { color: var(--dim); font-size: 13px; letter-spacing: 4px; text-transform: uppercase; }
+  #banner .big { color: var(--gold2); font-size: 30px; letter-spacing: 6px; text-transform: uppercase; border-top: 1px solid rgba(201,164,90,0.5); border-bottom: 1px solid rgba(201,164,90,0.5); display: inline-block; padding: 0 24px; margin: 4px 0; }
+  #banner .sub { color: var(--ink); font-size: 13px; font-style: italic; }
+  /* notifications, upper left */
+  #notes { position: absolute; top: 4%; left: 2%; width: 34%; }
+  #notes .n { color: var(--ink); font-size: 13px; text-shadow: 0 1px 2px #000, 0 0 4px #000; margin-bottom: 2px; transition: opacity .8s; }
+  #notes .n.out { opacity: 0; }
+  #notes .n.skill, #notes .n.level { color: var(--gold2); }
+  #notes .n.quest { color: #e8c070; font-style: italic; }
+  #notes .n.warn { color: #e0a090; }
+  #notes .n.hint { color: var(--dim); font-style: italic; }
+  /* activate prompt, lower centre */
+  #prompt { position: absolute; bottom: 17%; left: 0; right: 0; text-align: center; color: var(--ink); font-size: 15px; text-shadow: 0 1px 3px #000; opacity: 0; transition: opacity .15s; }
+  #prompt.on { opacity: 1; }
+  #prompt b { color: var(--gold2); font-weight: normal; letter-spacing: 1px; }
+  /* Rage, Health, Stamina, bottom (Skyrim's three bars) */
+  #bars { position: absolute; bottom: 4%; left: 4%; right: 4%; height: 10px; }
+  #bars .b { position: absolute; bottom: 0; height: 7px; background: rgba(0,0,0,0.6); border: 1px solid rgba(201,164,90,0.55); opacity: 0; transition: opacity .5s; }
+  #bars .b.on { opacity: 1; }
+  #bars .b i { display: block; height: 100%; transition: width .15s; }
+  #bars .rage { left: 0; width: 24%; } #bars .rage i { background: linear-gradient(#e0902a, #8a4a10); margin-left: auto; }
+  #bars .rage.ready { box-shadow: 0 0 6px #e0902a; }
+  #bars .hp { left: 36%; width: 28%; } #bars .hp i { background: linear-gradient(#c24a33, #7a1d12); margin: 0 auto; }
+  #bars .st { right: 0; width: 24%; } #bars .st i { background: linear-gradient(#7fae5a, #3e6a2a); }
+  #fury { position: absolute; bottom: 7.5%; left: 4%; color: #e0503a; letter-spacing: 4px; font-size: 13px; opacity: 0; text-shadow: 0 0 6px #a00; }
+  #fury.on { opacity: 1; }
+
+  /* ---- menus ---- */
+  #menu.on { pointer-events: auto; background: radial-gradient(ellipse at center, rgba(10,8,6,0.55), rgba(5,4,3,0.92)); color: var(--ink); }
+  #menu h2 { margin: 0 0 8px; font-weight: normal; letter-spacing: 3px; text-transform: uppercase; font-size: 16px; color: var(--gold2); }
+  #menu .keys { position: absolute; bottom: 3%; left: 0; right: 0; text-align: center; font-size: 13px; color: var(--dim); }
+  #menu button { pointer-events: auto; background: rgba(20,15,10,0.8); color: var(--ink); border: 1px solid #5a4a30; font: inherit; padding: 5px 12px; cursor: pointer; }
+  #menu button:hover, #menu button.on { border-color: var(--gold); color: var(--gold2); }
+  /* the hub: four ways out of a seal */
+  .hub { position: absolute; inset: 0; }
+  .hub .seal { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%) rotate(45deg); border: 1px solid var(--gold); background: rgba(20,15,10,0.7); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .hub .seal { font-size: 0; }
+  .hub .seal small { transform: rotate(-45deg); font-size: 13px; color: var(--dim); letter-spacing: 2px; }
+  .hub .dir { position: absolute; font-size: 18px !important; letter-spacing: 5px; text-transform: uppercase; background: transparent !important; border: none !important; color: var(--ink); }
+  .hub .dir:hover { color: var(--gold2); }
+  .hub .up { left: 50%; top: 14%; transform: translateX(-50%); } .hub .down { left: 50%; bottom: 14%; transform: translateX(-50%); }
+  .hub .left { left: 18%; top: 50%; transform: translateY(-50%); } .hub .right { right: 18%; top: 50%; transform: translateY(-50%); }
+  .hub .hint { position: absolute; bottom: 3%; left: 0; right: 0; text-align: center; font-size: 13px; color: var(--dim); }
+  /* items and loot */
+  .items { position: absolute; inset: 5% 3% 12% 3%; display: grid; grid-template-columns: 17% 41% 1fr; gap: 2%; }
+  .items .cats .cat { padding: 3px 8px; color: var(--dim); cursor: pointer; letter-spacing: 1px; }
+  .items .cats .cat.sel { color: var(--gold2); border-left: 2px solid var(--gold); }
+  .items .list { overflow-y: auto; border-left: 1px solid rgba(201,164,90,0.3); border-right: 1px solid rgba(201,164,90,0.3); padding: 0 6px; }
+  .items .row { display: flex; justify-content: space-between; padding: 3px 8px; cursor: pointer; font-size: 14px; }
+  .items .row.sel { background: linear-gradient(90deg, rgba(201,164,90,0.25), transparent); color: var(--gold2); }
+  .items .row.eq span::before { content: ''; display: inline-block; width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); margin: 0 7px 2px -2px; }
+  .items .row em { color: var(--dim); font-size: 11px; font-style: italic; }
+  .items .none { color: var(--dim); font-style: italic; padding: 8px; }
+  .card { text-align: center; }
+  .card .icon { image-rendering: pixelated; display: block; margin: 4px auto 6px; max-width: 100%; }
+  .card h3 { margin: 0; font-weight: normal; color: var(--gold2); font-size: 17px; letter-spacing: 1px; }
+  .card .kind { color: var(--dim); font-size: 12px; font-style: italic; margin-bottom: 6px; text-transform: capitalize; }
+  .card .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; border-top: 1px solid rgba(201,164,90,0.3); border-bottom: 1px solid rgba(201,164,90,0.3); padding: 4px 0; }
+  .card .stats div { font-size: 12px; color: var(--dim); } .card .stats b { color: var(--ink); font-weight: normal; margin-left: 4px; font-size: 14px; }
+  .card .desc { font-size: 13px; font-style: italic; color: var(--ink); margin-top: 6px; }
+  .items .keys { bottom: -9%; }
+  .items .footer { position: absolute; bottom: -15%; left: 0; right: 0; display: flex; justify-content: center; gap: 28px; font-size: 13px; color: var(--dim); }
+  .items .footer b { color: var(--ink); font-weight: normal; }
+  /* skills */
+  .skills { position: absolute; inset: 4% 3% 10% 3%; }
+  .skills .lvl { display: flex; align-items: center; gap: 12px; justify-content: center; font-size: 14px; color: var(--dim); }
+  .skills .lvl b { color: var(--gold2); font-weight: normal; letter-spacing: 2px; text-transform: uppercase; }
+  .skills .bar { height: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(201,164,90,0.4); width: 160px; } .skills .bar i { display: block; height: 100%; background: var(--gold); }
+  .skills .trees { display: flex; gap: 6px; justify-content: center; margin: 10px 0; }
+  .skills .tree { width: 12%; text-align: center; padding: 6px 2px; border: 1px solid rgba(201,164,90,0.25); cursor: pointer; background: rgba(20,15,10,0.6); }
+  .skills .tree.sel { border-color: var(--gold); background: rgba(60,45,20,0.6); }
+  .skills .tree .lv { font-size: 22px; color: var(--gold2); } .skills .tree .nm { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink); }
+  .skills .tree .bar { width: auto; margin: 4px 6px 0; }
+  .skills .perks { position: absolute; top: 34%; bottom: 0; left: 6%; right: 6%; overflow-y: auto; columns: 2; column-gap: 24px; }
+  .skills .perks h2 { column-span: all; text-align: center; }
+  .skills .perk { break-inside: avoid; margin-bottom: 8px; opacity: 0.55; } .skills .perk.open { opacity: 1; }
+  .skills .perk .pn { color: var(--gold2); font-size: 14px; } .skills .perk .pd { font-size: 12px; } .skills .perk .pr { font-size: 11px; color: var(--dim); font-style: italic; }
+  /* map */
+  .map { position: absolute; inset: 4% 4% 10% 4%; text-align: center; }
+  .map .sheet { position: relative; display: inline-block; height: 88%; aspect-ratio: 600 / 400; border: 6px solid #3a2a18; box-shadow: 0 0 0 1px var(--gold), 0 0 30px #000; }
+  .map canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+  .map .pin { position: absolute; transform: translate(-50%, -50%); }
+  .map .pin span { display: block; white-space: nowrap; color: #2a1c0e; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; text-shadow: 0 0 3px #e8d8b0; }
+  .map .pin.road span { font-size: 11px; font-style: italic; text-transform: none; letter-spacing: 0; }
+  .map .pin.you { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 14px solid #a01a10; filter: drop-shadow(0 0 2px #fff); }
+  .map .pin.quest { width: 10px; height: 10px; background: #e8b040; border: 1px solid #3a2a10; transform: translate(-50%, -50%) rotate(45deg); }
+  /* journal */
+  .journal { position: absolute; inset: 5% 12% 10% 12%; background: linear-gradient(#e8dcbc, #d6c69c); color: #2a1c0e; border: 1px solid #6a5030; box-shadow: 0 0 40px #000; padding: 16px 28px; }
+  .journal .tabs { display: flex; gap: 22px; border-bottom: 1px solid #8a6a40; margin-bottom: 12px; }
+  .journal .tab { cursor: pointer; letter-spacing: 2px; text-transform: uppercase; font-size: 13px; color: #7a6040; padding-bottom: 4px; }
+  .journal .tab.sel { color: #2a1c0e; border-bottom: 2px solid #2a1c0e; }
+  .journal h3 { margin: 0 0 6px; font-weight: normal; font-size: 18px; }
+  .journal p { font-style: italic; font-size: 14px; }
+  .journal ul { padding-left: 18px; } .journal li { font-size: 14px; } .journal li.done { text-decoration: line-through; color: #7a6a50; }
+  .journal .statlist div { display: flex; justify-content: space-between; border-bottom: 1px dotted #a08a60; font-size: 14px; padding: 2px 0; max-width: 360px; }
+  .journal .system { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .journal .system button { background: #2a1c0e; color: #e8dcbc; border-color: #6a5030; }
+  .journal .system button.on { border-color: #c9a45a; color: #f0d090; }
+  .journal .opt { display: flex; gap: 6px; align-items: center; } .journal .opt span { width: 50px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .journal .help { font-size: 13px; line-height: 1.6; }
+  .journal .keys { color: #7a6040; bottom: 2%; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Hammerfell: art sample, round two</h1>
-  <p class="dim">Style A, in a bandit camp at dusk. Every armour set and weapon class on Kasim, dismemberment and the finishers. All drawn by code while the page runs.</p>
-  <div class="keys">WASD walk &middot; Shift run &middot; J or left click attack (three in a row: forehand, backhand, overhead) &middot; hold for a power attack &middot; K or right click block (just before a blow lands: parry) &middot; Space dodge &middot; <b>F finisher</b> on a staggered or badly hurt bandit &middot; R reset the camp.<br>
-  Bandits glow before they swing. A third hit, a power attack, a parry or a two-handed blow staggers them: a flashing F shows who can be finished.</div>
-  <canvas id="view" width="320" height="190"></canvas>
-  <p id="msg"></p>
-  <div class="row"><b>Armour</b><span id="armour" class="row"></span></div>
-  <div class="row"><b>Weapon</b><span id="weapon" class="row"></span></div>
-  <p class="dim" id="fin-note"></p>
-  <div class="row"><b>Gore</b><button data-gore="full" class="on">Full</button><button data-gore="some">Blood only</button><button data-gore="off">Off</button>
-    <b style="margin-left:16px">Light</b><button data-light="dusk" class="on">Dusk</button><button data-light="day">Day</button>
-    <button id="reset" style="margin-left:16px">Reset the camp</button></div>
+  <h1>Hammerfell: art sample, round three</h1>
+  <p class="dim">Style A. Better proportions, armour with more to it, shields, moving while you swing, and Skyrim's menus and looting in our own look. Everything is drawn by code while the page runs; item names and numbers are the game's own (Skyrim's).</p>
+  <div class="keys-help">WASD move &middot; Shift run &middot; left click or J attack (three in a row is a combo; hold for a power attack) &middot; you can steer while swinging &middot; right click or K block (with a shield, parrying is easier) &middot; Space dodge &middot; F finisher &middot; Q Fury at 60 Rage &middot; <b>E</b> search a body or open a container &middot; <b>Tab</b> menu &middot; <b>I</b> items &middot; <b>P</b> skills &middot; <b>M</b> map &middot; <b>Esc</b> journal and system.</div>
+  <div id="stage"><canvas id="view" width="320" height="190"></canvas><div id="hud"></div><div id="menu"></div></div>
+  <div class="row-btns"><button data-open="hub">Menu (Tab)</button><button data-open="items">Items (I)</button><button data-open="skills">Skills (P)</button><button data-open="map">Map (M)</button><button data-open="journal">Journal (Esc)</button></div>
   <h2>The armoury</h2>
-  <p class="dim">Top two rows: every armour set, front and side, with the weapon you have chosen. Bottom row: every weapon, mid-swing, in the armour you have chosen. Click one to wear it.</p>
+  <p class="dim">For trying things on quickly, without looting them first. Rows: every armour set (front and side), every weapon class, and every shield. Click one to wear it; it goes into your pack. The same gear is in the camp to be found: steel in the chief's chest, Orcish in the supply crate, Alik'r garb and an iron shield in the sack, two-handers in the weapon barrel.</p>
   <canvas id="lineup"></canvas>
   <h2>Notes</h2>
-  <p>The bandits are a raider (leather, sword), a thug (hide, mace), a marauder (fur, battleaxe), a second raider with a scimitar, and their chief (iron, greatsword) by his tent.</p>
-  <p>Each weapon class has its own finisher: blades behead, axes cleave through the shoulder, blunt weapons crush the skull, daggers cut the throat. Heavy killing blows can also take a head or an arm off without a finisher; blunt weapons crush instead.</p>
-  <p>Not in this sample: towns, interiors, the desert, dedicated hit reactions per direction, and the player's own wounds.</p>
+  <p>Menus pause the game. Tab opens the four-way menu (Skills up, Items left, Journal right, Map down), as Skyrim does. Esc opens the journal, and its System tab has the gore and light settings and a reset.</p>
+  <p>Not in this sample: favourites, the barter screen, dialogue, a world map beyond the camp, saving, and perks that do something (they are listed from the data with their real requirements).</p>
 </main>
+<script src="ui.js"></script>
 <script src="sample.js"></script>
 </body>
 </html>
