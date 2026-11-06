@@ -122,7 +122,7 @@ test('finishers: only on a staggered or badly hurt enemy; it kills, beheads and 
   await call(page, 'stagger', 'coastCamp:0');
   expect(await call(page, 'finish')).toBe(true);
   expect((await fighter(page, 'player')).state).toBe('finisher');
-  await wait(page, 1.6);
+  await wait(page, 2); // the blow freezes and slows time for a moment
   expect((await fighter(page, 'coastCamp:0')).state).toBe('dead');
   expect((await call(page, 'wounds', 'coastCamp:0')).severed).toContain('head');
   expect(await call<number>(page, 'rage')).toBeGreaterThanOrEqual(13); // finisher 10 + kill 3

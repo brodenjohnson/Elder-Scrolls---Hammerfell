@@ -126,7 +126,7 @@ setInterval(checkVersion, 10 * 60 * 1000);
   flags: () => [...game.flags],
   npcs: () => game.npcs.map((n) => ({ ...n })),
   // Combat (Phase 3).
-  fighters: () => [game.pf, ...game.combat.enemies].filter(Boolean).map((f) => ({ id: f!.id, name: f!.name, weapon: f!.weapon.edid, outfit: f!.outfit, a: f!.a, b: f!.b, state: f!.state, health: f!.health, maxHealth: f!.maxHealth, stamina: f!.stamina, facing: f!.facing })),
+  fighters: () => [game.pf, ...game.combat.enemies].filter(Boolean).map((f) => ({ id: f!.id, name: f!.name, weapon: f!.weapon.edid, outfit: f!.outfit, a: f!.a, b: f!.b, state: f!.state, health: f!.health, maxHealth: f!.maxHealth, stamina: f!.stamina, facing: f!.facing, combo: f!.combo, windup: f!.windup, buffer: f!.buffer?.kind ?? null })),
   combatLog: () => [...game.combat.log],
   timeScale: () => game.combat.timeScale,
   attackAt: (id: string, power = false) => { const e = game.combat.enemies.find((x) => x.id === id)!; game.combat.faceTowards(game.pf!, e.a, e.b); game.player.facing = game.pf!.facing; return power ? game.combat.powerAttack(game.pf!) : game.combat.quick(game.pf!); },
@@ -173,6 +173,10 @@ setInterval(checkVersion, 10 * 60 * 1000);
   setRandom: (v: number | null) => { game.combat.rng = v === null ? Math.random : () => v; },
   setHealth: (id: string, h: number) => { const f = [game.pf!, ...game.combat.enemies].find((x) => x.id === id)!; f.health = h; },
   stagger: (id: string) => { const e = game.combat.enemies.find((x) => x.id === id)!; e.state = 'hit'; e.t = 0; e.hitFor = 2; },
+  feel: () => ({ hitStop: game.combat.hitStop, shake: game.combat.shake, timeScale: game.combat.timeScale }),
+  // Swing as the player would, facing a direction (aim assist then applies); setCombo picks the hit of the chain.
+  swing: (facing?: string, power = false) => { if (facing) { game.pf!.facing = facing as any; game.player.facing = facing as any; } return power ? game.combat.powerAttack(game.pf!) : game.combat.quick(game.pf!); },
+  setCombo: (n: number) => { game.pf!.combo = n; },
   placeEnemy: (id: string, da: number, db: number) => { const e = game.combat.enemies.find((x) => x.id === id)!, pf = game.pf!; e.a = pf.a + da; e.b = pf.b + db; e.state = 'idle'; game.combat.faceTowards(pf, e.a, e.b); game.player.facing = pf.facing; game.combat.faceTowards(e, pf.a, pf.b); },
   rules: (attacker: string, defender: string, power = false, blocking = false) => {
     const all = [game.pf!, ...game.combat.enemies], a = all.find((x) => x.id === attacker)!, d = all.find((x) => x.id === defender)!;

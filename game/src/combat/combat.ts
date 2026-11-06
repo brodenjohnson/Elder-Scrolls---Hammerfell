@@ -9,8 +9,21 @@ import { facingOf, toGround, toScreen, FACINGS, type Facing } from '../render/is
 export const TIMING = {
   rollSeconds: 8 / 14, rollInvulnerable: 0.25, perfectDodgeWindow: 0.15,
   slowMotionSeconds: 1.0, slowMotionScale: 0.35, parryWindow: 0.2,
-  quickFps: 14, powerFps: 8, hitFrame: 3, powerHoldSeconds: 0.3,
+  quickFps: 14, powerFps: 8, hitFrame: 3, powerHoldSeconds: 0.25,
   hitSeconds: 3 / 12, parriedSeconds: 1.2, deathFps: 10,
+};
+// Feel (bible 11, v0.3: fast and fun). The player swings 30 percent quicker than the frame
+// rates above; enemies wind up first (held on the first frame, tinted) so they can be read
+// and parried. Presses made while busy are kept for `buffer` seconds and run as soon as they
+// can. Once a swing has landed, `cancelAfter` seconds later the rest of it can be cut short
+// by the next combo hit, a roll or a block. The third hit of a chain hits harder.
+// Every blow freezes the fight for a moment (hit-stop), shakes the screen and knocks back.
+export const FEEL = {
+  playerTempo: 1.3, windupQuick: 0.3, windupPower: 0.5, buffer: 0.35, cancelAfter: 0.06, comboWindow: 0.45,
+  comboThird: 1.25, assistReach: 3, assistAngle: (3 * Math.PI) / 8, lungeMax: 0.7, lungeStop: 1.1,
+  hitStop: { blocked: 0.04, quick: 0.06, power: 0.09, kill: 0.13, finisher: 0.22 },
+  shake: { blocked: 1, quick: 2, power: 4, kill: 5, finisher: 7 },
+  knockback: { blocked: 0.25, quick: 0.45, third: 0.8, power: 0.9 }, knockDecay: 8,
 };
 export const COSTS = { quickAttack: 10, roll: 20 }; // ours: Skyrim does not charge for these
 
@@ -40,8 +53,9 @@ export const PARTS: Record<string, string[]> = {
 const PART_ODDS: [string, number][] = [['head', 0.5], ['armR', 0.15], ['armL', 0.15], ['legR', 0.1], ['legL', 0.1]];
 
 // Finishers (bible 11.3, F): on a staggered target or one under 25 percent Health, in reach.
-// The strike lands at 0.6 s and the player is open for 1.4 s in all.
-export const FINISHER = { lowHealth: 0.25, reach: 2.0, strike: 0.6, seconds: 1.4 };
+// The strike lands at 0.6 s and the player is open for 1.1 s of game time in all (about
+// 1.5 s real, with the hit-stop and slow motion on the blow).
+export const FINISHER = { lowHealth: 0.25, reach: 2.0, strike: 0.6, seconds: 1.1 };
 export type FinisherKind = 'behead' | 'disarm' | 'hamstring';
 const FINISHER_PART: Record<FinisherKind, string> = { behead: 'head', disarm: 'armR', hamstring: 'head' };
 
@@ -58,6 +72,8 @@ export type Fighter = {
   state: FighterState; t: number; hitFor: number;
   health: number; maxHealth: number; stamina: number; maxStamina: number;
   blocking: boolean; blockT: number; power: boolean; struck: boolean; queued: boolean; counter: boolean; guardBroken: number;
+  windup: number; combo: number; comboT: number; kb: [number, number]; lunge: number; // see FEEL
+  buffer?: { kind: 'quick' | 'power' | 'roll'; left: number; dir?: Facing };
   weapon: WeaponDef; skills: { weapon: number; block: number; armour: number }; armourBase: number;
   outfit: string; gear: string[]; heavy: boolean;
   bleed: number; limp: number; severed: string[]; // seconds of bleeding and limp left; parts cut off
@@ -85,6 +101,8 @@ export type Encounter = { id: string; slice: [number, number]; at: [number, numb
 export class Combat {
   enemies: Fighter[] = [];
   slowLeft = 0;
+  hitStop = 0; // seconds the fight is frozen after a blow
+  shake = 0;   // screen shake in pixels, dying away
   log: string[] = [];
   drops: { x: number; y: number; vx: number; vy: number; floor: number }[] = [];
   decals: { x: number; y: number; dark: boolean }[] = [];
@@ -105,7 +123,7 @@ export class Combat {
   }) {}
 
   get S() { return this.data.settings; }
-  get timeScale() { return this.slowLeft > 0 ? TIMING.slowMotionScale : 1; }
+  get timeScale() { return this.hitStop > 0 ? 0.02 : this.slowLeft > 0 ? TIMING.slowMotionScale : 1; }
 
   // ---------- spawning ----------
 
@@ -122,7 +140,7 @@ export class Combat {
     }
   }
   reset() {
-    this.enemies = []; this.spawned.clear(); this.drops = []; this.decals = []; this.parts = []; this.bodies = {}; this.slowLeft = 0;
+    this.enemies = []; this.spawned.clear(); this.drops = []; this.decals = []; this.parts = []; this.bodies = {}; this.slowLeft = 0; this.hitStop = 0; this.shake = 0;
     this.rage = 0; this.fury = null; this.exhausted = 0; this.calm = 0;
   }
 
@@ -138,6 +156,7 @@ export class Combat {
       id, isPlayer: false, name: actor.name, a: body?.a ?? a, b: body?.b ?? b, facing: body?.facing ?? 'S', state: dead ? 'dead' : 'idle', t: dead ? 99 : 0, hitFor: 0,
       health: dead ? 0 : actor.health, maxHealth: actor.health, stamina: actor.stamina, maxStamina: actor.stamina,
       blocking: false, blockT: 0, power: false, struck: false, queued: false, counter: false, guardBroken: 0,
+      windup: 0, combo: 0, comboT: 9, kb: [0, 0], lunge: 0,
       weapon, skills: { weapon: actor.skills[twoHanded ? 'TwoHanded' : 'OneHanded'] ?? 15, block: actor.skills.Block ?? 15, armour: actor.skills[heavy ? 'HeavyArmor' : 'LightArmor'] ?? 15 }, armourBase,
       outfit: spec.outfit, gear: spec.gear, heavy, bleed: 0, limp: 0, severed: body ? [...body.severed] : [],
       ai: { home: [a, b], cooldown: 1 + i * 0.4, blockHold: 0, aggro: false, style: actor.style, circle: i % 2 ? 1 : -1, fleeing: false, moraleChecked: false }, encounter: { id: e.id, index: i },
@@ -154,6 +173,7 @@ export class Combat {
       id: 'player', isPlayer: true, name: 'You', a: p.a, b: p.b, facing: p.facing, state: 'idle', t: 0, hitFor: 0,
       health: c.maxHealth, maxHealth: c.maxHealth, stamina: c.maxStamina, maxStamina: c.maxStamina,
       blocking: false, blockT: 0, power: false, struck: false, queued: false, counter: false, guardBroken: 0,
+      windup: 0, combo: 0, comboT: 9, kb: [0, 0], lunge: 0,
       weapon: w ?? this.data.weapons.get('IronSword')!, skills: { weapon: 0, block: 0, armour: 0 }, armourBase: 0, outfit: '', gear: [],
       heavy: false, bleed: 0, limp: 0, severed: [],
     };
@@ -179,6 +199,7 @@ export class Combat {
     const skill = 1 + (0.5 * att.skills.weapon) / 100; d *= skill; steps.push(`x${skill.toFixed(2)} skill`);
     if (att.isPlayer) { const m = c.perkValue('ModAttackDamage', 1, kw); if (m !== 1) { d *= m; steps.push(`x${m.toFixed(2)} perks`); } }
     if (att.isPlayer && this.fury?.power === 'berserk') { d *= 2; steps.push('x2 berserk'); }
+    if (att.isPlayer && att.combo === 2 && !opts.power) { d *= FEEL.comboThird; steps.push(`x${FEEL.comboThird} third hit`); }
     if (opts.power) {
       let m = 1 + S.fPowerAttackDefaultBonus;
       if (att.isPlayer) m *= c.perkValue('ModPowerAttackDamage', 1, kw);
@@ -208,28 +229,73 @@ export class Combat {
   // ---------- actions ----------
 
   busy(f: Fighter) { return f.state === 'attack' || f.state === 'roll' || f.state === 'hit' || f.state === 'finisher' || f.state === 'dead'; }
+  // Free to act: not busy, or in the recovery of a swing that has already landed.
+  canAct(f: Fighter) { return !this.busy(f) || (f.state === 'attack' && f.struck && f.t >= this.hitMoment(f) + FEEL.cancelAfter); }
   // Swings play at the weapon's Skyrim speed: a battleaxe (0.7) is slower than a sword (1.0).
-  attackFps(f: Fighter) { return (f.power ? TIMING.powerFps : TIMING.quickFps) * f.weapon.speed; }
-  attackLength(f: Fighter) { return 6 / this.attackFps(f); }
-  hitMoment(f: Fighter) { return TIMING.hitFrame / this.attackFps(f); }
+  attackFps(f: Fighter) { return (f.power ? TIMING.powerFps : TIMING.quickFps) * f.weapon.speed * (f.isPlayer ? FEEL.playerTempo : 1); }
+  attackLength(f: Fighter) { return f.windup + 6 / this.attackFps(f); }
+  hitMoment(f: Fighter) { return f.windup + TIMING.hitFrame / this.attackFps(f); }
+  // A press the fighter cannot act on yet is kept for a moment (the player only).
+  private hold(f: Fighter, kind: 'quick' | 'power' | 'roll', dir?: Facing) {
+    if (!f.isPlayer || f.state === 'dead') return false;
+    f.buffer = { kind, left: FEEL.buffer, dir }; return true;
+  }
   quick(f: Fighter) {
-    if (f.state === 'attack' && !f.power && f.t > 0.6 * this.attackLength(f)) { f.queued = true; return true; }
-    if (this.busy(f) || f.stamina < COSTS.quickAttack) return false;
+    if (!this.canAct(f)) return this.hold(f, 'quick');
+    if (f.stamina < COSTS.quickAttack) return false;
     f.stamina -= COSTS.quickAttack; this.startAttack(f, false); return true;
   }
   powerAttack(f: Fighter) {
+    if (!this.canAct(f)) return this.hold(f, 'power');
     const cost = this.powerCost(f);
-    if (this.busy(f) || f.stamina < cost) return false;
+    if (f.stamina < cost) return false;
     f.stamina -= cost; this.startAttack(f, true); return true;
   }
-  private startAttack(f: Fighter, power: boolean) { f.state = 'attack'; f.power = power; f.t = 0; f.struck = false; f.blocking = false; f.queued = false; }
+  private startAttack(f: Fighter, power: boolean) {
+    // A quick swing straight after another (or chained out of its recovery) continues the combo.
+    const chained = !power && (f.state === 'attack' || f.comboT < FEEL.comboWindow);
+    f.combo = chained ? (f.combo + 1) % 3 : 0;
+    f.state = 'attack'; f.power = power; f.t = 0; f.struck = false; f.blocking = false; f.queued = false; f.buffer = undefined;
+    f.windup = f.isPlayer ? 0 : (power ? FEEL.windupPower : FEEL.windupQuick) / f.weapon.speed;
+    f.lunge = 0;
+    if (f.isPlayer) this.assist(f);
+  }
+  // Aim assist: snap to the nearest enemy roughly where the player is facing, and step in
+  // towards one a little out of reach.
+  private assist(f: Fighter) {
+    const [fx, fy] = Combat.vec(f.facing);
+    let best: Fighter | undefined, bd = FEEL.assistReach;
+    for (const e of this.enemies) {
+      if (e.state === 'dead') continue;
+      const d = Math.hypot(e.a - f.a, e.b - f.b);
+      if (d > bd) continue;
+      const [ax, ay] = toScreen(f.a, f.b), [ex, ey] = toScreen(e.a, e.b), vx = ex - ax, vy = (ey - ay) * 2, l = Math.hypot(vx, vy) || 1;
+      if ((fx * vx + fy * vy) / l < Math.cos(FEEL.assistAngle)) continue;
+      best = e; bd = d;
+    }
+    if (!best) return;
+    this.faceTowards(f, best.a, best.b);
+    f.lunge = Math.max(0, Math.min(FEEL.lungeMax, bd - FEEL.lungeStop));
+  }
   block(f: Fighter, on: boolean) {
-    if (on && !this.busy(f)) { f.blocking = true; f.blockT = 0; f.state = 'block'; f.t = 0; }
+    if (on && this.canAct(f)) { f.blocking = true; f.blockT = 0; f.state = 'block'; f.t = 0; f.buffer = undefined; }
     if (!on) { f.blocking = false; if (f.state === 'block') f.state = 'idle'; }
   }
   roll(f: Fighter, dir?: Facing) {
-    if (this.busy(f) || f.stamina < COSTS.roll) return false;
-    f.stamina -= COSTS.roll; f.state = 'roll'; f.t = 0; f.blocking = false; if (dir) f.facing = dir; return true;
+    if (!this.canAct(f)) return this.hold(f, 'roll', dir);
+    if (f.stamina < COSTS.roll) return false;
+    f.stamina -= COSTS.roll; f.state = 'roll'; f.t = 0; f.blocking = false; f.buffer = undefined; if (dir) f.facing = dir; return true;
+  }
+  // A blow pushes the one it lands on away from the one who struck.
+  private knock(att: Fighter, def: Fighter, dist: number) {
+    const d = Math.hypot(def.a - att.a, def.b - att.b) || 1;
+    def.kb = [((def.a - att.a) / d) * dist * FEEL.knockDecay, ((def.b - att.b) / d) * dist * FEEL.knockDecay];
+  }
+  // Hit-stop and screen shake, for blows the player gives or takes.
+  private impact(att: Fighter, def: Fighter, kind: keyof typeof FEEL.hitStop) {
+    if (!att.isPlayer && !def.isPlayer) return;
+    this.hitStop = Math.max(this.hitStop, FEEL.hitStop[kind]);
+    this.shake = Math.max(this.shake, FEEL.shake[kind]);
   }
   private stagger(f: Fighter, seconds: number) {
     if (f.state === 'dead' || f.state === 'finisher') return;
@@ -279,6 +345,7 @@ export class Combat {
         return;
       }
       const h = this.hit(att, def, { power: att.power, blocking: true });
+      this.knock(att, def, FEEL.knockback.blocked); this.impact(att, def, 'blocked');
       def.stamina -= h.staminaCost;
       if (def.stamina < 0) { def.stamina = 0; this.stagger(def, TIMING.hitSeconds * 2); }
       if (def.isPlayer) c.useSkill('Block', att.weapon.damage);
@@ -289,6 +356,9 @@ export class Combat {
     let dmg = h.damage, steps = h.steps;
     if (att.counter) { dmg *= 2; steps += ' x2 counter'; att.counter = false; this.stagger(def, 0.8); }
     else this.stagger(def, TIMING.hitSeconds * (att.power ? 2 : 1));
+    const third = att.isPlayer && att.combo === 2 && !att.power;
+    this.knock(att, def, att.power ? FEEL.knockback.power : third ? FEEL.knockback.third : FEEL.knockback.quick);
+    this.impact(att, def, def.health <= dmg ? 'kill' : att.power || third ? 'power' : 'quick');
     // Skyrim trains weapon skills by the weapon's base damage per hit, armour skills by taking hits.
     if (att.isPlayer) c.useSkill(att.weapon.type.startsWith('TwoHand') ? 'TwoHanded' : 'OneHanded', att.weapon.damage);
     if (def.isPlayer) for (const p of c.armourPieces()) if (p.armourType !== 'Clothing') c.useSkill(p.armourType === 'Heavy' ? 'HeavyArmor' : 'LightArmor', att.weapon.damage / 2);
@@ -328,7 +398,7 @@ export class Combat {
     return c;
   }
   private kill(att: Fighter, def: Fighter, part?: string) {
-    def.health = 0; def.state = 'dead'; def.t = 0; def.blocking = false; def.bleed = 0;
+    def.health = 0; def.state = 'dead'; def.t = 0; def.blocking = false; def.bleed = 0; def.kb = [0, 0];
     if (part && this.hooks.gore().dismember) this.dismember(att, def, part);
     if (att.isPlayer && !def.isPlayer) this.addRage(RAGE.kill);
     if (att.isPlayer && def.ai?.fleeing) this.hooks.addInfamy(MORALE.fleeingKillInfamy, `Killed ${def.name} as they ran`);
@@ -397,6 +467,7 @@ export class Combat {
     const kind = p.finisher!.kind;
     if (kind === 'hamstring' && this.hooks.gore().dismember) this.dismember(p, e, 'legR');
     this.wound(p, e, e.health, `You finished ${e.name}: ${kind}.`, { finisher: kind });
+    this.impact(p, e, 'finisher'); this.slowLeft = Math.max(this.slowLeft, 0.35);
     this.addRage(RAGE.finisher);
     this.hooks.character().useSkill(p.weapon.type.startsWith('TwoHand') ? 'TwoHanded' : 'OneHanded', p.weapon.damage * 2);
     this.say(`Finisher: ${kind === 'behead' ? 'beheaded' : kind === 'disarm' ? 'took the sword arm off' : 'hamstrung, then beheaded'} ${e.name}.`);
@@ -432,12 +503,19 @@ export class Combat {
   // ---------- update ----------
 
   update(dt: number, player: Fighter) {
-    if (this.slowLeft > 0) this.slowLeft -= dt;
     const gdt = dt * this.timeScale;
+    if (this.hitStop > 0) this.hitStop -= dt; else if (this.slowLeft > 0) this.slowLeft -= dt;
+    this.shake = Math.max(0, this.shake - 30 * dt);
     for (const e of this.enemies) this.think(e, player, gdt);
     for (const f of [player, ...this.enemies]) {
       f.t += gdt;
       if (f.state === 'dead') continue;
+      if (f.kb[0] || f.kb[1]) {
+        f.a += f.kb[0] * gdt; f.b += f.kb[1] * gdt;
+        const k = Math.exp(-FEEL.knockDecay * gdt); f.kb[0] *= k; f.kb[1] *= k;
+        if (Math.hypot(f.kb[0], f.kb[1]) < 0.05) f.kb = [0, 0];
+      }
+      if (f.state !== 'attack') f.comboT += gdt;
       if (f.blocking) f.blockT += gdt;
       if (f.guardBroken > 0) f.guardBroken -= gdt;
       const regen = f.isPlayer && this.exhausted > 0 ? 0.5 : 1; // Exhaustion after Fury halves it
@@ -453,14 +531,22 @@ export class Combat {
         if (f.t >= FINISHER.seconds) { f.state = 'idle'; f.finisher = undefined; }
       }
       if (f.state === 'attack') {
-        if (!f.struck && f.t >= this.hitMoment(f)) { f.struck = true; for (const d of f.isPlayer ? this.enemies : [player]) this.strike(f, d); }
-        if (f.t >= this.attackLength(f)) { f.state = 'idle'; if (f.queued) this.startAttack(f, false); }
+        // The lunge carries the attacker in between the wind-up and the blow.
+        if (f.lunge > 0 && f.t >= f.windup) { const s = Math.min(f.lunge, 6 * gdt), [da, db] = Combat.groundStep(f.facing, s); f.a += da; f.b += db; f.lunge -= s; }
+        if (!f.struck && f.t >= this.hitMoment(f)) { f.struck = true; f.lunge = 0; for (const d of f.isPlayer ? this.enemies : [player]) this.strike(f, d); }
+        if (f.state === 'attack' && f.t >= this.attackLength(f)) { f.state = 'idle'; f.comboT = 0; }
       }
       if (f.state === 'roll') {
         const [da, db] = Combat.groundStep(f.facing, 6 * gdt); f.a += da; f.b += db;
         if (f.t >= TIMING.rollSeconds) f.state = 'idle';
       }
       if (f.state === 'hit' && f.t >= f.hitFor) f.state = 'idle';
+      // A kept press runs the moment it can.
+      if (f.buffer && (f.buffer.left -= dt) <= 0) f.buffer = undefined;
+      if (f.buffer && this.canAct(f)) {
+        const b = f.buffer; f.buffer = undefined;
+        if (b.kind === 'quick') this.quick(f); else if (b.kind === 'power') this.powerAttack(f); else this.roll(f, b.dir);
+      }
     }
     // Rage cools after 10 s without a blow; Fury burns down into Exhaustion.
     if (this.enemies.some((e) => e.ai?.aggro && e.state !== 'dead')) this.calm = 0; else this.calm += dt;
@@ -550,7 +636,7 @@ export class Combat {
   frame(f: Fighter): [string, number] {
     switch (f.state) {
       case 'walk': return ['walk', Math.floor(f.t * 10) % 8];
-      case 'attack': return ['attack', Math.min(5, Math.floor(f.t * this.attackFps(f)))];
+      case 'attack': return ['attack', Math.min(5, Math.floor(Math.max(0, f.t - f.windup) * this.attackFps(f)))];
       case 'block': return ['block', Math.min(3, Math.floor(f.t * 8))];
       case 'roll': return ['roll', Math.min(7, Math.floor((f.t / TIMING.rollSeconds) * 8))];
       case 'hit': return ['hit', Math.min(2, Math.floor((f.t / Math.max(0.01, f.hitFor)) * 3))];

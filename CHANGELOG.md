@@ -2,6 +2,30 @@
 
 Newest first. Each release says what changed for the player, and any save changes.
 
+## 0.6.0 (2026-11-06): a smaller game, faster combat
+
+The game has been cut down to what matters most: the story and the fighting. See the design bible (v0.3) for the full reasoning.
+
+- **Faster combat.**
+  - Your swings are about 30 percent quicker.
+  - A click made mid-swing is no longer lost: it waits and goes the moment it can.
+  - Once a blow has landed you can cut the rest of the swing short with the next hit, a roll or a block.
+- **Combos.** Quick attacks chain. The third hit in a row does 25 percent more and knocks the enemy back further.
+- **Hits land.**
+  - Every blow freezes the fight for a split second and shakes the screen. Power attacks and kills more so, finishers most.
+  - Enemies are knocked back, and so are you.
+  - You flash red when hit.
+- **Aim assist.** A swing turns to the nearest enemy roughly where you aim, and steps in if they are just out of reach.
+- **Enemies telegraph.** Before an enemy swings they hold still and glow: a pale glow for a quick attack, a pulsing orange one for a power attack. That is your cue to block (a tap just before the blow parries) or roll.
+- **Finishers** hit with a heavier freeze and a moment of slow motion. You are open for a little less time after one.
+- **Power attacks** start after a 0.25 s hold (was 0.3).
+- **Cut:**
+  - **Skills:** Archery, Sneak, Lockpicking, Pickpocket and Alchemy are gone, with their perks. Seven skills are left: One-handed, Two-handed, Block, Light Armor, Heavy Armor, Smithing and Speech.
+  - **Races:** you are always a Redguard. Creation is just a name.
+  - **Gear:** the list is down to 24 weapons (iron, steel and Orcish in seven kinds, the scimitar, a woodcutter's axe and a headsman's axe) and seven sets of armour and clothes.
+  - Ctrl no longer sneaks.
+- **Saves:** save version 5. Older saves load as a Redguard. Skills that were cut are dropped, each perk taken in them is refunded as a perk point, and items no longer in the game are removed.
+
 ## 0.5.0 (2026-11-06): three enemy types, two-handed combat, quests, the farm and the family
 
 - **Bandit marauder.** A Nord in Fur Armor with an Iron Battleaxe, now in the Coast Road camp. Swings slowly (the battleaxe's Skyrim speed, 0.7) and hard, power-attacks often, hardly ever blocks. Two-handed and axe, so its killing blows take parts off more often.

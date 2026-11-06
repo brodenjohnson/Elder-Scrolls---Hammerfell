@@ -13,7 +13,7 @@ import { GORE_LEVELS, loadSettings, saveSettings, type Settings } from './system
 import { Quests, newQuestState, type QuestDef } from './systems/quests';
 import { START_TIME, TIMESCALE, daylight } from './systems/clock';
 import { Cutscene, type Scene } from './systems/cutscene';
-import { Combat, FURY, PARTS, WOUNDS, type Encounter, type Fighter, type FuryId } from './combat/combat';
+import { Combat, FURY, PARTS, TIMING, WOUNDS, type Encounter, type Fighter, type FuryId } from './combat/combat';
 
 declare const __APP_VERSION__: string;
 export const VERSION = __APP_VERSION__;
@@ -194,7 +194,7 @@ export class Game {
       if (e.button === 2 && this.pf && this.armed()) this.combat.block(this.pf, true);
     });
     addEventListener('mouseup', (e) => {
-      if (e.button === 0 && this.leftDown !== null) { const held = (performance.now() - this.leftDown) / 1000; this.leftDown = null; if (held < 0.3) this.attack(false); }
+      if (e.button === 0 && this.leftDown !== null) { const held = (performance.now() - this.leftDown) / 1000; this.leftDown = null; if (held < TIMING.powerHoldSeconds) this.attack(false); }
       if (e.button === 2 && this.pf) this.combat.block(this.pf, false);
     });
     addEventListener('blur', () => this.keys.clear());
@@ -208,8 +208,8 @@ export class Game {
     const f = this.pf;
     if (!f || f.state === 'dead' || this.panels.open !== 'none') return false;
     if (!this.armed()) { this.say('You need a weapon. I for inventory.'); return false; }
-    // Melee faces the cursor (bible 11.1).
-    if (!this.combat.busy(f)) { const v = this.renderer.view; f.facing = facingOf(this.mouse.x - v.w / 2, (this.mouse.y - (v.h / 2 + 30)) * 2); this.player.facing = f.facing; }
+    // Melee faces the cursor (bible 11.1); aim assist then picks the enemy nearest that way.
+    if (this.combat.canAct(f)) { const v = this.renderer.view; f.facing = facingOf(this.mouse.x - v.w / 2, (this.mouse.y - (v.h / 2 + 30)) * 2); this.player.facing = f.facing; }
     return power ? this.combat.powerAttack(f) : this.combat.quick(f);
   }
   // F: finish a staggered or badly hurt enemy in front.
@@ -263,7 +263,7 @@ export class Game {
     const dt = realDt * this.combat.timeScale; // a perfect dodge slows everything, the player too
     this.playSeconds += realDt;
     this.time += realDt * TIMESCALE;
-    if (this.leftDown !== null && (performance.now() - this.leftDown) / 1000 >= 0.3) { this.leftDown = null; this.attack(true); }
+    if (this.leftDown !== null && (performance.now() - this.leftDown) / 1000 >= TIMING.powerHoldSeconds) { this.leftDown = null; this.attack(true); }
     const k = this.keys;
     let sx = 0, sy = 0;
     if (k.has('KeyW') || k.has('ArrowUp')) sy -= 1;
@@ -291,7 +291,8 @@ export class Game {
     if (f.state === 'idle' || f.state === 'walk') f.state = p.moving ? 'walk' : 'idle';
     this.combat.sync();
     if (!this.scene) this.combat.update(realDt, f); // the world holds still while a scene plays
-    if (f.state === 'roll') [p.a, p.b] = this.move(p.a, p.b, f.a - p.a, f.b - p.b);
+    // A roll, a lunge or a knockback moves the fighter; the player follows, kept out of solid things.
+    if (f.a !== p.a || f.b !== p.b) { [p.a, p.b] = this.move(p.a, p.b, f.a - p.a, f.b - p.b); if (this.combat.busy(f)) p.facing = f.facing; }
     // Bandits are kept out of solid things by the same rules as the player.
     const alive = this.combat.enemies.filter((e) => e.state !== 'dead');
     // Keep fighters from standing inside one another.
@@ -464,15 +465,17 @@ export class Game {
     const fps = p.moving ? atlas.fps * (p.speed / 2.6) : atlas.fps;
     const frame = combatAnim && name.endsWith(`_${anim}`) ? cframe : Math.floor(p.t * fps) % atlas.frames;
     const [px, py] = toScreen(p.a, p.b);
-    const furyTint = this.combat.fury ? 0xffa898 : 0xffffff;
+    const furyTint = f.state === 'hit' && f.t < 0.1 ? 0xff7766 : this.combat.fury ? 0xffa898 : 0xffffff;
     items.push({ texture: r.frame(name, atlas, sheet.image, p.facing, frame, this.cut(f)), x: Math.round(px - atlas.cell.ox), y: Math.round(py - atlas.cell.oy), tint: furyTint, a0: p.a, a1: p.a, b0: p.b, b1: p.b, c: p.a + p.b });
     for (const e of this.combat.enemies) {
       void this.want(e.outfit); // enemies spawn with their slice, so their sheets arrive before they are in view
       if (Math.abs(e.a - p.a) > reach || Math.abs(e.b - p.b) > reach) continue;
       const [anim2, fr0] = this.combat.frame(e), [nm, s2] = this.sheet(e.outfit, anim2), fr2 = nm.endsWith(`_${anim2}`) ? fr0 : 0;
       const [ex, ey] = toScreen(e.a, e.b);
-      const flash = e.state === 'hit' && e.t < 0.1;
-      items.push({ texture: r.frame(nm, s2.atlas, s2.image, e.facing, fr2, this.cut(e)), x: Math.round(ex - s2.atlas.cell.ox), y: Math.round(ey - s2.atlas.cell.oy), tint: flash ? 0xff8877 : 0xffffff, a0: e.a, a1: e.a, b0: e.b, b1: e.b, c: e.a + e.b - (e.state === 'dead' ? 0.5 : 0) });
+      // A hit flashes red; a wind-up glows so it can be read (a power attack more strongly, and pulsing).
+      const flash = e.state === 'hit' && e.t < 0.1, winding = e.state === 'attack' && e.t < e.windup;
+      const tell = winding ? (e.power ? (Math.floor(e.t * 16) % 2 ? 0xffc040 : 0xffe080) : 0xfff0b0) : 0xffffff;
+      items.push({ texture: r.frame(nm, s2.atlas, s2.image, e.facing, fr2, this.cut(e)), x: Math.round(ex - s2.atlas.cell.ox), y: Math.round(ey - s2.atlas.cell.oy), tint: flash ? 0xff8877 : tell, a0: e.a, a1: e.a, b0: e.b, b1: e.b, c: e.a + e.b - (e.state === 'dead' ? 0.5 : 0) });
     }
     // Severed parts: cut from the owner's first death frame, thrown, then lying where they land.
     for (const q of this.combat.parts) {
@@ -495,8 +498,8 @@ export class Game {
     }
     items.sort(depthOrder);
     r.light(daylight(this.time));
-    const cam = this.scene?.view.camera ?? [p.a, p.b];
-    r.draw(cam[0], cam[1], shadows, items);
+    const cam = this.scene?.view.camera ?? [p.a, p.b], sh = this.combat.shake / 32;
+    r.draw(cam[0] + (Math.random() - 0.5) * sh, cam[1] + (Math.random() - 0.5) * sh, shadows, items);
     r.blood(this.combat.decals, this.combat.drops);
   }
 
