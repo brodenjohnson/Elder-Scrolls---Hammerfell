@@ -63,9 +63,20 @@
   #bars .b.on { opacity: 1; }
   #bars .b i { display: block; height: 100%; transition: width .15s; }
   #bars .rage { left: 0; width: 24%; } #bars .rage i { background: linear-gradient(#e0902a, #8a4a10); margin-left: auto; }
-  #bars .rage.ready { box-shadow: 0 0 6px #e0902a; }
   #bars .hp { left: 36%; width: 28%; } #bars .hp i { background: linear-gradient(#c24a33, #7a1d12); margin: 0 auto; }
   #bars .st { right: 0; width: 24%; } #bars .st i { background: linear-gradient(#7fae5a, #3e6a2a); }
+  /* Rage ready: the bar burns and a prompt pulses above it */
+  @keyframes burn { 0%, 100% { box-shadow: 0 0 4px #e0902a, 0 0 0 #000; border-color: #f0c060; } 50% { box-shadow: 0 0 14px #ff6a20, 0 0 26px #a02000; border-color: #fff0a0; } }
+  @keyframes pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+  #bars .rage.ready { animation: burn 0.7s infinite; opacity: 1; }
+  #bars .rage.ready i { background: linear-gradient(#ffd060, #e05010); }
+  #rage-ready { position: absolute; bottom: 7.5%; left: 4%; color: #ffb050; letter-spacing: 3px; font-size: 13px; opacity: 0; text-shadow: 0 0 8px #e05010; transform-origin: left center; }
+  #rage-ready.on { animation: pulse 0.7s infinite; }
+  .skills .perk { cursor: pointer; padding: 2px 6px; border-left: 2px solid transparent; }
+  .skills .perk.can { opacity: 1; border-left-color: var(--gold); }
+  .skills .perk.own { opacity: 1; } .skills .perk.own .pn { color: #ffe9a8; }
+  .skills .perk.na { opacity: 0.35; cursor: default; }
+  .skills .perk .rk { color: var(--gold); font-size: 12px; } .skills .perk .pr i { color: #c0a070; }
   #fury { position: absolute; bottom: 7.5%; left: 4%; color: #e0503a; letter-spacing: 4px; font-size: 13px; opacity: 0; text-shadow: 0 0 6px #a00; }
   #fury.on { opacity: 1; }
 
@@ -147,9 +158,9 @@
 </head>
 <body>
 <main>
-  <h1>Hammerfell: art sample, round three</h1>
-  <p class="dim">Style A. Better proportions, armour with more to it, shields, moving while you swing, and Skyrim's menus and looting in our own look. Everything is drawn by code while the page runs; item names and numbers are the game's own (Skyrim's).</p>
-  <div class="keys-help">WASD move &middot; Shift run &middot; left click or J attack (three in a row is a combo; hold for a power attack) &middot; you can steer while swinging &middot; right click or K block (with a shield, parrying is easier) &middot; Space dodge &middot; F finisher &middot; Q Fury at 60 Rage &middot; <b>E</b> search a body or open a container &middot; <b>Tab</b> menu &middot; <b>I</b> items &middot; <b>P</b> skills &middot; <b>M</b> map &middot; <b>Esc</b> journal and system.</div>
+  <h1>Hammerfell: art sample, round four</h1>
+  <p class="dim">Style A. Working perks, Skyrim's levelling pace, shield bash, a dodge and a roll, eight finishers, Fury with a roar, and sound and music (click the game or press a key to start it). Everything is drawn and played by code while the page runs; item names and numbers are the game's own (Skyrim's).</p>
+  <div class="keys-help">WASD move &middot; Shift run &middot; left click or J attack (three in a row is a combo; hold for a power attack) &middot; you can steer while swinging &middot; right click or K block (with a shield, parrying is easier) &middot; block and attack: shield bash (needs the Power Bash perk) &middot; Space dodge &middot; C roll &middot; F finisher &middot; Q Fury when the Rage bar burns &middot; <b>E</b> search a body or open a container &middot; <b>Tab</b> menu &middot; <b>I</b> items &middot; <b>P</b> skills &middot; <b>M</b> map &middot; <b>Esc</b> journal and system.</div>
   <div id="stage"><canvas id="view" width="320" height="190"></canvas><div id="hud"></div><div id="menu"></div></div>
   <div class="row-btns"><button data-open="hub">Menu (Tab)</button><button data-open="items">Items (I)</button><button data-open="skills">Skills (P)</button><button data-open="map">Map (M)</button><button data-open="journal">Journal (Esc)</button></div>
   <h2>The armoury</h2>
@@ -157,8 +168,11 @@
   <canvas id="lineup"></canvas>
   <h2>Notes</h2>
   <p>Menus pause the game. Tab opens the four-way menu (Skills up, Items left, Journal right, Map down), as Skyrim does. Esc opens the journal, and its System tab has the gore and light settings and a reset.</p>
-  <p>Not in this sample: favourites, the barter screen, dialogue, a world map beyond the camp, saving, and perks that do something (they are listed from the data with their real requirements).</p>
+  <p>Perks work for One-handed, Two-handed, Block, Heavy Armor and Light Armor, except those for things not here yet (dual wielding, arrows, magic, falling); Smithing and Speech come with crafting and trading. Levelling uses Skyrim's own curves, half as fast again; the System tab in the journal (Esc) has buttons to add perk points and skill levels for testing.</p>
+  <p>Finishers: two per weapon class, taken in turn: blades behead or run him through, axes cleave the shoulder or split the skull, blunt weapons crush the skull or break the leg first, daggers cut the throat or stab three times.</p>
+  <p>The music and sounds are synthesised in the browser, in a Nordic spirit but our own; the war cry is a synthesised voice for now, to be replaced by a recorded one in the game. Not in this sample: favourites, trading, dialogue, saving.</p>
 </main>
+<script src="audio.js"></script>
 <script src="ui.js"></script>
 <script src="sample.js"></script>
 </body>

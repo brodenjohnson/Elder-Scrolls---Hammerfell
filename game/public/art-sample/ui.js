@@ -19,7 +19,7 @@ addEventListener('hf-ready', () => {
     <div id="notes"></div>
     <div id="prompt"></div>
     <div id="bars"><div class="b rage"><i></i></div><div class="b hp"><i></i></div><div class="b st"><i></i></div></div>
-    <div id="fury">FURY</div>`;
+    <div id="fury">FURY</div><div id="rage-ready">${key('Q')} RAGE</div>`;
   const notes = $('#notes');
   function note(text, kind) {
     const d = document.createElement('div'); d.className = `n ${kind}`; d.textContent = text; notes.prepend(d);
@@ -53,6 +53,7 @@ addEventListener('hf-ready', () => {
     set('#bars .rage', S.rage / 100, fighting || S.rage > 0.5);
     $('#bars .rage').classList.toggle('ready', S.rage >= 60);
     $('#fury').classList.toggle('on', S.fury > 0);
+    $('#rage-ready').classList.toggle('on', S.rage >= 60 && S.fury <= 0);
     const t = HF.target();
     $('#foe').classList.toggle('on', !!t);
     if (t) { $('#foe .name').textContent = t.name; $('#foe .bar i').style.width = `${Math.max(0, t.hp / t.maxHp) * 100}%`; }
@@ -63,13 +64,14 @@ addEventListener('hf-ready', () => {
   }
   function hudLoop() {
     for (const ev of S.events.splice(0)) {
-      if (ev.kind === 'discover') banner('Discovered', ev.text, 'Bandit camp');
+      if (ev.kind === 'discover') { banner('Discovered', ev.text, 'Bandit camp'); HFA.play('discover'); }
       else if (ev.kind === 'level') { banner('', ev.text.toUpperCase(), ''); note(ev.text, ev.kind); }
       else if (ev.kind === 'quest' && /^Quest complete/.test(ev.text)) banner('Quest completed', 'Bandits on the Coast Road', '');
       else note(ev.text, ev.kind);
     }
     if (bannerT && performance.now() - bannerT > 3200) { $('#banner').classList.remove('on'); bannerT = 0; }
     compass(); bars();
+    HFA.update({ combat: HF.inCombat(), fury: S.fury > 0 || HF.pl.anim === 'roar' });
     if (menuOpen === 'items' || menuOpen === 'loot') refreshFooter();
     requestAnimationFrame(hudLoop);
   }
@@ -144,13 +146,15 @@ addEventListener('hf-ready', () => {
       const toLvl = 75 + S.level * 25;
       menu.innerHTML = `<div class="skills">
         <div class="lvl"><b>Level ${S.level}</b><div class="bar"><i style="width:${(S.xp / toLvl) * 100}%"></i></div><span>Perks to spend: ${S.perkPoints}</span></div>
-        <div class="trees">${Object.keys(HF.SKILL_NAMES).map((k) => `<div class="tree ${k === skillSel ? 'sel' : ''}" data-skill="${k}"><div class="lv">${sk[k].level}</div><div class="nm">${HF.SKILL_NAMES[k]}</div><div class="bar"><i style="width:${(sk[k].xp / HF.toNext(sk[k])) * 100}%"></i></div></div>`).join('')}</div>
+        <div class="trees">${Object.keys(HF.SKILL_NAMES).map((k) => `<div class="tree ${k === skillSel ? 'sel' : ''}" data-skill="${k}"><div class="lv">${sk[k].level}</div><div class="nm">${HF.SKILL_NAMES[k]}</div><div class="bar"><i style="width:${Math.min(100, (sk[k].xp / HF.toNext(k)) * 100)}%"></i></div></div>`).join('')}</div>
         <div class="perks"><h2>${HF.SKILL_NAMES[skillSel]}</h2>${first.sort((a, b) => (a.skillReq[0]?.level || 0) - (b.skillReq[0]?.level || 0)).map((p) => {
-          let ranks = 1; for (let q = p; q.nextPerk && perks.find((x) => x.edid === q.nextPerk); q = perks.find((x) => x.edid === q.nextPerk)) ranks++;
-          const req = p.skillReq[0]?.level || 0, can = sk[skillSel].level >= req;
-          return `<div class="perk ${can ? 'open' : ''}"><div class="pn">${esc(p.name)}${ranks > 1 ? ` <span class="dim">(${ranks} ranks)</span>` : ''}</div><div class="pd">${esc(p.description)}</div><div class="pr">${req ? `${HF.SKILL_NAMES[skillSel]} ${req}` : 'Any level'}</div></div>`;
+          const chain = HF.chainOf(p.edid), r = HF.rank(p.edid), why = HF.canTake(p.edid), nextReq = HF.PERK[chain[Math.min(r, chain.length - 1)]].skillReq[0]?.level || 0;
+          const status = why === 'ok' ? 'Click to take' : why === 'Taken' ? 'Taken' : why;
+          return `<div class="perk ${r ? 'own' : ''} ${why === 'ok' ? 'can' : ''} ${HF.NOT_HERE[p.edid] || p.skill === 'Smithing' || p.skill === 'Speech' ? 'na' : ''}" data-perk="${p.edid}">
+            <div class="pn">${esc(p.name)}${chain.length > 1 ? ` <span class="rk">${r}/${chain.length}</span>` : r ? ' <span class="rk">taken</span>' : ''}</div><div class="pd">${esc(p.description)}</div>
+            <div class="pr">${r < chain.length ? (nextReq ? `${HF.SKILL_NAMES[skillSel]} ${nextReq}` : 'Any level') + ' &middot; ' : ''}<i>${esc(status)}</i></div></div>`;
         }).join('')}</div>
-        <div class="keys">${key('A')}${key('D')} Skill &middot; ${key('Tab')} Back &middot; Perks are shown, not taken, in this sample.</div></div>`;
+        <div class="keys">${key('A')}${key('D')} Skill &middot; click a perk to take it &middot; ${key('Tab')} Back</div></div>`;
       return;
     }
     if (menuOpen === 'map') {
@@ -176,7 +180,9 @@ addEventListener('hf-ready', () => {
           <button data-sys="reset">Reset the camp</button>
           <div class="opt"><span>Gore</span>${['full', 'some', 'off'].map((g) => `<button data-gore="${g}" class="${HF.settings.gore === g ? 'on' : ''}">${{ full: 'Full', some: 'Blood only', off: 'Off' }[g]}</button>`).join('')}</div>
           <div class="opt"><span>Light</span>${['dusk', 'day'].map((l) => `<button data-light="${l}" class="${HF.settings.light === l ? 'on' : ''}">${l === 'dusk' ? 'Dusk' : 'Day'}</button>`).join('')}</div>
-          <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; Space dodge &middot; F finisher &middot; Q Fury (60 Rage) &middot; E search or open &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal</div></div>`;
+          <div class="opt"><span>Sound</span><button data-sound="on" class="${HFA.on ? 'on' : ''}">On</button><button data-sound="off" class="${HFA.on ? '' : 'on'}">Off</button></div>
+          <div class="opt"><span>Testing</span><button data-sys="perks">+3 perk points</button><button data-sys="skills">+10 to combat skills</button></div>
+          <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; E search or open &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal</div></div>`;
       menu.innerHTML = `<div class="journal"><div class="tabs">${tabs.map(([k, n]) => `<div class="tab ${k === journalTab ? 'sel' : ''}" data-tab="${k}">${n}</div>`).join('')}</div><div class="page">${body}</div>
         <div class="keys">${key('A')}${key('D')} Tab &middot; ${key('Esc')} Close</div></div>`;
     }
@@ -246,7 +252,11 @@ addEventListener('hf-ready', () => {
     }
   }, true);
   menu.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-go],[data-cat],[data-i],[data-skill],[data-tab],[data-sys],[data-gore],[data-light]'); if (!t) return;
+    const t = e.target.closest('[data-go],[data-cat],[data-i],[data-skill],[data-tab],[data-sys],[data-gore],[data-light],[data-perk],[data-sound]'); if (!t) return;
+    if (t.dataset.perk) { HF.takePerk(t.dataset.perk); return render(); }
+    if (t.dataset.sound) { HFA.setOn(t.dataset.sound === 'on'); return render(); }
+    if (t.dataset.sys === 'perks') { HF.cheat.perks(3); return render(); }
+    if (t.dataset.sys === 'skills') { HF.cheat.skills(10); return render(); }
     if (t.dataset.go) { if (t.dataset.go === 'journal') journalTab = 'quests'; return open(t.dataset.go); }
     if (t.dataset.cat) { cat = t.dataset.cat; sel = 0; }
     if (t.dataset.i !== undefined) { const i = +t.dataset.i; if (i === sel) return act('take'); sel = i; }

@@ -1,5 +1,5 @@
 /* =====================================================================
-   Art sample, round three (design bible 4.0, style A).
+   Art sample, round four (design bible 4.0, style A).
    A bandit camp to fight through and loot, with Skyrim's interface functions in our
    own look (ui.js). Everything here is drawn by code while the page runs: small pixel
    buffers, palette ramps, ordered dithering, a rim light and a coloured outline.
@@ -157,7 +157,8 @@
   function rig(pose, face, wpn) {
     const R = RIG, P = { ...BASE, ...pose };
     // A shield arm holds the shield out in front, or across the body in a block.
-    if (wpn.shield && wpn.hands === 1 && !P.free) Object.assign(P, P.guard ? { aLp: 1.3, aLr: -0.3, aLe: 1.25 } : { aLp: 1.0, aLr: 0.3, aLe: 1.0 });
+    // A shield is held close in front of the body, raised across it in a block, thrust out in a bash.
+    if (wpn.shield && wpn.hands === 1 && !P.free) Object.assign(P, P.guard ? { aLp: 1.25, aLr: -0.45, aLe: 1.4 } : P.bash ? { aLp: 1.5, aLr: -0.15, aLe: 0.2 } : { aLp: 0.8, aLr: 0.02, aLe: 1.3 });
     const legR = [limb(P.lRp, P.lRr, 1), limb(P.lRp - P.lRk, P.lRr, 1)], legL = [limb(P.lLp, P.lLr, -1), limb(P.lLp - P.lLk, P.lLr, -1)];
     const low = (l) => Math.max(-l[0][2] * R.thigh, -(l[0][2] * R.thigh + l[1][2] * R.shin));
     const pelvis = [0, 0, Math.max(low(legR), low(legL))];
@@ -178,8 +179,15 @@
       tabA: add(chest, rotZ([0, R.chestMin * 0.3, -2], P.tw * 0.5)), tabB: add(pelvis, [0, R.waistMin * 0.36 + Math.max(0, P.lean) * 3, -R.thigh * 0.95]),
       crA: add(head, add([0, R.headR * 0.55, 0], up, R.headR * 0.95)), crB: add(head, add(back, up, R.headR * 0.5)),
       tlA: add(head, back, R.headR * 0.85), tlB: add(neck, [1.5, -R.headR * 1.5, -R.spine * 0.45]) };
-    // The shield faces forward and a little out, or straight ahead in a block.
-    const shN = nrm(rotZ(P.guard ? [0.1, 1, 0.12] : [-0.45, 1, 0.1], P.tw));
+    // A roll turns the whole body about the hips, and lifts it so the lowest point stays on the ground.
+    if (P.spin) {
+      const piv = [0, 0, pelvis[2] * 0.55];
+      for (const k of Object.keys(pts)) pts[k] = add(rotX(sub(pts[k], piv), -P.spin), piv);
+      const lo = Math.min(...Object.values(pts).map((q) => q[2]));
+      for (const k of Object.keys(pts)) pts[k] = [pts[k][0], pts[k][1], pts[k][2] - lo + 1];
+    }
+    // The shield faces forward and a little out, or straight ahead in a block or bash.
+    const shN = rotX(nrm(rotZ(P.guard || P.bash ? [0.1, 1, 0.12] : [-0.25, 1, 0.1], P.tw)), -(P.spin || 0));
     const world = (v) => rotZ(rotX(v, P.fall), face);
     const project = (v) => { const q = world(v); return [OX + q[0], OY - q[1] * SP - q[2] * CP]; };
     const depthOf = (v) => { const q = world(v); return q[1] * CP - q[2] * SP; };
@@ -192,6 +200,7 @@
   const SHAPES = {
     sword: { kind: 'blade', len: 14 }, scimitar: { kind: 'curved', len: 14 }, waraxe: { kind: 'axe', len: 11 }, mace: { kind: 'mace', len: 11 },
     dagger: { kind: 'blade', len: 7 }, greatsword: { kind: 'blade', len: 21 }, battleaxe: { kind: 'bigaxe', len: 19 }, warhammer: { kind: 'hammer', len: 18 },
+    none: { kind: 'none', len: 4 },
   };
   const CLS = { sword: 'blade', scimitar: 'blade', greatsword: 'blade', waraxe: 'axe', battleaxe: 'axe', mace: 'blunt', warhammer: 'blunt', dagger: 'dagger' };
   for (const w of WDATA) {
@@ -205,6 +214,7 @@
     ITEMS[a.edid] = { ...a, cat: 'apparel', slot };
   }
   Object.assign(ITEMS, {
+    Fists: { edid: 'Fists', name: 'Fists', cat: 'none', damage: 4, speed: 1.2, reach: 0.7, weight: 0, value: 0, shape: 'none', metal: 'iron', hands: 1, cls: 'fist', skillName: null },
     PotionHealth: { edid: 'PotionHealth', name: 'Potion of Minor Healing', cat: 'potion', weight: 0.5, value: 17, heal: 25, desc: 'Restore 25 points of Health.' },
     Bandage: { edid: 'Bandage', name: 'Bandage', cat: 'potion', weight: 0.1, value: 3, heal: 8, desc: 'Stops bleeding and binds a wound. Restores 8 Health.' },
     Bread: { edid: 'Bread', name: 'Bread', cat: 'food', weight: 0.5, value: 2, heal: 4, desc: 'Restores 4 Health.' },
@@ -258,7 +268,7 @@
     if (look.helm?.kind === 'closed' || look.helm?.kind === 'horns') look.beard = false;
     return look;
   }
-  const weaponOf = (eq) => { const w = ITEMS[eq.weapon] || ITEMS.IronSword, s = SHAPES[w.shape]; return { ...s, hands: w.hands, metal: w.metal, shield: w.hands === 1 && eq.shield ? SHIELDS[eq.shield] : null }; };
+  const weaponOf = (eq) => { const w = ITEMS[eq.weapon] || ITEMS.Fists, s = SHAPES[w.shape]; return { ...s, hands: w.hands, metal: w.metal, shield: w.hands === 1 && eq.shield ? SHIELDS[eq.shield] : null }; };
 
   // ---------- drawing a character ----------
   // cut: parts taken off (head, armR, armL). only: draw just that part (a severed piece). crushed: the head is pulp.
@@ -368,6 +378,7 @@
     const edge = (x, y, t, a, v) => (a < -0.2 ? tone(m, v + 0.25, x, y) : null);
     const trim = m === 'iron' ? 'iron' : 'brass';
     switch (w.kind) {
+      case 'none': break;
       case 'blade': {
         rod(p, base[0], base[1], hand[0], hand[1], 1.7, 1.7, 'leather');
         rod(p, guard[0], guard[1], tip[0], tip[1], w.hands === 2 ? 2.6 : w.len < 9 ? 1.8 : 2.1, 1.1, m, { bias: 0.15, tex: 0.02, fn: edge });
@@ -514,11 +525,26 @@
     block: { loop: true, frames: [{ d: 1000, pose: { guard: true, tw: 0.25, lean: 0.08, aRp: 1.25, aRr: -0.1, aRe: 1.15, wy: -80, wp: 22, aLp: 0.9, aLe: 1.5, lRk: 0.35, lLk: 0.3, lLp: 0.15 } }] },
     // With a shield the blade stays ready behind it.
     shieldBlock: { loop: true, frames: [{ d: 1000, pose: { guard: true, tw: 0.2, lean: 0.1, aRp: 0.6, aRr: 0.5, aRe: 1.2, wy: 40, wp: 50, lRk: 0.4, lLk: 0.3, lLp: 0.2 } }] },
+    // A dodge is a quick hop out of the way; a roll (below) goes further and keeps you safe longer.
     dodge: { frames: [
-      { d: 50, pose: { lean: 0.5, lRp: 0.5, lLp: -0.4, lRk: 0.9, lLk: 0.7, aRp: 0.3, aRe: 0.3, aLp: -0.3, wy: 40, wp: -20 } },
-      { d: 170, pose: { lean: 0.6, lRp: 0.7, lLp: -0.6, lRk: 1.2, lLk: 0.9, aRp: 0.1, aRe: 0.4, aLp: -0.5, wy: 60, wp: -30 } },
-      { d: 110, pose: { lean: 0.25, lRp: 0.3, lLp: -0.2, lRk: 0.6, lLk: 0.4 } },
+      { d: 40, pose: { lean: -0.12, lRp: 0.25, lLp: -0.25, lRk: 0.7, lLk: 0.7, aRp: 0.55, aLp: 0.6, aLr: 0.6 } },
+      { d: 150, pose: { lean: -0.2, lRp: 0.45, lLp: -0.45, lRk: 0.35, lLk: 0.95, lRr: 0.3, lLr: 0.3, aRp: 0.6, aLp: 0.7, aLr: 0.7 } },
+      { d: 90, pose: { lean: 0.05, lRk: 0.45, lLk: 0.35 } },
     ] },
+    roll: { frames: Array.from({ length: 8 }, (_, i) => ({ d: 50, pose: { spin: (i / 8) * 2 * Math.PI, lean: 0.9, lRp: 1.5, lRk: 2.2, lLp: 1.4, lLk: 2.2, aRp: 0.9, aRe: 1.7, aLp: 0.9, aLe: 1.7, wy: 90, wp: -60, free: true } })) },
+    bash: { frames: [
+      { d: 70, pose: { bash: false, guard: true, tw: 0.3, lean: 0.05, aRp: 0.6, aRr: 0.5, aRe: 1.2, wy: 40, wp: 50, lRp: -0.2, lLp: 0.2 } },
+      { d: 45, hit: true, pose: { bash: true, tw: -0.45, lean: 0.4, aLp: 1.5, aLr: -0.15, aLe: 0.15, aRp: 0.5, aRr: 0.6, aRe: 1.3, wy: 50, wp: 50, lRp: -0.35, lLp: 0.5, lLk: 0.4 } },
+      { d: 160, pose: { bash: true, tw: -0.4, lean: 0.35, aLp: 1.4, aLr: -0.1, aLe: 0.25, aRp: 0.5, aRr: 0.6, aRe: 1.3, wy: 50, wp: 50, lRp: -0.3, lLp: 0.45, lLk: 0.35 } },
+      { d: 120, pose: { tw: 0, lean: 0.1 } },
+    ] },
+    // Fury: gather, then throw the arms wide, head back, and roar.
+    roar: { frames: [
+      { d: 150, pose: { lean: 0.55, lRk: 0.8, lLk: 0.8, lRp: 0.35, lLp: 0.1, aRp: 0.35, aRe: 1.9, aLp: 0.35, aLe: 1.9, aRr: -0.2, aLr: -0.2, wy: 90, wp: -60, free: true } },
+      { d: 650, hit: true, pose: { lean: -0.38, tw: 0, aRp: 2.3, aRr: 1.35, aRe: 0.35, aLp: 2.3, aLr: 1.35, aLe: 0.35, wy: 60, wp: 120, lRp: -0.3, lLp: 0.35, lRk: 0.25, lLk: 0.25, lRr: 0.35, lLr: 0.35, free: true } },
+      { d: 180, pose: { lean: 0.1, aRp: 1.0, aRr: 0.4, aRe: 0.6, aLp: 0.6, aLr: 0.4, wy: 30, wp: 40 } },
+    ] },
+    impaled: { hold: true, frames: [{ d: 99999, pose: { lean: -0.45, tw: 0.1, aRp: 0.9, aRr: 1.2, aRe: 0.3, aLp: 0.9, aLr: 1.2, aLe: 0.3, wy: 90, wp: -70, lRk: 0.35, lLk: 0.25, free: true } }] },
     hit: { frames: [
       { d: 70, pose: { lean: -0.35, tw: -0.35, aLp: 0.9, aLr: 0.8, aLe: 0.2, aRp: 0.5, aRr: 0.6, wy: 60, wp: 10, lRk: 0.3, free: true } },
       { d: 100, pose: { lean: -0.25, tw: -0.2, aLp: 0.6, aLr: 0.5, aRp: 0.55, aRr: 0.4, wy: 40, wp: 20, lRk: 0.3, free: true } },
@@ -565,6 +591,43 @@
       { d: 600, pose: { tw: 0.05, lean: 0.5, aRp: 1.05, aRe: 0.05, aLp: 0.95, wy: 0, wp: -60, lRp: -0.45, lLp: 0.6, lLk: 0.85, lRk: 0.55 } },
       { d: 220, pose: { lean: 0.15, aRp: 0.85, aRe: 0.4, wy: 5, wp: 10 } },
     ] },
+    // Run through: draw back, thrust, hold him on the blade, then kick him off it.
+    fin_impale: { frames: [
+      { d: 120, pose: { tw: -0.6, lean: -0.1, aRp: 0.7, aRr: 0.3, aRe: 1.6, wy: 0, wp: 0, lRp: -0.25, lLp: 0.4, lLk: 0.3, aLp: 0.9, aLr: 0.4 } },
+      { d: 220, pose: { tw: -0.75, lean: -0.15, aRp: 0.55, aRr: 0.35, aRe: 1.8, wy: 0, wp: 5, lRp: -0.3, lLp: 0.45, lLk: 0.4, aLp: 1.0, aLr: 0.5 } },
+      { d: 45, hit: true, pose: { tw: 0.35, lean: 0.4, aRp: 1.55, aRr: 0.05, aRe: 0.0, wy: 0, wp: 2, lRp: -0.5, lLp: 0.65, lLk: 0.55, lRk: 0.3, aLp: 0.4, aLr: 0.6 } },
+      { d: 520, pose: { tw: 0.3, lean: 0.35, aRp: 1.5, aRr: 0.05, aRe: 0.05, wy: 0, wp: 10, lRp: -0.45, lLp: 0.6, lLk: 0.5, lRk: 0.3, aLp: 0.4, aLr: 0.6 } },
+      { d: 60, hit: true, pose: { tw: 0.1, lean: -0.15, aRp: 1.1, aRe: 0.6, wy: 0, wp: 15, lRp: 1.25, lRk: 0.15, lLp: -0.1, lLk: 0.3 } },
+      { d: 260, pose: { tw: 0.05, lean: -0.05, aRp: 0.9, aRe: 0.7, wy: 10, wp: 30, lRp: 0.5, lRk: 0.5 } },
+    ] },
+    // Split the skull: an overhead blow that sticks, then the axe wrenched free.
+    fin_headsplit: { frames: [
+      { d: 130, pose: { tw: -0.2, lean: -0.25, aRp: 2.9, aRr: 0.2, aRe: 0.5, aLp: 2.5, aLe: 0.6, wy: 0, wp: 145, lRp: -0.25, lLp: 0.45 } },
+      { d: 260, pose: { tw: -0.25, lean: -0.3, aRp: 3.05, aRr: 0.15, aRe: 0.6, aLp: 2.7, aLe: 0.7, wy: 0, wp: 160, lRp: -0.3, lLp: 0.5, lLk: 0.4 } },
+      { d: 40, smear: true, hit: true, pose: { tw: 0.05, lean: 0.4, aRp: 1.6, aRr: 0.05, aRe: 0.05, aLp: 1.4, aLe: 0.2, wy: 0, wp: -5, lRp: -0.45, lLp: 0.6, lLk: 0.75, lRk: 0.5 } },
+      { d: 480, pose: { tw: 0.05, lean: 0.42, aRp: 1.55, aRe: 0.05, aLp: 1.35, aLe: 0.2, wy: 0, wp: -8, lRp: -0.45, lLp: 0.6, lLk: 0.75, lRk: 0.5 } },
+      { d: 60, hit: true, pose: { tw: -0.1, lean: -0.1, aRp: 2.1, aRe: 0.3, aLp: 1.8, aLe: 0.4, wy: 0, wp: 70, lRp: -0.2, lLp: 0.3 } },
+      { d: 260, pose: { lean: 0.05, aRp: 1.0, aRe: 0.5, wy: 5, wp: 30 } },
+    ] },
+    // Break the leg, then the skull.
+    fin_legbreak: { frames: [
+      { d: 110, pose: { tw: -0.7, lean: 0.2, aRp: 0.6, aRr: 1.2, aRe: 0.4, wy: 120, wp: -40, lRp: -0.3, lLp: 0.45, lLk: 0.6, lRk: 0.5 } },
+      { d: 40, smear: true, hit: true, pose: { tw: 0.4, lean: 0.45, aRp: 0.7, aRr: -0.2, aRe: 0.1, wy: -40, wp: -55, lRp: -0.4, lLp: 0.6, lLk: 0.8, lRk: 0.6 } },
+      { d: 160, pose: { tw: 0.2, lean: 0.1, aRp: 2.4, aRr: 0.2, aRe: 0.5, aLp: 2.1, aLe: 0.6, wy: 0, wp: 120, lRp: -0.25, lLp: 0.4 } },
+      { d: 200, pose: { tw: -0.2, lean: -0.3, aRp: 3.05, aRr: 0.1, aRe: 0.5, aLp: 2.8, aLe: 0.6, wy: 0, wp: 165, lRp: -0.3, lLp: 0.5, lLk: 0.4 } },
+      { d: 40, smear: true, hit: true, pose: { tw: 0.05, lean: 0.5, aRp: 1.3, aRr: 0.05, aRe: 0.0, aLp: 1.2, aLe: 0.2, wy: 0, wp: -40, lRp: -0.5, lLp: 0.65, lLk: 0.9, lRk: 0.6 } },
+      { d: 520, pose: { tw: 0.05, lean: 0.5, aRp: 1.05, aRe: 0.05, aLp: 0.95, wy: 0, wp: -60, lRp: -0.45, lLp: 0.6, lLk: 0.85, lRk: 0.55 } },
+      { d: 220, pose: { lean: 0.15, aRp: 0.85, aRe: 0.4, wy: 5, wp: 10 } },
+    ] },
+    // Hold him by the collar and stab, three times.
+    fin_stabs: { frames: [
+      { d: 100, pose: { tw: 0.3, lean: 0.25, aLp: 1.6, aLr: -0.2, aLe: 0.2, aRp: 0.6, aRr: 0.3, aRe: 1.6, wy: 0, wp: 0, lRp: -0.2, lLp: 0.45, lLk: 0.3, free: true } },
+      ...[0, 1, 2].flatMap((k) => [
+        { d: 40, hit: true, pose: { tw: 0.45, lean: 0.35, aLp: 1.6, aLr: -0.2, aLe: 0.2, aRp: 1.45, aRr: 0.05, aRe: 0.1, wy: 0, wp: -5, lRp: -0.25, lLp: 0.5, lLk: 0.35, free: true } },
+        { d: k === 2 ? 420 : 170, pose: { tw: 0.2, lean: 0.25, aLp: 1.6, aLr: -0.2, aLe: 0.2, aRp: 0.6, aRr: 0.3, aRe: 1.6, wy: 0, wp: 0, lRp: -0.2, lLp: 0.45, lLk: 0.3, free: true } },
+      ]),
+      { d: 200, pose: { tw: 0.1, lean: 0.05 } },
+    ] },
     fin_throat: { frames: [
       { d: 90, pose: { tw: 0.3, lean: 0.25, aLp: 1.6, aLr: -0.2, aLe: 0.2, aRp: 1.4, aRr: 1.1, aRe: 1.3, wy: 120, wp: 0, lRp: -0.2, lLp: 0.45, lLk: 0.3, free: true } },
       { d: 280, pose: { tw: 0.35, lean: 0.3, aLp: 1.7, aLr: -0.25, aLe: 0.15, aRp: 1.5, aRr: 1.2, aRe: 1.4, wy: 135, wp: 0, lRp: -0.25, lLp: 0.5, lLk: 0.35, free: true } },
@@ -577,7 +640,11 @@
   ANIMS.enemySlash = { attack: true, frames: ANIMS.slash1.frames.map((f, i) => (i === 1 ? { ...f, d: 380, glow: true } : f)) };
   ANIMS.enemyChop = { attack: true, frames: ANIMS.chop.frames.map((f, i) => (i === 1 ? { ...f, d: 480, glow: true } : f)) };
   const COMBO = ['slash1', 'slash2', 'chop'], SWINGS = [...COMBO, 'power'];
-  const FINISHER = { blade: 'behead', axe: 'cleave', blunt: 'crush', dagger: 'throat' };
+  // Two finishers per weapon class, taken in turn; the victim kneels for some and stands for others.
+  const FINISHERS = { blade: ['behead', 'impale'], axe: ['cleave', 'headsplit'], blunt: ['crush', 'legbreak'], dagger: ['throat', 'stabs'], fist: ['crush'] };
+  const KNEELS = { behead: true, cleave: true, headsplit: true, crush: true };
+  const FIN_NAMES = { behead: 'Beheaded', impale: 'Run through', cleave: 'Cleaved', headsplit: 'Skull split', crush: 'Skull crushed', legbreak: 'Leg broken, then the skull', throat: 'Throat cut', stabs: 'Stabbed' };
+  const finTurn = {};
 
   // ---------- frames, cached ----------
   const cache = new Map();
@@ -788,7 +855,7 @@
     ghosts: [], blockT: 0, heading: Math.PI, ...o });
   const START_EQ = { body: 'ClothesFarmClothes01', feet: 'ClothesFarmBoots01', hands: null, head: null, weapon: 'IronSword', shield: 'ArmorHideShield' };
   let pl, foes, pieces, particles, pools, decals, dg, hitStop, slow, shake, fin, attacker, camX, camY, letter;
-  const state = { paused: false, gold: 0, inv: {}, rage: 0, fury: 0, stamina: 100, staminaWait: 0, level: 1, xp: 0, skills: {}, perkPoints: 0, discovered: false,
+  const state = { paused: false, gold: 0, inv: {}, rage: 0, fury: 0, stamina: 100, staminaWait: 0, level: 1, xp: 0, skills: {}, perkPoints: 0, perks: new Set(), discovered: false, flash: 0, shock: null, ragePing: false,
     stats: { kills: 0, finishers: 0, severed: 0, looted: 0, gold: 0, blocks: 0, parries: 0 }, quest: { chief: false, chest: false, done: false }, events: [] };
   const settings = { gore: 'full', light: 'dusk' };
   const gore = () => settings.gore;
@@ -799,37 +866,88 @@
     pl = mk({ x: 112, y: 322, face: 0, hp: 100, maxHp: 100, eq: { ...START_EQ } });
     foes = ROSTER.map((r, i) => mk({ ...r, eq: { ...r.eq }, id: i, maxHp: r.hp, face: faceOf(Math.random() - 0.5, 1), home: [r.x, r.y] }));
     Object.assign(state, { gold: 25, inv: { ClothesFarmClothes01: 1, ClothesFarmBoots01: 1, IronSword: 1, ArmorHideShield: 1, PotionHealth: 2, Bandage: 3, Bread: 1 }, rage: 0, fury: 0, stamina: 100, discovered: false,
-      level: 1, xp: 0, perkPoints: 0, quest: { chief: false, chest: false, done: false }, stats: { kills: 0, finishers: 0, severed: 0, looted: 0, gold: 0, blocks: 0, parries: 0 } });
+      level: 1, xp: 0, perkPoints: 0, perks: new Set(), flash: 0, shock: null, ragePing: false, quest: { chief: false, chest: false, done: false }, stats: { kills: 0, finishers: 0, severed: 0, looted: 0, gold: 0, blocks: 0, parries: 0 } });
     state.skills = { OneHanded: { level: 25, xp: 0 }, TwoHanded: { level: 15, xp: 0 }, Block: { level: 20, xp: 0 }, HeavyArmor: { level: 15, xp: 0 }, LightArmor: { level: 15, xp: 0 }, Smithing: { level: 20, xp: 0 }, Speech: { level: 15, xp: 0 } };
     pieces = []; particles = []; pools = []; hitStop = 0; slow = 0; shake = 0; fin = null; attacker = null; letter = 0;
     decals = document.createElement('canvas'); decals.width = WW; decals.height = WH; dg = decals.getContext('2d');
     camX = pl.x - W / 2; camY = pl.y - H / 2;
     say('Walk up the track to the camp.', 'hint');
   }
-  const W8 = (f) => ITEMS[f.eq.weapon] || ITEMS.IronSword;
+  const W8 = (f) => ITEMS[f.eq.weapon] || ITEMS.Fists;
   const shieldOn = (f) => !!(f.eq.shield && W8(f).hands === 1);
   const frames = (f) => ANIMS[f.anim].frames;
   const dur = (f, i) => { const fr = frames(f)[i]; return ANIMS[f.anim].attack ? fr.d / W8(f).speed : fr.d; };
-  function play(f, anim) { f.anim = anim; f.fi = 0; f.ft = 0; f.struck = false; }
+  function play(f, anim) { f.anim = anim; f.fi = 0; f.ft = 0; f.struck = false; f.hits = 0; }
   const busy = (f) => !['idle', 'walk', 'run', 'block', 'shieldBlock'].includes(f.anim);
   const canAct = (f) => !fin && !f.dead && (!busy(f) || (SWINGS.includes(f.anim) && f.struck && f.fi > frames(f).findIndex((q) => q.hit)));
   const reachOf = (f) => 14 + SHAPES[W8(f).shape].len * 1.25;
   function inArc(a, b, r, cos = 0.3) { const dx = b.x - a.x, dy = (b.y - a.y) * 1.3, d = Math.hypot(dx, dy), [fx, fy] = fwd(a); return d < r && (fx * dx + fy * dy) / (d || 1) > cos; }
-  const armourRating = () => ['body', 'hands', 'feet', 'head', 'shield'].reduce((s, k) => s + (k === 'shield' && !shieldOn(pl) ? 0 : (ITEMS[pl.eq[k]]?.rating || 0)), 0);
-  const carried = () => Object.entries(state.inv).reduce((s, [e, n]) => s + (ITEMS[e]?.weight || 0) * n, 0);
+  // Armour: each piece's rating raised by its skill (as the game does), then by the perks.
+  function armourRating() {
+    let tot = 0;
+    for (const it of worn()) {
+      if (!it || it.armourType === 'Clothing') continue;
+      const heavy = it.armourType === 'Heavy';
+      tot += it.rating * (1 + (0.4 * (state.skills[heavy ? 'HeavyArmor' : 'LightArmor'].level + 15)) / 100) * (1 + 0.2 * rank(heavy ? 'Juggernaut00' : 'AgileDefender00'));
+    }
+    if (allOf('Heavy')) tot *= 1 + (has('WellFitted') ? 0.25 : 0) + (matched() && has('MatchingSetHeavy') ? 0.25 : 0);
+    if (allOf('Light')) tot *= 1 + (has('CustomFit') ? 0.25 : 0) + (matched() && has('MatchingSet') ? 0.25 : 0);
+    if (shieldOn(pl)) tot += ITEMS[pl.eq.shield].rating * (1 + (0.4 * (state.skills.Block.level + 15)) / 100);
+    return tot;
+  }
+  // Conditioning and Unhindered: worn armour of that kind weighs nothing.
+  const carried = () => Object.entries(state.inv).reduce((s, [e, n]) => {
+    const it = ITEMS[e], free = it && Object.values(pl.eq).includes(e) && ((it.armourType === 'Heavy' && has('Conditioning')) || (it.armourType === 'Light' && has('Unhindered')));
+    return s + (free ? 0 : (it?.weight || 0) * n);
+  }, 0);
+  const sfx = (n, o) => window.HFA?.play(n, o);
 
-  // ---------- skills (Skyrim's levels, simplified for the sample) ----------
+  // ---------- skills and perks: Skyrim's curves, half as fast again (Broden, round four) ----------
+  // A use gives (base x the skill's use multiplier) skill XP; the next skill level needs
+  // improveMult x level^1.95 + improveOffset. Each skill level gives that many character XP,
+  // and a character level needs 75 + 25 x level. The bases: a weapon's base damage per hit,
+  // the incoming blow's damage when blocking or wearing armour.
   const SKILL_NAMES = { OneHanded: 'One-handed', TwoHanded: 'Two-handed', Block: 'Block', HeavyArmor: 'Heavy Armor', LightArmor: 'Light Armor', Smithing: 'Smithing', Speech: 'Speech' };
-  const toNext = (s) => 2 + s.level * 0.12;
-  function train(skill, amount) {
-    const s = state.skills[skill]; s.xp += amount;
-    while (s.xp >= toNext(s)) {
-      s.xp -= toNext(s); s.level++;
+  const SKD = Object.fromEntries(SKILLS.map((k) => [k.skill, k])), FAST = 1.5;
+  const toNext = (k) => SKD[k].improveMult * Math.pow(state.skills[k].level, 1.95) + SKD[k].improveOffset;
+  function train(skill, base) {
+    if (!skill) return;
+    const s = state.skills[skill]; s.xp += (base * SKD[skill].useMult + SKD[skill].useOffset) * FAST;
+    while (s.level < 100 && s.xp >= toNext(skill)) {
+      s.xp -= toNext(skill); s.level++;
       say(`${SKILL_NAMES[skill]} increased to ${s.level}`, 'skill');
       state.xp += s.level;
-      if (state.xp >= 75 + state.level * 25) { state.xp -= 75 + state.level * 25; state.level++; state.perkPoints++; pl.maxHp += 10; pl.hp = pl.maxHp; say(`You reached level ${state.level}`, 'level'); }
+      while (state.xp >= 75 + state.level * 25) { state.xp -= 75 + state.level * 25; state.level++; state.perkPoints++; pl.maxHp += 10; pl.hp = pl.maxHp; say(`You reached level ${state.level}`, 'level'); sfx('level'); }
     }
   }
+  // Perks: the game's data (Skyrim's perk trees), taken with perk points, rank by rank.
+  const PERK = Object.fromEntries(PERKS.map((q) => [q.edid, q]));
+  const chainOf = (first) => { const c = []; for (let q = PERK[first]; q && c.length < 6; q = PERK[q.nextPerk]) c.push(q.edid); return c; };
+  const rank = (first) => chainOf(first).filter((e) => state.perks.has(e)).length;
+  const has = (first) => rank(first) > 0;
+  // Perks for things this sample (or the game) does not have yet.
+  const NOT_HERE = { DualFlurry30: 'No dual wielding yet', DualSavagery: 'No dual wielding yet', DeflectArrows: 'No archers in this camp', ElementalProtection: 'No magic in this camp', Cushioned: 'No falling in this camp' };
+  function canTake(first) {
+    const e = chainOf(first).find((x) => !state.perks.has(x));
+    if (!e) return 'Taken';
+    const q = PERK[e], req = q.skillReq[0]?.level || 0;
+    if (NOT_HERE[first]) return NOT_HERE[first];
+    if (q.skill === 'Smithing' || q.skill === 'Speech') return 'Comes with crafting and trading';
+    if (state.skills[q.skill].level < req) return `Needs ${SKILL_NAMES[q.skill]} ${req}`;
+    for (const r of q.requires) if (!state.perks.has(r)) return `Needs ${PERK[r]?.name || r}`;
+    if (state.perkPoints <= 0) return 'No perk points';
+    return 'ok';
+  }
+  function takePerk(first) {
+    if (canTake(first) !== 'ok') return false;
+    state.perks.add(chainOf(first).find((x) => !state.perks.has(x))); state.perkPoints--;
+    say(`Perk: ${PERK[first].name}${chainOf(first).length > 1 ? ` (${rank(first)}/${chainOf(first).length})` : ''}`, 'skill'); sfx('level');
+    return true;
+  }
+  // What he is wearing, for the armour perks.
+  const worn = () => ['body', 'hands', 'feet', 'head'].map((k) => ITEMS[pl.eq[k]]);
+  const allOf = (type) => worn().every((it) => it && it.armourType === type);
+  const matched = () => { const sets = ['body', 'hands', 'feet', 'head'].map((k) => PIECE[pl.eq[k]]?.[0]); return sets.every((x) => x && x === sets[0]); };
 
   // ---------- blood ----------
   function spray(x, y, z, n, dir = [0, 0], force = 1) {
@@ -845,7 +963,7 @@
   function sever(f, part, from) {
     if (gore() !== 'full' || f.cut.includes(part)) return;
     const img = frameOf(f, f.anim, f.fi, f.face, { only: part, cut: [] }), c = crop(img.canvas);
-    f.cut = [...f.cut, part]; f.spurt = part === 'head' ? 1.6 : 1.1; state.stats.severed++;
+    f.cut = [...f.cut, part]; f.spurt = part === 'head' ? 1.6 : 1.1; state.stats.severed++; sfx('gore');
     if (!c) return;
     const dx = f.x - from.x, dy = f.y - from.y, d = Math.hypot(dx, dy) || 1;
     pieces.push({ canvas: c.canvas, x: f.x + (c.cx - OX), y: f.y + 2, z: OY - c.cy, vx: (dx / d) * 45 + (Math.random() - 0.5) * 30, vy: (dy / d) * 25 + (Math.random() - 0.5) * 12, vz: part === 'head' ? 95 : 70, rot: 0, vr: (Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 6), rest: false });
@@ -855,6 +973,7 @@
   function lootOf(f) {
     const items = {};
     for (const k of ['weapon', 'shield', 'body', 'hands', 'feet', 'head']) if (f.eq[k]) items[f.eq[k]] = 1;
+    for (const e of f.dropped || []) items[e] = 1; // a weapon knocked from his hand
     if (Math.random() < 0.6) items.Bandage = 1 + Math.floor(Math.random() * 2);
     if (Math.random() < 0.35) items.PotionHealth = 1;
     if (Math.random() < 0.4) items.Salt = 1 + Math.floor(Math.random() * 3);
@@ -864,9 +983,10 @@
   function kill(f, by, how = {}) {
     f.dead = true; f.hp = 0; play(f, how.anim || 'death'); f.stagger = 0; f.kb = [f.kb[0] * 0.5, f.kb[1] * 0.5];
     if (how.part) sever(f, how.part, by);
-    if (how.crush && gore() !== 'off') { f.crushed = gore() === 'full'; spray(f.x, f.y, 40, 40, [0, 0], 1.3); if (gore() === 'full') bits(f.x, f.y, 40, 12); }
+    if (how.crush && gore() !== 'off') { f.crushed = gore() === 'full'; spray(f.x, f.y, 40, 40, [0, 0], 1.3); if (gore() === 'full') bits(f.x, f.y, 40, 12); sfx('gore'); }
     if (how.throat) f.spurt = 2.4;
     f.poolAt = 0.6; if (attacker === f) attacker = null;
+    sfx('death');
     if (f === pl) { say('You died. Esc, then Reset the camp, to try again.', 'warn'); return; }
     f.loot = lootOf(f); state.stats.kills++; addRage(8);
     if (f.chief) { state.quest.chief = true; say('Objective complete: Kill the bandit chief', 'quest'); }
@@ -874,53 +994,106 @@
   }
   function addRage(n) { state.rage = clamp(state.rage + n, 0, 100); }
   function damage(att, def, kind) {
-    const w = W8(att), third = kind === 'combo3', power = kind === 'power', heavy = power || third || w.hands === 2;
-    let dmg;
-    if (att === pl) dmg = (w.damage / 7) * (power ? 2 : third ? 1.5 : 1) * (1 + (state.skills[w.skillName].level - 15) / 200) * (state.fury > 0 ? 1.5 : 1);
-    else dmg = (w.hands === 2 ? 22 : 13) * (power ? 1.4 : 1) * (1 - Math.min(0.8, armourRating() * 0.004)) * (state.fury > 0 ? 0.6 : 1);
+    const w = W8(att), third = kind === 'combo3', power = kind === 'power', heavy = power || third || w.hands === 2, a = att.atk || {};
+    let dmg, crit = false;
+    if (att === pl) {
+      dmg = (w.damage / 7) * (1 + ((w.skillName ? state.skills[w.skillName].level : 15) - 15) / 200);
+      if (w.skillName) dmg *= 1 + 0.2 * rank(w.hands === 2 ? 'Barbarian00' : 'Armsman00');                       // Armsman, Barbarian
+      if (w.shape === 'mace') dmg *= 1 + 0.15 * rank('BoneBreaker30');                                                 // armour ignored, as extra damage here
+      if (w.shape === 'warhammer') dmg *= 1 + 0.15 * rank('Skullcrusher30');
+      if (w.cls === 'fist' && has('FistsOfSteel') && ITEMS[pl.eq.hands]?.armourType === 'Heavy') dmg += ITEMS[pl.eq.hands].rating / 8;
+      if (power) { dmg *= 2; if (a.standing && has(w.hands === 2 ? 'DevastatingBlow' : 'SavageStrike')) dmg *= 1.25; }
+      else if (third) dmg *= 1.5;
+      const critRank = (w.shape === 'sword' || w.shape === 'scimitar') ? rank('Bladesman30') : w.shape === 'greatsword' ? rank('DeepWounds30') : 0;
+      if (power && a.running && has(w.hands === 2 ? 'GreatCriticalCharge' : 'CriticalCharge')) { dmg *= 2; crit = true; }
+      else if (critRank && Math.random() < [0, 0.1, 0.15, 0.2][critRank]) { dmg *= 1.5; crit = true; }
+      if (state.fury > 0) dmg *= 1.5;
+    } else {
+      // Light armour all round: Deft Movement may avoid it. Heavy all round: Reflect Blows may send some back.
+      if (allOf('Light') && has('DeftMovement') && Math.random() < 0.1) { say('Evaded', 'hint'); sfx('dodge'); return; }
+      dmg = (w.cls === 'fist' ? 6 : w.hands === 2 ? 22 : 13) * (power ? 1.4 : 1) * (1 - Math.min(0.8, armourRating() * 0.004)) * (state.fury > 0 ? 0.6 : 1);
+      if (allOf('Heavy') && has('ReflectBlows') && Math.random() < 0.1) { att.hp -= 1; att.flash = 0.08; say('Reflected', 'hint'); }
+    }
     def.hp -= dmg; def.flash = 0.08;
+    sfx(crit ? 'crit' : 'hit', { heavy }); if (crit) say('Critical', 'skill');
+    // Hack and Slash, Limbsplitter: axes leave him bleeding.
+    if (att === pl && ((w.shape === 'waraxe' && has('HackAndSlash30')) || (w.shape === 'battleaxe' && has('Limbsplitter30')))) { def.bleed = 3; def.bleedRate = 0.12 * rank(w.shape === 'waraxe' ? 'HackAndSlash30' : 'Limbsplitter30'); }
+    // Paralysing Strike, Warmaster: a power attack stepping backwards may freeze him.
+    if (att === pl && power && a.backward && has(w.hands === 2 ? 'Warmaster' : 'ParalyzingStrike') && Math.random() < 0.25 && def.hp > 0) { play(def, 'stagger'); def.stagger = 3.5; say('Paralysed', 'skill'); }
     const dx = def.x - att.x, dy = def.y - att.y, d = Math.hypot(dx, dy) || 1;
     // Quick blows barely move the target, so a chain stays in reach; heavy ones throw him back.
     const kbk = att === pl ? (power ? 110 : third ? 100 : w.hands === 2 ? 70 : 28) : heavy ? 90 : 50;
     def.kb = [(dx / d) * kbk, (dy / d) * kbk * 0.7];
     hitStop = Math.max(hitStop, heavy ? 0.1 : 0.06); shake = Math.max(shake, heavy ? 3.5 : 2);
     spray(def.x, def.y, 34, heavy ? 16 : 8, [dx / d, dy / d]);
-    if (att === pl) { train(w.skillName, w.damage / 6); addRage(4); }
-    if (def === pl) { addRage(dmg * 0.6); const t = ITEMS[pl.eq.body]?.armourType; if (t === 'Heavy' || t === 'Light') train(t === 'Heavy' ? 'HeavyArmor' : 'LightArmor', 1.2); }
+    if (att === pl) { train(w.skillName, w.damage); addRage(4); }
+    if (def === pl) {
+      addRage(dmg * 0.6);
+      for (const it of worn()) if (it && it.armourType !== 'Clothing') train(it.armourType === 'Heavy' ? 'HeavyArmor' : 'LightArmor', dmg / 4);
+    }
     if (def.hp <= 0) {
       hitStop = 0.14; shake = 5;
       let how = {};
-      if (att === pl && heavy && Math.random() < (w.cls === 'axe' ? 0.75 : 0.55)) how = w.cls === 'blunt' ? { crush: true } : { part: Math.random() < (w.cls === 'axe' ? 0.45 : 0.6) ? 'head' : (Math.random() < 0.5 ? 'armR' : 'armL') };
+      const savage = power && a.standing && has(w.hands === 2 ? 'DevastatingBlow' : 'SavageStrike') ? 0.3 : 0;
+      if (att === pl && heavy && w.cls !== 'fist' && Math.random() < (w.cls === 'axe' ? 0.75 : 0.55) + savage) how = w.cls === 'blunt' ? { crush: true } : { part: Math.random() < (w.cls === 'axe' ? 0.45 : 0.6) + savage ? 'head' : (Math.random() < 0.5 ? 'armR' : 'armL') };
       kill(def, att, how);
       return;
     }
+    if (def !== pl && def.stagger > 2) return; // paralysed
     if (def !== pl && (heavy || def.hp <= def.maxHp * 0.3)) { play(def, 'stagger'); def.stagger = 1.6; if (attacker === def) attacker = null; }
-    else if (!(def === pl && state.fury > 0)) play(def, 'hit');
+    else if (def === pl && (state.fury > 0 || (allOf('Heavy') && has('TowerOfStrength') && Math.random() < 0.5) || pl.anim === 'roar')) { /* no flinch */ }
+    else play(def, 'hit');
   }
   function landBlow(att) {
     if (fin && att !== pl) return;
     const targets = att === pl ? foes : [pl];
     const kind = att.anim === 'power' ? 'power' : att.anim === 'chop' && att === pl ? 'combo3' : att.anim === 'enemyChop' ? 'power' : 'quick';
     for (const def of targets) {
-      if (def.dead || !inArc(att, def, reachOf(att))) continue;
+      const sweep = att === pl && kind === 'power' && W8(att).hands === 2 && has('Sweep');
+      if (def.dead || !inArc(att, def, reachOf(att), sweep ? -0.25 : 0.3)) continue;
       if (att !== pl && def.inv > 0) continue;
       // The player blocks: a shield takes all of it and parries more easily; a blade takes most of it.
       if (def === pl && (def.anim === 'block' || def.anim === 'shieldBlock') && inArc(def, att, 80, 0)) {
         const parry = def.blockT < (shieldOn(pl) ? 0.35 : 0.22);
         sparks((att.x + def.x) / 2, (att.y + def.y) / 2); hitStop = 0.06; shake = 1.5;
         def.kb = [(def.x - att.x) * 2, (def.y - att.y) * 1.5];
-        state.stamina = Math.max(0, state.stamina - (kind === 'power' ? 30 : 15) * (shieldOn(pl) ? 0.6 : 1)); state.staminaWait = 0.8; train('Block', 1.5); state.stats.blocks++;
-        if (!shieldOn(pl)) pl.hp -= 3;
+        const wall = 1 - 0.1 * rank('ShieldWall00'), raw = W8(att).hands === 2 ? 22 : 13;
+        state.stamina = Math.max(0, state.stamina - (kind === 'power' ? 30 : 15) * (shieldOn(pl) ? 0.6 : 1) * wall); state.staminaWait = 0.8; train('Block', raw); state.stats.blocks++;
+        if (!shieldOn(pl)) pl.hp -= 3 * wall;
+        sfx(parry ? 'parry' : shieldOn(pl) ? 'shieldBlock' : 'block');
         if (parry) { play(att, 'stagger'); att.stagger = 1.6; if (attacker === att) attacker = null; state.stats.parries++; say('Parried', 'hint'); }
         continue;
       }
       // A bandit with a shield may catch quick blows; power attacks and the third hit break through.
       if (att === pl && shieldOn(def) && kind === 'quick' && !busy(def) && inArc(def, att, 80, 0.2) && Math.random() < 0.5) {
-        sparks((att.x + def.x) / 2, (att.y + def.y) / 2); hitStop = 0.05; shake = 1.2; play(def, 'shieldBlock'); def.blockFor = 0.5;
+        sparks((att.x + def.x) / 2, (att.y + def.y) / 2); hitStop = 0.05; shake = 1.2; play(def, 'shieldBlock'); def.blockFor = 0.5; sfx('shieldBlock');
         continue;
       }
       damage(att, def, kind);
       if (att === pl && W8(att).hands === 1) break;
+    }
+  }
+  // Power Bash (Block 30): block and attack to slam the shield (or the hilt) into him. It breaks
+  // his guard, stops a swing, and opens a finisher. Deadly Bash: five times the damage.
+  // Disarming Bash: half the time his weapon goes flying.
+  function bash() {
+    if (!has('PowerBashPerk')) { say('Bashing needs the Power Bash perk (Block 30)', 'warn'); return; }
+    if (!canAct(pl) && pl.anim !== 'block' && pl.anim !== 'shieldBlock') return;
+    if (!spend(20)) return;
+    const t = nearest(40, 0); if (t) pl.face = faceOf(t.x - pl.x, t.y - pl.y);
+    const [fx, fy] = fwd(pl); pl.kb = [fx * 50, fy * 40];
+    play(pl, 'bash'); sfx('swing', {});
+  }
+  function landBash() {
+    for (const e of foes) {
+      if (e.dead || !inArc(pl, e, 30, 0.2)) continue;
+      e.hp -= 0.4 * (has('DeadlyBash') ? 5 : 1); e.flash = 0.08;
+      const dx = e.x - pl.x, dy = e.y - pl.y, d = Math.hypot(dx, dy) || 1; e.kb = [(dx / d) * 120, (dy / d) * 80];
+      hitStop = 0.09; shake = 3.5; sfx('bash'); train('Block', 10);
+      if (e.hp <= 0) { kill(e, pl); continue; }
+      play(e, 'stagger'); e.stagger = 1.8; if (attacker === e) attacker = null;
+      if (has('DisarmingBash') && e.eq.weapon && Math.random() < 0.5) { e.dropped = [...(e.dropped || []), e.eq.weapon]; e.eq = { ...e.eq, weapon: null }; say(`Disarmed the ${e.name.toLowerCase()}`, 'skill'); }
+      break;
     }
   }
 
@@ -929,14 +1102,19 @@
   function attack(power) {
     if (pl.dead || fin || state.paused) return;
     if (!canAct(pl)) { pl.buffer = { power, left: 0.35 }; return; }
-    if (!spend(power ? 25 : 6)) return;
+    const w = W8(pl);
+    if (!spend(power ? 25 * (has(w.hands === 2 ? 'ChampionsStance' : 'FightingStance') ? 0.75 : 1) : 6)) return;
+    let mx = 0, my = 0; if (keys.has('KeyW')) my -= 1; if (keys.has('KeyS')) my += 1; if (keys.has('KeyA')) mx -= 1; if (keys.has('KeyD')) mx += 1;
+    const [ffx, ffy] = fwd(pl), running = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && !!(mx || my);
+    pl.atk = { standing: !mx && !my, running, backward: !!(mx || my) && (mx * ffx + my * ffy) / Math.hypot(mx, my) < -0.5 };
+    sfx('swing', { heavy: power || w.hands === 2 });
     const chained = !power && (COMBO.includes(pl.anim) || pl.comboT < 0.45);
     pl.combo = chained ? (pl.combo + 1) % 3 : 0;
     // Aim assist and a step in: close the gap so the chain keeps landing.
     const t = nearest(60, 0.0);
     if (t) {
       pl.face = faceOf(t.x - pl.x, t.y - pl.y);
-      const dx = t.x - pl.x, dy = t.y - pl.y, d = Math.hypot(dx, dy * 1.3), step = clamp(d - reachOf(pl) * 0.7, 3, 26);
+      const dx = t.x - pl.x, dy = t.y - pl.y, d = Math.hypot(dx, dy * 1.3), step = clamp(d - reachOf(pl) * 0.7, 3, power && running ? 46 : 26);
       pl.kb = [(dx / (d || 1)) * step * 9, (dy / (d || 1)) * step * 9];
     } else { const [fx, fy] = fwd(pl); pl.kb = [fx * 4 * 9, fy * 4 * 9]; }
     play(pl, power ? 'power' : COMBO[pl.combo]);
@@ -951,32 +1129,56 @@
     if (fin || pl.dead || state.paused || (busy(pl) && !canAct(pl))) return;
     const e = nearest(46, -2, finishable);
     if (!e) { say('Stagger him first: a third hit, a power attack or a parry', 'warn'); return; }
-    const kind = FINISHER[W8(pl).cls];
-    pl.face = faceOf(e.x - pl.x, e.y - pl.y); const [fx, fy] = fwd(pl), gap = kind === 'throat' ? 11 : 17;
+    const cls = W8(pl).cls, list = FINISHERS[cls], kind = list[(finTurn[cls] = ((finTurn[cls] ?? -1) + 1) % list.length)];
+    pl.face = faceOf(e.x - pl.x, e.y - pl.y); const [fx, fy] = fwd(pl), gap = kind === 'throat' || kind === 'stabs' ? 11 : 17;
     e.x = pl.x + fx * gap; e.y = pl.y + fy * gap / 1.3; e.face = faceOf(pl.x - e.x, pl.y - e.y); e.kb = [0, 0]; e.stagger = 0;
-    if (kind === 'throat') { play(e, 'stagger'); e.fi = 1; } else play(e, 'kneel');
+    if (KNEELS[kind]) play(e, 'kneel'); else { play(e, 'stagger'); e.fi = 1; }
     play(pl, `fin_${kind}`); pl.kb = [0, 0];
     fin = { e, kind }; if (attacker === e) attacker = null;
   }
-  function landFinisher() {
-    const { e, kind } = fin, [fx, fy] = fwd(pl);
-    hitStop = 0.22; slow = 0.55; shake = 6.5; state.stats.finishers++; addRage(15);
-    train(W8(pl).skillName, 6);
-    if (kind === 'behead') { kill(e, pl, { part: gore() === 'full' ? 'head' : null }); spray(e.x, e.y, 34, 30, [fx, fy], 1.3); }
-    if (kind === 'cleave') { kill(e, pl, { part: gore() === 'full' ? 'armL' : null }); spray(e.x, e.y, 30, 40, [fx, fy], 1.4); }
-    if (kind === 'crush') kill(e, pl, { crush: true });
-    if (kind === 'throat') { kill(e, pl, { throat: true }); play(e, 'clutch'); e.dying = 1.1; spray(e.x, e.y, 36, 24, [fx, fy], 1.2); }
+  // A finisher's blows land on its hit frames in turn (n counts them).
+  function landFinisher(n) {
+    const { e, kind } = fin, [fx, fy] = fwd(pl), last = { impale: 1, headsplit: 1, legbreak: 1, stabs: 2 }[kind] ?? 0;
+    hitStop = n === last ? 0.22 : 0.12; shake = n === last ? 6.5 : 4; if (n === last) { slow = 0.55; state.stats.finishers++; addRage(15); train(W8(pl).skillName, W8(pl).damage * 3); say(FIN_NAMES[kind], 'skill'); }
+    sfx(n === last ? 'finisher' : 'hit', { heavy: true });
+    const chest = () => spray(e.x, e.y, 30, 22, [fx, fy], 1.2);
+    switch (kind) {
+      case 'behead': kill(e, pl, { part: gore() === 'full' ? 'head' : null }); spray(e.x, e.y, 34, 30, [fx, fy], 1.3); break;
+      case 'impale': if (n === 0) { chest(); play(e, 'impaled'); e.spurt = 1.2; e.spurtAt = 'chest'; sfx('gore'); } else { kill(e, pl); e.kb = [fx * 160, fy * 110]; } break;
+      case 'cleave': kill(e, pl, { part: gore() === 'full' ? 'armL' : null }); spray(e.x, e.y, 30, 40, [fx, fy], 1.4); break;
+      case 'headsplit': if (n === 0) kill(e, pl, { crush: true }); else { spray(e.x, e.y, 30, 24, [-fx, -fy], 1.1); sfx('gore'); } break;
+      case 'crush': kill(e, pl, { crush: true }); break;
+      case 'legbreak': if (n === 0) { play(e, 'kneel'); spray(e.x, e.y, 8, 14, [fx, fy]); if (gore() === 'full') bits(e.x, e.y, 6, 5); sfx('gore'); } else kill(e, pl, { crush: true }); break;
+      case 'throat': kill(e, pl, { throat: true }); play(e, 'clutch'); e.dying = 1.1; spray(e.x, e.y, 36, 24, [fx, fy], 1.2); break;
+      case 'stabs': if (n < 2) { chest(); e.flash = 0.06; play(e, 'clutch'); sfx('gore'); } else { kill(e, pl); chest(); e.kb = [fx * 60, fy * 40]; } break;
+    }
   }
-  function dodge(mx, my) {
-    if (!canAct(pl) || pl.anim === 'dodge' || state.paused) return;
-    if (!spend(20)) return;
-    const [dx, dy] = mx || my ? [mx, my] : (() => { const [fx, fy] = fwd(pl); return [-fx, -fy]; })(), l = Math.hypot(dx, dy) || 1;
-    pl.kb = [(dx / l) * 190, (dy / l) * 150]; pl.inv = 0.28; play(pl, 'dodge');
+  // Space: a quick dodge (a hop, short, cheap). C: a roll (further, safe for longer, dearer).
+  const heavyBody = () => ITEMS[pl.eq.body]?.armourType === 'Heavy' && !has('Conditioning');
+  function evade(kind, mx, my) {
+    if (!canAct(pl) || pl.anim === 'dodge' || pl.anim === 'roll' || state.paused) return;
+    const roll = kind === 'roll';
+    if (!spend((roll ? 25 : 15) + (heavyBody() ? 5 : 0))) return;
+    const [dx, dy] = mx || my ? [mx, my] : (() => { const [fx, fy] = fwd(pl); return [-fx, -fy]; })(), l = Math.hypot(dx, dy) || 1, v = roll ? 330 : 160;
+    if (roll && (mx || my)) pl.face = faceOf(dx, dy);
+    pl.kb = [(dx / l) * v, (dy / l) * v * 0.8]; pl.inv = roll ? 0.42 : 0.22; play(pl, roll ? 'roll' : 'dodge'); sfx(roll ? 'roll' : 'dodge');
   }
+  // Q: Fury. He gathers himself and roars; the blast throws back and staggers everyone near.
   function fury() {
-    if (pl.dead || state.fury > 0) return;
+    if (pl.dead || state.fury > 0 || pl.anim === 'roar') return;
     if (state.rage < 60) { say('Not enough Rage', 'warn'); return; }
-    state.rage -= 60; state.fury = 8; say('Fury: blows land harder and pain means nothing', 'level');
+    if (!canAct(pl) && pl.anim !== 'block' && pl.anim !== 'shieldBlock') return;
+    state.rage -= 60; play(pl, 'roar'); pl.inv = 1.0; pl.kb = [0, 0];
+  }
+  function landRoar() {
+    state.fury = 10; state.flash = 0.25; shake = 9; hitStop = 0.08; slow = 0.4; state.shock = { x: pl.x, y: pl.y, r: 4 };
+    sfx('roar'); say('FURY', 'level');
+    for (const e of foes) {
+      if (e.dead) continue;
+      const dx = e.x - pl.x, dy = e.y - pl.y, d = Math.hypot(dx, dy * 1.3);
+      if (d > 70) continue;
+      e.kb = [(dx / (d || 1)) * 200, (dy / (d || 1)) * 140]; play(e, 'stagger'); e.stagger = 2.2; if (attacker === e) attacker = null;
+    }
   }
 
   // ---------- the bandits: one swings at a time, the others circle ----------
@@ -999,7 +1201,12 @@
     const want = mine ? 20 + SHAPES[W8(e).shape].len * 0.6 : 44 + (e.id % 3) * 6, sp = mine ? 30 : 24;
     if (d > want + 4) { e.x += (dx / d) * sp * dt; e.y += (dy / d) * sp * dt * 0.8; if (e.anim !== 'walk') play(e, 'walk'); }
     else if (d < want - 6 && !mine) { e.x -= (dx / d) * 18 * dt; e.y -= (dy / d) * 18 * dt * 0.8; if (e.anim !== 'walk') play(e, 'walk'); }
-    else if (mine) { play(e, W8(e).hands === 2 || W8(e).cls === 'blunt' ? 'enemyChop' : 'enemySlash'); e.cool = 1.4 + Math.random() * 1.6; e.releaseAfter = true; }
+    else if (mine) {
+      const heavyBlow = W8(e).hands === 2 || W8(e).cls === 'blunt';
+      play(e, heavyBlow ? 'enemyChop' : 'enemySlash'); e.cool = 1.4 + Math.random() * 1.6; e.releaseAfter = true;
+      // Quick Reflexes: time slows if he winds up a power blow while you block.
+      if (heavyBlow && has('QuickReflexes') && (pl.anim === 'block' || pl.anim === 'shieldBlock')) { slow = 0.9; say('Quick Reflexes', 'hint'); }
+    }
     else { const s = e.id % 2 ? 1 : -1; e.x += (-dy / d) * s * 12 * dt; e.y += (dx / d) * s * 12 * dt * 0.8; if (e.anim !== 'walk') play(e, 'walk'); }
   }
 
@@ -1011,7 +1218,13 @@
     while (f.ft >= dur(f, f.fi)) {
       f.ft -= dur(f, f.fi);
       const fr = frames(f);
-      if (f.fi + 1 < fr.length) { f.fi++; if (fr[f.fi].hit && !f.struck) { f.struck = true; if (f.anim.startsWith('fin_')) landFinisher(); else landBlow(f); } }
+      if (f.fi + 1 < fr.length) {
+        f.fi++;
+        if (fr[f.fi].hit) {
+          if (f.anim.startsWith('fin_')) landFinisher(f.hits++);
+          else if (!f.struck) { f.struck = true; if (f.anim === 'bash') landBash(); else if (f.anim === 'roar') landRoar(); else landBlow(f); }
+        }
+      }
       else if (ANIMS[f.anim].loop) f.fi = 0;
       else if (ANIMS[f.anim].hold) { f.ft = 0; break; }
       else {
@@ -1025,9 +1238,11 @@
     f.x += f.kb[0] * dt; f.y += f.kb[1] * dt; const k = Math.exp(-9 * dt); f.kb[0] *= k; f.kb[1] *= k;
     if (f.flash > 0) f.flash -= dt; if (f.inv > 0) f.inv -= dt;
     if (f.dying !== undefined && (f.dying -= dt) <= 0) { play(f, 'death'); f.dying = undefined; }
-    if (f.spurt > 0 && f.pt) { f.spurt -= dt; if (Math.random() < 0.8) { const src = f.cut.includes('head') || f.anim === 'clutch' || f.spurt > 1.7 ? f.pt.neck : f.cut.includes('armR') ? f.pt.shR : f.pt.shL; spray(f.x + src[0] - OX, f.y + 1, OY - src[1], 2, [0, -0.2], 0.8); } }
+    if (f.spurt > 0 && f.pt) { f.spurt -= dt; if (Math.random() < 0.8) { const src = f.spurtAt === 'chest' ? f.pt.chest : f.cut.includes('head') || f.anim === 'clutch' || f.spurt > 1.7 ? f.pt.neck : f.cut.includes('armR') ? f.pt.shR : f.pt.shL; spray(f.x + src[0] - OX, f.y + 1, OY - src[1], 2, [0, -0.2], 0.8); } }
+    // Bleeding (Hack and Slash, Limbsplitter).
+    if (f.bleed > 0 && !f.dead) { f.bleed -= dt; f.hp -= (f.bleedRate || 0.1) * dt; if (Math.random() < 6 * dt) spray(f.x, f.y, 26, 1, [0, 0], 0.4); if (f.hp <= 0) kill(f, pl); }
     if (f.dead && f.poolAt !== undefined && f.anim === 'death' && f.fi === frames(f).length - 1 && (f.poolAt -= dt) <= 0) { pool(f.x + Math.sin(f.face) * 10, f.y + Math.cos(f.face) * 6, 9 + (f.cut.length ? 4 : 0) + (f.crushed ? 3 : 0)); f.poolAt = undefined; }
-    if (f.anim === 'dodge') f.ghosts.push({ x: f.x, y: f.y, t: 0.18, img: frameOf(f).canvas });
+    if (f.anim === 'dodge' || f.anim === 'roll') f.ghosts.push({ x: f.x, y: f.y, t: 0.18, img: frameOf(f).canvas });
     f.ghosts = f.ghosts.filter((g) => (g.t -= dt) > 0);
   }
   function solidPush(f) {
@@ -1048,6 +1263,8 @@
   function update(rdt) {
     if (state.paused) return;
     shake = Math.max(0, shake - 25 * rdt);
+    if (state.flash > 0) state.flash -= rdt;
+    if (state.shock) { state.shock.r += 260 * rdt; if (state.shock.r > 110) state.shock = null; }
     letter += ((fin ? 1 : 0) - letter) * Math.min(1, rdt * 8);
     if (hitStop > 0) { hitStop -= rdt; return; }
     const dt = slow > 0 ? rdt * 0.3 : rdt; if (slow > 0) slow -= rdt;
@@ -1057,9 +1274,21 @@
     if (!pl.dead && !fin) {
       const blockAnim = shieldOn(pl) ? 'shieldBlock' : 'block';
       if (!busy(pl)) {
-        if (blocking && state.stamina > 0) { if (pl.anim !== blockAnim) { play(pl, blockAnim); pl.blockT = 0; } pl.blockT += dt; if (mx || my) { const l = Math.hypot(mx, my); pl.x += (mx / l) * 16 * dt; pl.y += (my / l) * 16 * dt * 0.8; } }
+        if (blocking && state.stamina > 0) {
+          if (pl.anim !== blockAnim) { play(pl, blockAnim); pl.blockT = 0; } pl.blockT += dt;
+          if (mx || my) {
+            // Block Runner: move faster with the shield up. Shield Charge: sprint into them with it.
+            const l = Math.hypot(mx, my), charge = shieldOn(pl) && has('ShieldCharge') && (keys.has('ShiftLeft') || keys.has('ShiftRight')) && state.stamina > 1;
+            const sp = charge ? 60 : shieldOn(pl) && has('BlockRunner') ? 30 : 16;
+            pl.x += (mx / l) * sp * dt; pl.y += (my / l) * sp * dt * 0.8;
+            if (charge) {
+              state.stamina -= 18 * dt; state.staminaWait = 0.5;
+              for (const e of foes) if (!e.dead && e.stagger <= 0 && Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3) < 17) { e.kb = [(mx / l) * 220, (my / l) * 160]; play(e, 'stagger'); e.stagger = 2; if (attacker === e) attacker = null; hitStop = 0.08; shake = 4; sfx('bash'); }
+            }
+          }
+        }
         else if (mx || my) {
-          const run = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && state.stamina > 1, l = Math.hypot(mx, my), sp = run ? 66 : 36;
+          const run = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && state.stamina > 1, l = Math.hypot(mx, my), sp = run ? (heavyBody() ? 58 : 66) : 36;
           if (run) { state.stamina -= 14 * dt; state.staminaWait = 0.5; }
           pl.face = faceOf(mx, my); pl.heading = Math.atan2(mx, -my); pl.x += (mx / l) * sp * dt; pl.y += (my / l) * sp * dt * 0.8;
           if (pl.anim !== (run ? 'run' : 'walk')) play(pl, run ? 'run' : 'walk');
@@ -1068,13 +1297,15 @@
         // Mid-swing he can still step and steer, at a bit over half his walking pace.
         const l = Math.hypot(mx, my); pl.x += (mx / l) * 20 * dt; pl.y += (my / l) * 20 * dt * 0.8; pl.heading = Math.atan2(mx, -my);
       }
-      if (keys.has('Space')) { keys.delete('Space'); dodge(mx, my); }
+      if (keys.has('Space')) { keys.delete('Space'); evade('dodge', mx, my); }
+      if (keys.has('KeyC')) { keys.delete('KeyC'); evade('roll', mx, my); }
       if (pl.buffer && (pl.buffer.left -= dt) <= 0) pl.buffer = null;
       if (pl.buffer && canAct(pl)) { const b = pl.buffer; pl.buffer = null; attack(b.power); }
       if (holdStart !== null && performance.now() - holdStart > 250) { holdStart = null; attack(true); }
       const fighting = foes.some((e) => e.aggro && !e.dead);
       if (!fighting) pl.hp = Math.min(pl.maxHp, pl.hp + 4 * dt);
-      if ((state.staminaWait -= dt) <= 0 && !(blocking && busy(pl))) state.stamina = Math.min(100, state.stamina + 22 * dt);
+      if ((state.staminaWait -= dt) <= 0 && !(blocking && busy(pl))) state.stamina = Math.min(100, state.stamina + 22 * dt * (allOf('Light') && has('WindWalker') ? 1.5 : 1));
+      if (state.rage >= 60 && !state.ragePing && state.fury <= 0) { state.ragePing = true; say('Rage is ready: Q', 'skill'); } else if (state.rage < 60) state.ragePing = false;
       if (state.fury > 0) state.fury -= dt; else if (!fighting) state.rage = Math.max(0, state.rage - 2 * dt);
       if (!state.discovered && inCamp(pl.x, pl.y, 1.05)) { state.discovered = true; state.events.push({ kind: 'discover', text: 'Coast Road Camp' }); }
     }
@@ -1147,6 +1378,7 @@
     items.sort((a, b) => a.y - b.y).forEach((i) => i.draw());
     for (const q of particles) { ctx.fillStyle = q.c; ctx.fillRect(Math.round(q.x), Math.round(q.y - q.z), q.big ? 2 : 1, q.big ? 2 : 1); }
     for (let i = 0; i < 6; i++) { const t = ((now / 1000 + i * 0.37) % 1.6) / 1.6; ctx.fillStyle = t < 0.5 ? '#fdd56a' : '#e07a16'; ctx.fillRect(Math.round(FIRE.x + Math.sin(i * 7 + now / 400) * 6 * t + (i - 3) * 2), Math.round(FIRE.y - 16 - t * 40), 1, 1); }
+    if (state.shock) { const s = state.shock; ctx.strokeStyle = `rgba(255,${180 - s.r},120,${1 - s.r / 110})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(Math.round(s.x), Math.round(s.y - 6), s.r, s.r * 0.7, 0, 0, 2 * Math.PI); ctx.stroke(); }
     for (const e of foes) if (finishable(e) && e.aggro && !fin && Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3) < 60) { const x = Math.round(e.x) - 3, y = Math.round(e.y) - 70; ctx.fillStyle = '#100a07'; ctx.fillRect(x, y, 7, 7); glyph('F', x + 2, y + 1, Math.floor(now / 200) % 2 ? '#fdd56a' : '#fff2b8'); }
     ctx.restore();
     if (settings.light === 'dusk') {
@@ -1160,6 +1392,15 @@
       }
       ctx.globalCompositeOperation = 'source-over';
     }
+    // Fury: the world goes red with anger, the edges pulse with his heartbeat.
+    if (state.fury > 0 || pl.anim === 'roar') {
+      const beat = Math.pow(Math.max(0, Math.sin(now / 1000 * Math.PI * 2.4)), 6), k = Math.min(1, state.fury > 0 ? Math.min(1, state.fury / 1.5) : 0.6);
+      ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = `rgb(255,${Math.round(255 - 120 * k)},${Math.round(255 - 130 * k)})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
+      const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.62); g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, `rgba(150,0,0,${(0.45 + 0.25 * beat) * k})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    if (state.flash > 0) { ctx.fillStyle = `rgba(255,235,210,${state.flash * 3})`; ctx.fillRect(0, 0, W, H); }
     if (letter > 0.01) { const h = Math.round(18 * letter); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h); }
   }
   // The area as a parchment map, for the Map menu.
@@ -1189,7 +1430,13 @@
   function lootFrom(src, edid, all) {
     const box = src.loot || src;
     if (edid === 'Gold') { if (!box.gold) return; state.gold += box.gold; state.stats.gold += box.gold; say(`${box.gold} Gold added`, 'item'); box.gold = 0; }
-    else { if (!box.items[edid]) return; const n = all ? box.items[edid] : 1; take(edid, n); box.items[edid] -= n; if (box.items[edid] <= 0) delete box.items[edid]; say(`${ITEMS[edid].name}${n > 1 ? ` (${n})` : ''} added`, 'item'); state.stats.looted += n; }
+    else {
+      if (!box.items[edid]) return; const n = all ? box.items[edid] : 1; take(edid, n); box.items[edid] -= n; if (box.items[edid] <= 0) delete box.items[edid];
+      say(`${ITEMS[edid].name}${n > 1 ? ` (${n})` : ''} added`, 'item'); state.stats.looted += n;
+      // Gear taken off a body comes off him.
+      if (src.loot && !box.items[edid]) src.eq = Object.fromEntries(Object.entries(src.eq).map(([k, v]) => [k, v === edid ? null : v]));
+    }
+    sfx('pickup');
     if (src.id === 'chiefChest' && !state.quest.chest) { state.quest.chest = true; say("Objective complete: Search the chief's chest", 'quest'); }
     if (state.quest.chief && state.quest.chest && !state.quest.done) { state.quest.done = true; say('Quest complete: Bandits on the Coast Road', 'quest'); }
   }
@@ -1198,7 +1445,8 @@
   function wear(edid) { if (!edid) { pl.eq.shield = null; return; } if (!state.inv[edid]) take(edid, 1); const it = ITEMS[edid]; if (it.cat === 'weapon') pl.eq.weapon = edid; else pl.eq[it.slot] = edid; }
 
   window.HF = {
-    ITEMS, SETS, SHIELDS, SKILLS, PERKS, SKILL_NAMES, state, settings, toNext, get pl() { return pl; }, get foes() { return foes; },
+    ITEMS, SETS, SHIELDS, SKILLS, PERKS, SKILL_NAMES, state, settings, toNext, PERK, chainOf, rank, canTake, takePerk, NOT_HERE,
+    cheat: { perks: (n) => { state.perkPoints += n; }, skills: (n) => { for (const k of ['OneHanded', 'TwoHanded', 'Block', 'HeavyArmor', 'LightArmor']) state.skills[k].level = Math.min(100, state.skills[k].level + n); } }, get pl() { return pl; }, get foes() { return foes; },
     icon, mapCanvas, equip, useItem, drop, lootFrom, wearSet, wear, activatable, armourRating, carried, reset, fury, finisher, attack,
     inCombat: () => foes.some((e) => e.aggro && !e.dead),
     target: () => (attacker && !attacker.dead ? attacker : foes.find((e) => e.aggro && !e.dead && Math.hypot(e.x - pl.x, e.y - pl.y) < 70)) || null,
@@ -1213,16 +1461,16 @@
   // ---------- controls (the menus take the keyboard while open: ui.js) ----------
   addEventListener('keydown', (e) => {
     if (state.paused || e.target.tagName === 'INPUT') return;
-    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyJ', 'KeyK', 'KeyF', 'KeyQ', 'ShiftLeft'].includes(e.code)) e.preventDefault();
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyJ', 'KeyK', 'KeyF', 'KeyQ', 'KeyC', 'ShiftLeft'].includes(e.code)) e.preventDefault();
     if (e.repeat) return;
     keys.add(e.code);
-    if (e.code === 'KeyJ') holdStart = performance.now();
+    if (e.code === 'KeyJ') { if (keys.has('KeyK') || keys.has('mouse2')) { bash(); return; } holdStart = performance.now(); }
     if (e.code === 'KeyF') finisher();
     if (e.code === 'KeyQ') fury();
   });
   addEventListener('keyup', (e) => { keys.delete(e.code); if (e.code === 'KeyJ' && holdStart !== null) { holdStart = null; attack(false); } });
   view.addEventListener('contextmenu', (e) => e.preventDefault());
-  view.addEventListener('mousedown', (e) => { if (state.paused) return; if (e.button === 0) holdStart = performance.now(); if (e.button === 2) keys.add('mouse2'); });
+  view.addEventListener('mousedown', (e) => { if (state.paused) return; if (e.button === 0) { if (keys.has('KeyK') || keys.has('mouse2')) { bash(); return; } holdStart = performance.now(); } if (e.button === 2) keys.add('mouse2'); });
   addEventListener('mouseup', (e) => { if (e.button === 0 && holdStart !== null) { holdStart = null; attack(false); } if (e.button === 2) keys.delete('mouse2'); });
   addEventListener('blur', () => keys.clear());
 
