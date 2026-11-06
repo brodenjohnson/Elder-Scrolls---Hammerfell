@@ -34,7 +34,7 @@ window.HFA = (() => {
   // ---------- small builders ----------
   const now = () => ac.currentTime;
   function shaper(k) { const s = ac.createWaveShaper(), c = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; c[i] = Math.tanh(x * k); } s.curve = c; return s; }
-  function env(g, t, a, peak, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  function env(g, t, a, peak, d) { peak = Math.max(peak, 0.0002); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
   function noise(t, dur, type, freq, q, peak, dest = sfxBus, a = 0.003) {
     const s = ac.createBufferSource(); s.buffer = noiseBuf; s.playbackRate.value = R(0.85, 1.15);
     const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;

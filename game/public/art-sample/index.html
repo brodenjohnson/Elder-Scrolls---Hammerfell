@@ -77,6 +77,10 @@
   .skills .perk.own { opacity: 1; } .skills .perk.own .pn { color: #ffe9a8; }
   .skills .perk.na { opacity: 0.35; cursor: default; }
   .skills .perk .rk { color: var(--gold); font-size: 12px; } .skills .perk .pr i { color: #c0a070; }
+  #bubbles .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: rgba(12,9,6,0.82); border: 1px solid rgba(201,164,90,0.5); color: var(--ink); font-size: 13px; padding: 3px 8px; border-radius: 3px; text-align: center; white-space: normal; }
+  #bubbles .bubble b { color: #e0a080; font-weight: normal; margin-right: 4px; }
+  #bubbles .bubble.you b { color: var(--gold2); }
+  #bubbles .bubble::after { content: ''; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); border: 5px solid transparent; border-bottom: 0; border-top-color: rgba(201,164,90,0.5); }
   #fury { position: absolute; bottom: 7.5%; left: 4%; color: #e0503a; letter-spacing: 4px; font-size: 13px; opacity: 0; text-shadow: 0 0 6px #a00; }
   #fury.on { opacity: 1; }
 
@@ -122,7 +126,7 @@
   .skills .lvl b { color: var(--gold2); font-weight: normal; letter-spacing: 2px; text-transform: uppercase; }
   .skills .bar { height: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(201,164,90,0.4); width: 160px; } .skills .bar i { display: block; height: 100%; background: var(--gold); }
   .skills .trees { display: flex; gap: 6px; justify-content: center; margin: 10px 0; }
-  .skills .tree { width: 12%; text-align: center; padding: 6px 2px; border: 1px solid rgba(201,164,90,0.25); cursor: pointer; background: rgba(20,15,10,0.6); }
+  .skills .tree { width: 11%; text-align: center; padding: 6px 2px; border: 1px solid rgba(201,164,90,0.25); cursor: pointer; background: rgba(20,15,10,0.6); }
   .skills .tree.sel { border-color: var(--gold); background: rgba(60,45,20,0.6); }
   .skills .tree .lv { font-size: 22px; color: var(--gold2); } .skills .tree .nm { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink); }
   .skills .tree .bar { width: auto; margin: 4px 6px 0; }
@@ -158,7 +162,7 @@
 </head>
 <body>
 <main>
-  <h1>Hammerfell: art sample, round five</h1>
+  <h1>Hammerfell: art sample, round six</h1>
   <p class="dim">Style A. Working perks, Skyrim's levelling pace, shield bash, a dodge and a roll, eight finishers, Fury with a roar, and sound and music (click the game or press a key to start it). Everything is drawn and played by code while the page runs; item names and numbers are the game's own (Skyrim's).</p>
   <div class="keys-help">WASD move &middot; Shift run &middot; left click or J attack (three in a row is a combo; hold for a power attack) &middot; you can steer while swinging &middot; right click or K block (with a shield, parrying is easier) &middot; block and attack: shield bash (needs the Power Bash perk) &middot; Space dodge &middot; C roll &middot; F finisher &middot; Q Fury when the Rage bar burns &middot; <b>E</b> search a body or open a container &middot; <b>Tab</b> menu &middot; <b>I</b> items &middot; <b>P</b> skills &middot; <b>M</b> map &middot; <b>Esc</b> journal and system.</div>
   <div id="stage"><canvas id="view" width="320" height="190"></canvas><div id="hud"></div><div id="menu"></div></div>
@@ -171,10 +175,13 @@
   <p>Perks work for One-handed, Two-handed, Block, Heavy Armor and Light Armor, except those for things not here yet (dual wielding, arrows, magic, falling); Smithing and Speech come with crafting and trading. Levelling uses Skyrim's own curves, half as fast again; the System tab in the journal (Esc) has buttons to add perk points and skill levels for testing.</p>
   <p>Finishers: two per weapon class, taken in turn: blades behead or run him through, axes cleave the shoulder or split the skull, blunt weapons crush the skull or break the leg first, daggers cut the throat or stab three times.</p>
   <p>Sound: every blow depends on the weapon and what it hits (blades slice flesh and ring off iron and steel, axes chop, blunt weapons thud and crack bone, daggers stab; blocks clash off a blade or a metal shield and knock off a wooden one), with its own sounds for beheading, dismembering, crushing, impaling, stabbing, a cut throat and a broken leg. Fury brings heavy metal in on the roar. All of it is synthesised in the browser and varies each time; the voices are synthesised too, to be replaced by recorded ones in the game.</p>
+  <p>Rage is a skill now (Skills, the eighth card): it rises by using Fury, and its twelve perks (some with ranks) are bought with perk points: longer Fury, more damage, less damage taken, unlimited stamina, a War Cry that terrifies, Red Mist, Butcher, Smouldering, Unstoppable, Untouchable and Deathless. Bandits have a quarter more health.</p>
+  <p>Voices: the bandits have names, swear, taunt, and react to what you do to each other ("You motherfucker, you cut off Hakon's head!"); Kasim says little. Here the browser's own text-to-speech speaks the lines, which is robotic; the game would use recorded AI voice lines made from the same text. Turn voices off in the journal's System tab.</p>
   <p>Swing speed: Skyrim's weapon speeds, with two-handers 15 percent slower again and daggers 10 percent quicker.</p>
   <p>Not in this sample: favourites, trading, dialogue, saving.</p>
 </main>
 <script src="audio.js"></script>
+<script src="voice.js"></script>
 <script src="ui.js"></script>
 <script src="sample.js"></script>
 </body>

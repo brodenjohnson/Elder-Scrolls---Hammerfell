@@ -1,5 +1,5 @@
 /* =====================================================================
-   Art sample, round five (design bible 4.0, style A).
+   Art sample, round six (design bible 4.0, style A).
    A bandit camp to fight through and loot, with Skyrim's interface functions in our
    own look (ui.js). Everything here is drawn by code while the page runs: small pixel
    buffers, palette ramps, ordered dithering, a rim light and a coloured outline.
@@ -844,18 +844,20 @@
   // ---------- fighters ----------
   const SET_EQ = (set) => ({ ...SETS[set].pieces });
   const ROSTER = [
-    { person: 'raider', name: 'Bandit', eq: { ...SET_EQ('leather'), head: null, weapon: 'IronSword', shield: 'ArmorHideShield' }, x: 286, y: 216, hp: 5 },
-    { person: 'thug', name: 'Bandit Thug', eq: { body: 'ArmorHideCuirass', feet: 'ArmorHideBoots', weapon: 'IronMace' }, x: 360, y: 226, hp: 6 },
-    { person: 'marauder', name: 'Bandit Marauder', eq: { ...SET_EQ('fur'), weapon: 'IronBattleaxe' }, x: 410, y: 160, hp: 8 },
-    { person: 'raider', name: 'Bandit', eq: { ...SET_EQ('leather'), head: null, weapon: 'Scimitar' }, x: 230, y: 176, hp: 5 },
-    { person: 'chief', name: 'Bandit Chief', eq: { ...SET_EQ('iron'), weapon: 'SteelGreatsword' }, x: 322, y: 124, hp: 11, chief: true },
+    { person: 'raider', name: 'Bandit', pname: 'Hakon', voice: { pitch: 0.9, rate: 1.1, v: 1 }, eq: { ...SET_EQ('leather'), head: null, weapon: 'IronSword', shield: 'ArmorHideShield' }, x: 286, y: 216, hp: 5 },
+    { person: 'thug', name: 'Bandit Thug', pname: 'Bilal', voice: { pitch: 0.7, rate: 0.95, v: 2 }, eq: { body: 'ArmorHideCuirass', feet: 'ArmorHideBoots', weapon: 'IronMace' }, x: 360, y: 226, hp: 6 },
+    { person: 'marauder', name: 'Bandit Marauder', pname: 'Jorund', voice: { pitch: 0.55, rate: 0.9, v: 0 }, eq: { ...SET_EQ('fur'), weapon: 'IronBattleaxe' }, x: 410, y: 160, hp: 8 },
+    { person: 'raider', name: 'Bandit', pname: 'Fenn', voice: { pitch: 1.1, rate: 1.2, v: 3 }, eq: { ...SET_EQ('leather'), head: null, weapon: 'Scimitar' }, x: 230, y: 176, hp: 5 },
+    { person: 'chief', name: 'Bandit Chief', pname: 'Qadir', voice: { pitch: 0.65, rate: 0.85, v: 1 }, eq: { ...SET_EQ('iron'), weapon: 'SteelGreatsword' }, x: 322, y: 124, hp: 11, chief: true },
   ];
+  // A quarter more health than round five: fights were over too fast (Broden, round six).
+  const HEALTH = 1.25;
   const mk = (o) => ({ person: 'kasim', face: Math.PI, anim: 'idle', fi: 0, ft: 0, kb: [0, 0], flash: 0, hp: 5, maxHp: 5, struck: false, combo: 0, comboT: 9, buffer: null,
     cut: [], crushed: false, stagger: 0, inv: 0, cool: 1 + Math.random() * 2, aggro: false, dead: false, prevBlade: null, curBlade: null, drawnFi: -1, drawnAnim: '', spurt: 0, pt: null,
     ghosts: [], blockT: 0, heading: Math.PI, ...o });
   const START_EQ = { body: 'ClothesFarmClothes01', feet: 'ClothesFarmBoots01', hands: null, head: null, weapon: 'IronSword', shield: 'ArmorHideShield' };
   let pl, foes, pieces, particles, pools, decals, dg, hitStop, slow, shake, fin, attacker, camX, camY, letter;
-  const state = { paused: false, gold: 0, inv: {}, rage: 0, fury: 0, stamina: 100, staminaWait: 0, level: 1, xp: 0, skills: {}, perkPoints: 0, perks: new Set(), discovered: false, flash: 0, shock: null, ragePing: false,
+  const state = { furyT: 0, deathless: false, paused: false, gold: 0, inv: {}, rage: 0, fury: 0, stamina: 100, staminaWait: 0, level: 1, xp: 0, skills: {}, perkPoints: 0, perks: new Set(), discovered: false, flash: 0, shock: null, ragePing: false,
     stats: { kills: 0, finishers: 0, severed: 0, looted: 0, gold: 0, blocks: 0, parries: 0 }, quest: { chief: false, chest: false, done: false }, events: [] };
   const settings = { gore: 'full', light: 'dusk' };
   const gore = () => settings.gore;
@@ -863,11 +865,11 @@
   function reset() {
     containers = CONTAINERS().map((c) => ({ ...c, items: { ...c.items } }));
     buildCamp();
-    pl = mk({ x: 112, y: 322, face: 0, hp: 100, maxHp: 100, eq: { ...START_EQ } });
-    foes = ROSTER.map((r, i) => mk({ ...r, eq: { ...r.eq }, id: i, maxHp: r.hp, face: faceOf(Math.random() - 0.5, 1), home: [r.x, r.y] }));
+    pl = mk({ x: 112, y: 322, face: 0, hp: 100, maxHp: 100, eq: { ...START_EQ }, vid: 'kasim', voice: { pitch: 0.5, rate: 0.85, v: 0 } });
+    foes = ROSTER.map((r, i) => mk({ ...r, eq: { ...r.eq }, id: i, vid: `foe${i}`, hp: r.hp * HEALTH, maxHp: r.hp * HEALTH, face: faceOf(Math.random() - 0.5, 1), home: [r.x, r.y] }));
     Object.assign(state, { gold: 25, inv: { ClothesFarmClothes01: 1, ClothesFarmBoots01: 1, IronSword: 1, ArmorHideShield: 1, PotionHealth: 2, Bandage: 3, Bread: 1 }, rage: 0, fury: 0, stamina: 100, discovered: false,
       level: 1, xp: 0, perkPoints: 0, perks: new Set(), flash: 0, shock: null, ragePing: false, quest: { chief: false, chest: false, done: false }, stats: { kills: 0, finishers: 0, severed: 0, looted: 0, gold: 0, blocks: 0, parries: 0 } });
-    state.skills = { OneHanded: { level: 25, xp: 0 }, TwoHanded: { level: 15, xp: 0 }, Block: { level: 20, xp: 0 }, HeavyArmor: { level: 15, xp: 0 }, LightArmor: { level: 15, xp: 0 }, Smithing: { level: 20, xp: 0 }, Speech: { level: 15, xp: 0 } };
+    state.skills = { OneHanded: { level: 25, xp: 0 }, TwoHanded: { level: 15, xp: 0 }, Block: { level: 20, xp: 0 }, HeavyArmor: { level: 15, xp: 0 }, LightArmor: { level: 15, xp: 0 }, Smithing: { level: 20, xp: 0 }, Speech: { level: 15, xp: 0 }, Rage: { level: 15, xp: 0 } };
     pieces = []; particles = []; pools = []; hitStop = 0; slow = 0; shake = 0; fin = null; attacker = null; letter = 0;
     decals = document.createElement('canvas'); decals.width = WW; decals.height = WH; dg = decals.getContext('2d');
     camX = pl.x - W / 2; camY = pl.y - H / 2;
@@ -913,8 +915,28 @@
   // improveMult x level^1.95 + improveOffset. Each skill level gives that many character XP,
   // and a character level needs 75 + 25 x level. The bases: a weapon's base damage per hit,
   // the incoming blow's damage when blocking or wearing armour.
-  const SKILL_NAMES = { OneHanded: 'One-handed', TwoHanded: 'Two-handed', Block: 'Block', HeavyArmor: 'Heavy Armor', LightArmor: 'Light Armor', Smithing: 'Smithing', Speech: 'Speech' };
+  const SKILL_NAMES = { OneHanded: 'One-handed', TwoHanded: 'Two-handed', Block: 'Block', HeavyArmor: 'Heavy Armor', LightArmor: 'Light Armor', Smithing: 'Smithing', Speech: 'Speech', Rage: 'Rage' };
   const SKD = Object.fromEntries(SKILLS.map((k) => [k.skill, k])), FAST = 1.5;
+  // Rage is ours, not Skyrim's (bible 10, PROPOSED): it levels like the others, by use. Roaring,
+  // and every blow, kill and finisher while Fury burns, train it. Its perks cost perk points.
+  SKD.Rage = { skill: 'Rage', useMult: 1, useOffset: 0, improveMult: 1.5, improveOffset: 0 };
+  const RAGE_TREE = [
+    ['RageBloodlust', 'Bloodlust', [0, 30, 60], 'Fury lasts 3 seconds longer.', []],
+    ['RageSavage', 'Savage', [10, 40, 70], 'Blows in Fury do 15 percent more damage.', ['RageBloodlust']],
+    ['RagePain', 'Pain Is Nothing', [20, 50, 80], 'Take 15 percent less damage in Fury.', ['RageBloodlust']],
+    ['RageWind', 'Second Wind', [20], 'Stamina is unlimited in Fury.', ['RageBloodlust']],
+    ['RageSeething', 'Seething', [30], 'Rage builds half as fast again outside Fury.', ['RageSavage']],
+    ['RageWarCry', 'War Cry', [40], 'The roar reaches further and staggers longer; the badly hurt run in terror.', ['RageWind']],
+    ['RageRedMist', 'Red Mist', [50], 'Every kill in Fury adds 2 seconds to it.', ['RageSavage']],
+    ['RageButcher', 'Butcher', [60], 'In Fury anyone can be finished, and every kill takes something off.', ['RageRedMist']],
+    ['RageSmoulder', 'Smouldering', [60], 'Rage never cools below 25.', ['RageSeething']],
+    ['RageUnstoppable', 'Unstoppable', [70], 'In Fury nothing knocks you back and no shield stops your blows.', ['RagePain']],
+    ['RageUntouchable', 'Untouchable', [90], 'Take no damage for the first 4 seconds of Fury.', ['RageUnstoppable']],
+    ['RageDeathless', 'Deathless', [100], 'Once each Fury, a killing blow leaves you on 1 Health and adds 3 seconds.', ['RageUntouchable']],
+  ];
+  for (const [id, name, reqs, description, requires] of RAGE_TREE) reqs.forEach((lvl, i) => PERKS.push({
+    edid: i ? `${id}${i + 1}` : id, name, description, skill: 'Rage', skillReq: [{ skill: 'Rage', level: lvl }], requires: i ? [] : requires, nextPerk: i + 1 < reqs.length ? `${id}${i + 2}` : null, effects: [], abilities: [],
+  }));
   const toNext = (k) => SKD[k].improveMult * Math.pow(state.skills[k].level, 1.95) + SKD[k].improveOffset;
   function train(skill, base) {
     if (!skill) return;
@@ -1007,12 +1029,26 @@
     if (how.throat) { f.spurt = 2.6; sfx('throat'); }
     f.poolAt = 0.6; if (attacker === f) attacker = null;
     if (!how.part && !how.crush && !how.throat) sfx('death');
-    if (f === pl) { say('You died. Esc, then Reset the camp, to try again.', 'warn'); return; }
+    if (f === pl) { say('You died. Esc, then Reset the camp, to try again.', 'warn'); setTimeout(() => bark('victory', witness(pl)), 1000); return; }
     f.loot = lootOf(f); state.stats.kills++; addRage(8);
+    if (furious()) { train('Rage', 40); if (has('RageRedMist')) state.fury += 2; }
+    // Whoever is nearest says what he saw; now and then Kasim says something too.
+    const what = how.part === 'head' ? 'allyHead' : how.part ? 'allyArm' : how.crush ? 'allyCrushed' : how.throat ? 'allyThroat' : 'allyDeath', w8 = witness(f);
+    if (w8 && w8.aggro) setTimeout(() => bark(what, w8, { name: f.pname }), 600);
+    else if (!foes.some((e) => !e.dead)) setTimeout(() => bark('clear', pl), 1200);
+    if (Math.random() < 0.25) setTimeout(() => bark('kill', pl), 400);
     if (f.chief) { state.quest.chief = true; say('Objective complete: Kill the bandit chief', 'quest'); }
     if (foes.every((e) => e.dead)) say('The camp is quiet.', 'hint');
   }
-  function addRage(n) { state.rage = clamp(state.rage + n, 0, 100); }
+  function addRage(n) { state.rage = clamp(state.rage + n * (n > 0 && state.fury <= 0 && has('RageSeething') ? 1.5 : 1), 0, 100); }
+  // Fury, before and after the Rage perks: 8 s, blows x1.25, damage taken x0.75, no flinching.
+  const furyLength = () => 8 + 3 * rank('RageBloodlust');
+  const furyDealt = () => 1.25 + 0.15 * rank('RageSavage');
+  const furyTaken = () => [0.75, 0.6, 0.45, 0.3][rank('RagePain')];
+  const furious = () => state.fury > 0;
+  const bark = (kind, f, ctx) => window.HFV?.bark(kind, f, ctx);
+  // The nearest bandit still standing and fighting, to answer what happened.
+  const witness = (near) => foes.filter((e) => !e.dead && e !== near).sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y))[0];
   function damage(att, def, kind) {
     const w = W8(att), third = kind === 'combo3', power = kind === 'power', heavy = power || third || w.hands === 2, a = att.atk || {};
     let dmg, crit = false;
@@ -1027,11 +1063,14 @@
       const critRank = (w.shape === 'sword' || w.shape === 'scimitar') ? rank('Bladesman30') : w.shape === 'greatsword' ? rank('DeepWounds30') : 0;
       if (power && a.running && has(w.hands === 2 ? 'GreatCriticalCharge' : 'CriticalCharge')) { dmg *= 2; crit = true; }
       else if (critRank && Math.random() < [0, 0.1, 0.15, 0.2][critRank]) { dmg *= 1.5; crit = true; }
-      if (state.fury > 0) dmg *= 1.5;
+      if (furious()) { dmg *= furyDealt(); train('Rage', 6); }
     } else {
       // Light armour all round: Deft Movement may avoid it. Heavy all round: Reflect Blows may send some back.
       if (allOf('Light') && has('DeftMovement') && Math.random() < 0.1) { say('Evaded', 'hint'); sfx('dodge'); return; }
-      dmg = (w.cls === 'fist' ? 6 : w.hands === 2 ? 22 : 13) * (power ? 1.4 : 1) * (1 - Math.min(0.8, armourRating() * 0.004)) * (state.fury > 0 ? 0.6 : 1);
+      if (furious() && has('RageUntouchable') && state.furyT < 4) { sparks(def.x, def.y); say('Untouchable', 'hint'); return; }
+      dmg = (w.cls === 'fist' ? 6 : w.hands === 2 ? 22 : 13) * (power ? 1.4 : 1) * (1 - Math.min(0.8, armourRating() * 0.004)) * (furious() ? furyTaken() : 1);
+      // Deathless: once each Fury, a killing blow leaves him on 1 Health.
+      if (furious() && has('RageDeathless') && !state.deathless && pl.hp - dmg <= 0) { dmg = pl.hp - 1; state.deathless = true; state.fury += 3; say('Deathless', 'level'); }
       if (allOf('Heavy') && has('ReflectBlows') && Math.random() < 0.1) { att.hp -= 1; att.flash = 0.08; say('Reflected', 'hint'); }
     }
     def.hp -= dmg; def.flash = 0.08;
@@ -1044,22 +1083,25 @@
     const dx = def.x - att.x, dy = def.y - att.y, d = Math.hypot(dx, dy) || 1;
     // Quick blows barely move the target, so a chain stays in reach; heavy ones throw him back.
     const kbk = att === pl ? (power ? 110 : third ? 100 : w.hands === 2 ? 70 : 28) : heavy ? 90 : 50;
-    def.kb = [(dx / d) * kbk, (dy / d) * kbk * 0.7];
+    def.kb = def === pl && furious() && has('RageUnstoppable') ? [0, 0] : [(dx / d) * kbk, (dy / d) * kbk * 0.7];
     hitStop = Math.max(hitStop, heavy ? 0.1 : 0.06); shake = Math.max(shake, heavy ? 3.5 : 2);
     spray(def.x, def.y, 34, heavy ? 16 : 8, [dx / d, dy / d]);
     if (att === pl) { train(w.skillName, w.damage); addRage(4); }
     if (def === pl) {
       addRage(dmg * 0.6); if (Math.random() < 0.5) sfx('hurt');
+      if (pl.hp - dmg < pl.maxHp * 0.3 && pl.hp >= pl.maxHp * 0.3) { bark('low', pl); setTimeout(() => bark('taunt', att), 1200); }
       for (const it of worn()) if (it && it.armourType !== 'Clothing') train(it.armourType === 'Heavy' ? 'HeavyArmor' : 'LightArmor', dmg / 4);
     }
     if (def.hp <= 0) {
       hitStop = 0.14; shake = 5;
       let how = {};
       const savage = power && a.standing && has(w.hands === 2 ? 'DevastatingBlow' : 'SavageStrike') ? 0.3 : 0;
-      if (att === pl && heavy && w.cls !== 'fist' && Math.random() < (w.cls === 'axe' ? 0.75 : 0.55) + savage) how = w.cls === 'blunt' ? { crush: true } : { part: Math.random() < (w.cls === 'axe' ? 0.45 : 0.6) + savage ? 'head' : (Math.random() < 0.5 ? 'armR' : 'armL') };
+      if (att === pl && furious() && has('RageButcher') && w.cls !== 'fist') how = w.cls === 'blunt' ? { crush: true } : { part: Math.random() < 0.6 ? 'head' : Math.random() < 0.5 ? 'armR' : 'armL' };
+      else if (att === pl && heavy && w.cls !== 'fist' && Math.random() < (w.cls === 'axe' ? 0.75 : 0.55) + savage) how = w.cls === 'blunt' ? { crush: true } : { part: Math.random() < (w.cls === 'axe' ? 0.45 : 0.6) + savage ? 'head' : (Math.random() < 0.5 ? 'armR' : 'armL') };
       kill(def, att, how);
       return;
     }
+    if (def !== pl) { if (def.hp <= def.maxHp * 0.3 && !def.scaredSaid) { def.scaredSaid = true; bark('scared', def); } else if (Math.random() < 0.25) bark('hurt', def); }
     if (def !== pl && def.stagger > 2) return; // paralysed
     if (def !== pl && (heavy || def.hp <= def.maxHp * 0.3)) { play(def, 'stagger'); def.stagger = 1.6; if (attacker === def) attacker = null; }
     else if (def === pl && (state.fury > 0 || (allOf('Heavy') && has('TowerOfStrength') && Math.random() < 0.5) || pl.anim === 'roar')) { /* no flinch */ }
@@ -1087,7 +1129,7 @@
         continue;
       }
       // A bandit with a shield may catch quick blows; power attacks and the third hit break through.
-      if (att === pl && shieldOn(def) && kind === 'quick' && !busy(def) && inArc(def, att, 80, 0.2) && Math.random() < 0.5) {
+      if (att === pl && shieldOn(def) && kind === 'quick' && !(furious() && has('RageUnstoppable')) && !busy(def) && inArc(def, att, 80, 0.2) && Math.random() < 0.5) {
         sparks((att.x + def.x) / 2, (att.y + def.y) / 2); hitStop = 0.05; shake = 1.2; play(def, 'shieldBlock'); def.blockFor = 0.5; sfx('clash', { cls: W8(att).cls, guard: guardOf(def) });
         continue;
       }
@@ -1114,13 +1156,13 @@
       hitStop = 0.09; shake = 3.5; sfx('bash', { guard: guardOf(pl) }); train('Block', 10);
       if (e.hp <= 0) { kill(e, pl); continue; }
       play(e, 'stagger'); e.stagger = 1.8; if (attacker === e) attacker = null;
-      if (has('DisarmingBash') && e.eq.weapon && Math.random() < 0.5) { e.dropped = [...(e.dropped || []), e.eq.weapon]; e.eq = { ...e.eq, weapon: null }; say(`Disarmed the ${e.name.toLowerCase()}`, 'skill'); }
+      if (has('DisarmingBash') && e.eq.weapon && Math.random() < 0.5) { e.dropped = [...(e.dropped || []), e.eq.weapon]; e.eq = { ...e.eq, weapon: null }; say(`Disarmed the ${e.name.toLowerCase()}`, 'skill'); bark('disarmed', e); }
       break;
     }
   }
 
   // ---------- the player ----------
-  function spend(n) { if (state.stamina < n) { say('Not enough stamina', 'warn'); return false; } state.stamina -= n; state.staminaWait = 0.8; return true; }
+  function spend(n) { if (furious() && has('RageWind')) return true; if (state.stamina < n) { say('Not enough stamina', 'warn'); return false; } state.stamina -= n; state.staminaWait = 0.8; return true; }
   function attack(power) {
     if (pl.dead || fin || state.paused) return;
     if (!canAct(pl)) { pl.buffer = { power, left: 0.35 }; return; }
@@ -1146,7 +1188,7 @@
     for (const e of foes) { if (e.dead || !pred(e)) continue; const d = Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3); if (d < bd && (cos <= -1 || inArc(pl, e, r, cos) || d < 20)) { best = e; bd = d; } }
     return best;
   }
-  const finishable = (e) => !e.dead && (e.stagger > 0 || e.hp <= e.maxHp * 0.3);
+  const finishable = (e) => !e.dead && (e.stagger > 0 || e.hp <= e.maxHp * 0.3 || (furious() && has('RageButcher')));
   function finisher() {
     if (fin || pl.dead || state.paused || (busy(pl) && !canAct(pl))) return;
     const e = nearest(46, -2, finishable);
@@ -1162,7 +1204,7 @@
   // A finisher's blows land on its hit frames in turn (n counts them).
   function landFinisher(n) {
     const { e, kind } = fin, [fx, fy] = fwd(pl), last = { impale: 1, headsplit: 1, legbreak: 1, stabs: 2 }[kind] ?? 0;
-    hitStop = n === last ? 0.22 : 0.12; shake = n === last ? 6.5 : 4; if (n === last) { slow = 0.55; state.stats.finishers++; addRage(15); train(W8(pl).skillName, W8(pl).damage * 3); say(FIN_NAMES[kind], 'skill'); }
+    hitStop = n === last ? 0.22 : 0.12; shake = n === last ? 6.5 : 4; if (n === last) { slow = 0.55; state.stats.finishers++; addRage(15); train(W8(pl).skillName, W8(pl).damage * 3); if (furious()) train('Rage', 80); say(FIN_NAMES[kind], 'skill'); if (Math.random() < 0.5) setTimeout(() => bark('finisher', pl), 1100); }
     if (n === last) sfx('finisher');
     const chest = () => { spray(e.x, e.y, 30, 30, [fx, fy], 1.3); if (gore() === 'full') bits(e.x, e.y, 30, 3); };
     switch (kind) {
@@ -1194,14 +1236,17 @@
     state.rage -= 60; play(pl, 'roar'); pl.inv = 1.0; pl.kb = [0, 0];
   }
   function landRoar() {
-    state.fury = 10; state.flash = 0.25; shake = 9; hitStop = 0.08; slow = 0.4; state.shock = { x: pl.x, y: pl.y, r: 4 };
-    sfx('roar'); say('FURY', 'level');
+    state.fury = furyLength(); state.furyT = 0; state.deathless = false; state.flash = 0.25; shake = 9; hitStop = 0.08; slow = 0.4; state.shock = { x: pl.x, y: pl.y, r: 4 };
+    sfx('roar'); say('FURY', 'level'); train('Rage', 30);
+    const reach = has('RageWarCry') ? 110 : 70;
     for (const e of foes) {
       if (e.dead) continue;
       const dx = e.x - pl.x, dy = e.y - pl.y, d = Math.hypot(dx, dy * 1.3);
-      if (d > 70) continue;
-      e.kb = [(dx / (d || 1)) * 200, (dy / (d || 1)) * 140]; play(e, 'stagger'); e.stagger = 2.2; if (attacker === e) attacker = null;
+      if (d > reach) continue;
+      e.kb = [(dx / (d || 1)) * 200, (dy / (d || 1)) * 140]; play(e, 'stagger'); e.stagger = has('RageWarCry') ? 3.2 : 2.2; if (attacker === e) attacker = null;
+      if (has('RageWarCry') && e.hp <= e.maxHp * 0.4) e.fleeT = 5; // terrified
     }
+    setTimeout(() => bark('fury', witness(pl)), 900);
   }
 
   // ---------- the bandits: one swings at a time, the others circle ----------
@@ -1211,7 +1256,8 @@
     if (e.anim === 'shieldBlock') { if ((e.blockFor -= dt) <= 0) play(e, 'idle'); return; }
     if (busy(e)) return;
     const dx = pl.x - e.x, dy = pl.y - e.y, d = Math.hypot(dx, dy * 1.3);
-    if (!e.aggro && !pl.dead && d < 120 && inCamp(pl.x, pl.y, 1.25)) { for (const o of foes) o.aggro = true; say('The bandits have seen you', 'warn'); }
+    if (!e.aggro && !pl.dead && d < 120 && inCamp(pl.x, pl.y, 1.25)) { for (const o of foes) o.aggro = true; say('The bandits have seen you', 'warn'); bark('spot', e); }
+    if (e.fleeT > 0) { e.fleeT -= dt; const l = Math.hypot(dx, dy) || 1; e.x -= (dx / l) * 40 * dt; e.y -= (dy / l) * 32 * dt; e.face = faceOf(-dx, -dy); if (e.anim !== 'run') play(e, 'run'); if (Math.random() < dt * 0.5) bark('scared', e); return; }
     if (!e.aggro || pl.dead) {
       const hx = e.home[0] - e.x, hy = e.home[1] - e.y, hd = Math.hypot(hx, hy);
       if (hd > 3) { e.face = faceOf(hx, hy); e.x += (hx / hd) * 22 * dt; e.y += (hy / hd) * 22 * dt; if (e.anim !== 'walk') play(e, 'walk'); }
@@ -1227,6 +1273,7 @@
     else if (mine) {
       const heavyBlow = W8(e).hands === 2 || W8(e).cls === 'blunt';
       play(e, heavyBlow ? 'enemyChop' : 'enemySlash'); e.cool = 1.4 + Math.random() * 1.6; e.releaseAfter = true;
+      if (Math.random() < 0.3) bark('attack', e);
       // Quick Reflexes: time slows if he winds up a power blow while you block.
       if (heavyBlow && has('QuickReflexes') && (pl.anim === 'block' || pl.anim === 'shieldBlock')) { slow = 0.9; say('Quick Reflexes', 'hint'); }
     }
@@ -1312,7 +1359,7 @@
         }
         else if (mx || my) {
           const run = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && state.stamina > 1, l = Math.hypot(mx, my), sp = run ? (heavyBody() ? 58 : 66) : 36;
-          if (run) { state.stamina -= 14 * dt; state.staminaWait = 0.5; }
+          if (run && !(furious() && has('RageWind'))) { state.stamina -= 14 * dt; state.staminaWait = 0.5; }
           pl.face = faceOf(mx, my); pl.heading = Math.atan2(mx, -my); pl.x += (mx / l) * sp * dt; pl.y += (my / l) * sp * dt * 0.8;
           if (pl.anim !== (run ? 'run' : 'walk')) play(pl, run ? 'run' : 'walk');
         } else if (pl.anim !== 'idle') play(pl, 'idle');
@@ -1329,8 +1376,9 @@
       if (!fighting) pl.hp = Math.min(pl.maxHp, pl.hp + 4 * dt);
       if ((state.staminaWait -= dt) <= 0 && !(blocking && busy(pl))) state.stamina = Math.min(100, state.stamina + 22 * dt * (allOf('Light') && has('WindWalker') ? 1.5 : 1));
       if (state.rage >= 60 && !state.ragePing && state.fury <= 0) { state.ragePing = true; say('Rage is ready: Q', 'skill'); } else if (state.rage < 60) state.ragePing = false;
-      if (state.fury > 0) state.fury -= dt; else if (!fighting) state.rage = Math.max(0, state.rage - 2 * dt);
-      if (!state.discovered && inCamp(pl.x, pl.y, 1.05)) { state.discovered = true; state.events.push({ kind: 'discover', text: 'Coast Road Camp' }); }
+      if (state.fury > 0) { state.fury -= dt; state.furyT += dt; } else if (!fighting) state.rage = Math.max(has('RageSmoulder') ? Math.min(state.rage, 25) : 0, state.rage - 2 * dt);
+      if (!fighting && !pl.dead && Math.hypot(pl.x - FIRE.x, pl.y - FIRE.y) < 190) { const by = foes.filter((e) => !e.dead && !e.aggro && Math.hypot(e.x - FIRE.x, e.y - FIRE.y) < 140); window.HFV?.chat(by[0], by[1]); }
+      if (!state.discovered && inCamp(pl.x, pl.y, 1.05)) { state.discovered = true; state.events.push({ kind: 'discover', text: 'Coast Road Camp' }); bark('spot', pl); }
     }
     step(pl, dt);
     for (const e of foes) { think(e, dt); step(e, dt); }
@@ -1459,7 +1507,7 @@
       // Gear taken off a body comes off him.
       if (src.loot && !box.items[edid]) src.eq = Object.fromEntries(Object.entries(src.eq).map(([k, v]) => [k, v === edid ? null : v]));
     }
-    sfx('pickup');
+    sfx('pickup'); if (edid === 'ChiefNote') setTimeout(() => bark('note', pl), 400);
     if (src.id === 'chiefChest' && !state.quest.chest) { state.quest.chest = true; say("Objective complete: Search the chief's chest", 'quest'); }
     if (state.quest.chief && state.quest.chest && !state.quest.done) { state.quest.done = true; say('Quest complete: Bandits on the Coast Road', 'quest'); }
   }
@@ -1469,11 +1517,12 @@
 
   window.HF = {
     ITEMS, SETS, SHIELDS, SKILLS, PERKS, SKILL_NAMES, state, settings, toNext, PERK, chainOf, rank, canTake, takePerk, NOT_HERE,
-    cheat: { perks: (n) => { state.perkPoints += n; }, skills: (n) => { for (const k of ['OneHanded', 'TwoHanded', 'Block', 'HeavyArmor', 'LightArmor']) state.skills[k].level = Math.min(100, state.skills[k].level + n); } }, get pl() { return pl; }, get foes() { return foes; },
+    cheat: { perks: (n) => { state.perkPoints += n; }, skills: (n) => { for (const k of ['OneHanded', 'TwoHanded', 'Block', 'HeavyArmor', 'LightArmor', 'Rage']) state.skills[k].level = Math.min(100, state.skills[k].level + n); } }, get pl() { return pl; }, get foes() { return foes; },
     icon, mapCanvas, equip, useItem, drop, lootFrom, wearSet, wear, activatable, armourRating, carried, reset, fury, finisher, attack,
     inCombat: () => foes.some((e) => e.aggro && !e.dead),
     target: () => (attacker && !attacker.dead ? attacker : foes.find((e) => e.aggro && !e.dead && Math.hypot(e.x - pl.x, e.y - pl.y) < 70)) || null,
     containers: () => containers, world: { W: WW, H: WH, camp: CAMP }, keys,
+    screenOf: (x, y) => [((x - camX) / W) * 100, ((y - camY) / H) * 100],
     // For checking the page from a script.
     teleport: (x, y) => { pl.x = x; pl.y = y; camX = clamp(x - W / 2, 0, WW - W); camY = clamp(y - H / 2, 0, WH - H); },
     stagger: (i) => { const e = foes[i]; play(e, 'stagger'); e.stagger = 5; e.aggro = true; }, face: (x, y) => { pl.face = faceOf(x - pl.x, y - pl.y); },

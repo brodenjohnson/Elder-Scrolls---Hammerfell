@@ -19,6 +19,7 @@ addEventListener('hf-ready', () => {
     <div id="notes"></div>
     <div id="prompt"></div>
     <div id="bars"><div class="b rage"><i></i></div><div class="b hp"><i></i></div><div class="b st"><i></i></div></div>
+    <div id="bubbles"></div>
     <div id="fury">FURY</div><div id="rage-ready">${key('Q')} RAGE</div>`;
   const notes = $('#notes');
   function note(text, kind) {
@@ -62,6 +63,12 @@ addEventListener('hf-ready', () => {
     if (a) { const box = a.ref.loot || a.ref, empty = !box.gold && !Object.keys(box.items).length; p.innerHTML = `${key('E')} ${a.verb} <b>${esc(a.name)}</b>${empty ? ' <span class="dim">(Empty)</span>' : ''}`; p.classList.add('on'); }
     else p.classList.remove('on');
   }
+  // What people say, over their heads, for as long as it takes to say it.
+  function bubbles() {
+    const B = window.HFV?.bubbles || [], t = performance.now(), el = $('#bubbles');
+    for (let i = B.length - 1; i >= 0; i--) if (B[i].until < t || (B[i].f.dead && B[i].f !== HF.pl)) B.splice(i, 1);
+    el.innerHTML = B.map((b) => { const [x, y] = HF.screenOf(b.f.x, b.f.y - 64); return `<div class="bubble ${b.f === HF.pl ? 'you' : ''}" style="left:${x}%;top:${y}%"><b>${esc(b.f.pname || 'Kasim')}</b> ${esc(b.text)}</div>`; }).join('');
+  }
   function hudLoop() {
     for (const ev of S.events.splice(0)) {
       if (ev.kind === 'discover') { banner('Discovered', ev.text, 'Bandit camp'); HFA.play('discover'); }
@@ -70,7 +77,7 @@ addEventListener('hf-ready', () => {
       else note(ev.text, ev.kind);
     }
     if (bannerT && performance.now() - bannerT > 3200) { $('#banner').classList.remove('on'); bannerT = 0; }
-    compass(); bars();
+    compass(); bars(); bubbles();
     HFA.update({ combat: HF.inCombat(), fury: S.fury > 0 || HF.pl.anim === 'roar' });
     if (menuOpen === 'items' || menuOpen === 'loot') refreshFooter();
     requestAnimationFrame(hudLoop);
@@ -181,6 +188,7 @@ addEventListener('hf-ready', () => {
           <div class="opt"><span>Gore</span>${['full', 'some', 'off'].map((g) => `<button data-gore="${g}" class="${HF.settings.gore === g ? 'on' : ''}">${{ full: 'Full', some: 'Blood only', off: 'Off' }[g]}</button>`).join('')}</div>
           <div class="opt"><span>Light</span>${['dusk', 'day'].map((l) => `<button data-light="${l}" class="${HF.settings.light === l ? 'on' : ''}">${l === 'dusk' ? 'Dusk' : 'Day'}</button>`).join('')}</div>
           <div class="opt"><span>Sound</span><button data-sound="on" class="${HFA.on ? 'on' : ''}">On</button><button data-sound="off" class="${HFA.on ? '' : 'on'}">Off</button></div>
+          <div class="opt"><span>Voices</span><button data-voice="on" class="${HFV.on ? 'on' : ''}">On</button><button data-voice="off" class="${HFV.on ? '' : 'on'}">Off</button>${HFV.available ? '' : ' <i>(this browser has no speech voices)</i>'}</div>
           <div class="opt"><span>Testing</span><button data-sys="perks">+3 perk points</button><button data-sys="skills">+10 to combat skills</button></div>
           <div class="help"><b>Controls</b><br>WASD move, Shift run &middot; left click or J attack, hold for a power attack &middot; right click or K block (a tap just before a blow parries) &middot; block and attack: shield bash (Power Bash perk) &middot; Space dodge, C roll &middot; F finisher &middot; Q Fury (60 Rage) &middot; E search or open &middot; Tab menu &middot; I items &middot; P skills &middot; M map &middot; Esc journal</div></div>`;
       menu.innerHTML = `<div class="journal"><div class="tabs">${tabs.map(([k, n]) => `<div class="tab ${k === journalTab ? 'sel' : ''}" data-tab="${k}">${n}</div>`).join('')}</div><div class="page">${body}</div>
@@ -252,7 +260,8 @@ addEventListener('hf-ready', () => {
     }
   }, true);
   menu.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-go],[data-cat],[data-i],[data-skill],[data-tab],[data-sys],[data-gore],[data-light],[data-perk],[data-sound]'); if (!t) return;
+    const t = e.target.closest('[data-go],[data-cat],[data-i],[data-skill],[data-tab],[data-sys],[data-gore],[data-light],[data-perk],[data-sound],[data-voice]'); if (!t) return;
+    if (t.dataset.voice) { HFV.setOn(t.dataset.voice === 'on'); return render(); }
     if (t.dataset.perk) { HF.takePerk(t.dataset.perk); return render(); }
     if (t.dataset.sound) { HFA.setOn(t.dataset.sound === 'on'); return render(); }
     if (t.dataset.sys === 'perks') { HF.cheat.perks(3); return render(); }
