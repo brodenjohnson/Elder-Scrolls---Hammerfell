@@ -1,0 +1,12 @@
+{
+  "_note": "Who voices whom (ElevenLabs). Put each voice's ID in voice_id: run 'npm run voices -- --list' to see the voices in your ElevenLabs account and their IDs, or add voices from the Voice Library first. The description is what to look for, or to design a voice from. Speakers with no voice_id are skipped. model: eleven_multilingual_v2 is the dependable default; eleven_v3 acts more (it reads stage directions) if your plan has it. stability: lower is more emotional and less predictable.",
+  "model": "eleven_multilingual_v2",
+  "speakers": {
+    "kasim":  { "voice_id": "", "description": "Redguard farmer, about 40, a former soldier. Deep, rough, quiet; says little and means it. Think a tired, dangerous man, not a hero.", "stability": 0.5 },
+    "hakon":  { "voice_id": "", "description": "Nord bandit, 30s, loud and brash, a bully.", "stability": 0.3 },
+    "bilal":  { "voice_id": "", "description": "Redguard thug, heavy-set, low and gravelly, slow to anger and then vicious.", "stability": 0.35 },
+    "jorund": { "voice_id": "", "description": "Big Nord marauder, very deep, booming, half-mad.", "stability": 0.3 },
+    "fenn":   { "voice_id": "", "description": "Young bandit, wiry and nervous, higher voice, swears a lot.", "stability": 0.3 },
+    "qadir":  { "voice_id": "", "description": "The bandit chief, Redguard, 50s, cold and contemptuous, used to being obeyed.", "stability": 0.45 }
+  }
+}

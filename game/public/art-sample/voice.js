@@ -1,65 +1,40 @@
 /* =====================================================================
    Voices for the sample: bandits who taunt, swear and react to what you do to their
-   mates, and Kasim's few, flat words (the Punisher, bible 1). The lines are data (as they
-   would be in the game). They are spoken here by the browser's own text-to-speech, which
-   is robotic; the game would play recorded AI voice lines instead, generated from the same
-   lines (see the design bible, voice pipeline).
+   mates, and Kasim's few, flat words (the Punisher, bible 1). The lines are data
+   (data/voice/lines.json). Where a recording has been made for a line
+   (scripts/voices.mjs, ElevenLabs) it is played; otherwise the browser's own
+   text-to-speech reads it, which is robotic but shows the timing.
    ===================================================================== */
 window.HFV = (() => {
   const synth = window.speechSynthesis;
-  let on = true, voices = [];
+  let on = true, voices = [], LINES = null, MANIFEST = {};
   const load = () => { voices = synth ? synth.getVoices().filter((v) => /^en/i.test(v.lang)) : []; };
   if (synth) { load(); synth.onvoiceschanged = load; }
+  fetch('../data/voice/lines.json').then((r) => r.json()).then((j) => { LINES = j; }).catch(() => {});
+  fetch('../audio/voice/manifest.json').then((r) => (r.ok ? r.json() : {})).then((j) => { MANIFEST = j; }).catch(() => {});
 
-  // {name}: the man the line is about. Priority 3 lines interrupt anything.
-  const BANDIT = {
-    spot: ['Oi! We have company!', 'Who the fuck are you?', 'Farmer took a wrong turn. Let us show him the way out.', 'Kill him! Kill the bastard!', 'Another hero. Gut him.'],
-    attack: ['Die!', 'Come here, you!', 'Hold still!', 'Bleed, you bastard!', 'Got you now!', 'Hah!'],
-    hurt: ['Argh! Fuck!', 'You will pay for that!', 'Bastard!', 'Shit! Shit!'],
-    scared: ['Gods, he is a devil!', 'I am not dying for salt money!', 'Back off! Back off!'],
-    taunt: ['You are done, farmer.', 'Look at him bleed!', 'Lie down and die!', 'Not so tough now, are you?'],
-    allyHead: ['You motherfucker! You cut off {name}\'s head!', '{name}! Oh gods, his head!', 'He took {name}\'s fucking head off!'],
-    allyArm: ['His arm! You took his fucking arm!', '{name}! Your arm!'],
-    allyCrushed: ['You caved his skull in!', '{name}... there is nothing left of his face!'],
-    allyThroat: ['He opened {name}\'s throat!', '{name} is choking on it!'],
-    allyDeath: ['{name}! No!', 'You will hang for {name}!', 'That is {name} dead. You are next.', 'Bastard killed {name}!'],
-    fury: ['What the fuck is he?', 'He has gone mad! Watch out!', 'Stay back from him!'],
-    disarmed: ['My blade!', 'Shit, my sword!'],
-    victory: ['Hah! Farmer is dead.', 'Strip him. Check his boots.'],
-  };
-  const CHIEF = {
-    spot: ['Kill him! Fifty septims for his head!', 'You walked into the wrong camp, farmer.'],
-    hurt: ['Is that all?', 'You will die slow for that.'],
-    allyDeath: ['Useless. All of you.', 'Then I will do it myself!'],
-  };
-  const KASIM = {
-    spot: ['Bandits.', 'Get it over with.'],
-    kill: ['Next.', 'Stay down.', 'One less.'],
-    finisher: ['Should have run.', 'Quiet now.', 'That is for the road.'],
-    low: ['Not yet.', 'Not like this.'],
-    clear: ['Quiet. Good.'],
-    note: ['Hegathe.'],
-  };
+  // Priority 3 lines interrupt anything; 0 is idle talk.
   const PRIO = { allyHead: 3, allyArm: 3, allyCrushed: 3, allyThroat: 3, allyDeath: 2, fury: 3, spot: 2, victory: 3, disarmed: 2, scared: 2, taunt: 1, hurt: 1, attack: 0, kill: 1, finisher: 2, low: 2, clear: 1, note: 2, chat: 0 };
-  // Idle talk round the fire, before they have seen you.
-  const CHAT = [
-    ['Saltmaker is late again.', 'He is always late. Pays, though.'],
-    ['What if the Crown comes up this road?', 'Then we go in the sea with the rest of them.'],
-    ['Smell that? Rain is coming.', 'That is you, Fenn.'],
-    ['Who keeps eating the bread?', 'Nobody. Shut up.'],
-  ];
-
   const bubbles = [], last = {};
-  let busyUntil = 0, chatAt = performance.now() + 4000, chatIdx = 0;
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  function speak(f, text, prio) {
+  let busyUntil = 0, chatAt = performance.now() + 4000, chatIdx = 0, playing = null;
+  const speakerOf = (f) => (f.person === 'kasim' ? 'kasim' : (f.pname || '').toLowerCase());
+
+  // Say line i of a set: the recording if there is one, otherwise text-to-speech.
+  function speak(f, set, i, ctx, prio) {
+    const def = LINES?.sets[set]; if (!def) return false;
     const now = performance.now();
     if (prio < 3 && now < busyUntil) return false;
     if (prio < 2 && now - (last[f.vid] || 0) < 4000) return false;
+    const raw = def.lines[i], name = raw.includes('{name}') ? ctx.name : null, text = name ? raw.replaceAll('{name}', name) : raw;
     last[f.vid] = now; busyUntil = now + 900 + text.length * 55;
-    for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].f === f) bubbles.splice(i, 1);
+    for (let k = bubbles.length - 1; k >= 0; k--) if (bubbles[k].f === f) bubbles.splice(k, 1);
     bubbles.push({ f, text, until: now + 1800 + text.length * 55 });
-    if (on && synth && voices.length) {
+    if (!on) return true;
+    const who = speakerOf(f), id = `${set}.${i}${name ? `.${name.toLowerCase()}` : ''}`;
+    if (MANIFEST[who]?.[id]) {
+      if (prio >= 3 && playing) playing.pause();
+      playing = new Audio(`../audio/voice/${who}/${id}.mp3`); playing.volume = 1; playing.play().catch(() => {});
+    } else if (synth && voices.length) {
       if (prio >= 3) synth.cancel();
       const u = new SpeechSynthesisUtterance(text), v = f.voice || { pitch: 0.8, rate: 1.05, v: 1 };
       const male = voices.filter((x) => /david|mark|guy|george|ryan|james|daniel|male|thomas|fred|alex/i.test(x.name) && !/female|zira|hazel|susan|libby|sonia|aria|jenny/i.test(x.name));
@@ -72,22 +47,22 @@ window.HFV = (() => {
   return {
     bubbles,
     bark(kind, f, ctx = {}) {
-      if (!f) return;
-      const set = f.person === 'kasim' ? KASIM : (f.chief && CHIEF[kind]) || BANDIT;
-      const lines = f.person === 'kasim' ? set[kind] : set[kind] || BANDIT[kind];
-      if (!lines) return;
-      speak(f, pick(lines).replace(/\{(\w+)\}/g, (m, k) => ctx[k] ?? m), PRIO[kind] ?? 1);
+      if (!f || !LINES) return;
+      const sets = f.person === 'kasim' ? [`kasim.${kind}`] : f.chief ? [`chief.${kind}`, `bandit.${kind}`] : [`bandit.${kind}`];
+      const set = sets.find((s) => LINES.sets[s]); if (!set) return;
+      speak(f, set, Math.floor(Math.random() * LINES.sets[set].lines.length), ctx, PRIO[kind] ?? 1);
     },
-    // Two men by the fire trade a line each, now and then.
+    // Two men by the fire trade a line each, now and then (the chat lines come in pairs).
     chat(a, b) {
       const now = performance.now();
-      if (now < chatAt || !a || !b) return;
-      const [x, y] = CHAT[chatIdx++ % CHAT.length];
-      if (speak(a, x, 0)) setTimeout(() => speak(b, y, 0), 900 + x.length * 55);
+      if (now < chatAt || !a || !b || !LINES) return;
+      const n = LINES.sets['bandit.chat'].lines.length / 2, k = chatIdx++ % n;
+      if (speak(a, 'bandit.chat', k * 2, {}, 0)) setTimeout(() => speak(b, 'bandit.chat', k * 2 + 1, {}, 0), 900 + LINES.sets['bandit.chat'].lines[k * 2].length * 55);
       chatAt = now + 9000;
     },
-    setOn(v) { on = v; if (!v && synth) synth.cancel(); },
+    setOn(v) { on = v; if (!v) { synth?.cancel(); playing?.pause(); } },
     get on() { return on; },
-    get available() { return !!(synth && voices.length); },
+    get available() { return !!(synth && voices.length) || Object.keys(MANIFEST).length > 0; },
+    get recorded() { return Object.values(MANIFEST).reduce((n, s) => n + Object.keys(s).length, 0); },
   };
 })();

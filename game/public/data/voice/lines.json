@@ -1,0 +1,29 @@
+{
+  "_note": "Voiced lines (design bible decisions 28 and 44). Each set is a situation; a line is picked at random from it. {name} is replaced by the man the line is about, and a recording is made for each name. 'by' says who speaks a set: 'bandits' (every bandit voice), 'chief', or 'kasim'. 'direction' is how it should be delivered; it is sent to the voice model as a stage direction where the model supports one. scripts/voices.mjs turns these into recordings with cast.json.",
+  "names": ["Hakon", "Bilal", "Jorund", "Fenn", "Qadir"],
+  "sets": {
+    "bandit.spot": { "by": "bandits", "direction": "shouting, alarmed then aggressive", "lines": ["Oi! We have company!", "Who the fuck are you?", "Farmer took a wrong turn. Let us show him the way out.", "Kill him! Kill the bastard!", "Another hero. Gut him."] },
+    "bandit.attack": { "by": "bandits", "direction": "a grunt of effort, mid-swing", "lines": ["Die!", "Come here, you!", "Hold still!", "Bleed, you bastard!", "Got you now!", "Hah!"] },
+    "bandit.hurt": { "by": "bandits", "direction": "in sudden pain, furious", "lines": ["Argh! Fuck!", "You will pay for that!", "Bastard!", "Shit! Shit!"] },
+    "bandit.scared": { "by": "bandits", "direction": "panicking, voice cracking", "lines": ["Gods, he is a devil!", "I am not dying for salt money!", "Back off! Back off!"] },
+    "bandit.taunt": { "by": "bandits", "direction": "cruel, mocking, enjoying it", "lines": ["You are done, farmer.", "Look at him bleed!", "Lie down and die!", "Not so tough now, are you?"] },
+    "bandit.allyHead": { "by": "bandits", "direction": "horrified screaming rage at seeing a friend beheaded", "lines": ["You motherfucker! You cut off {name}'s head!", "{name}! Oh gods, his head!", "He took {name}'s fucking head off!"] },
+    "bandit.allyArm": { "by": "bandits", "direction": "shocked, screaming", "lines": ["His arm! You took his fucking arm!", "{name}! Your arm!"] },
+    "bandit.allyCrushed": { "by": "bandits", "direction": "sick with horror", "lines": ["You caved his skull in!", "{name}... there is nothing left of his face!"] },
+    "bandit.allyThroat": { "by": "bandits", "direction": "horrified", "lines": ["He opened {name}'s throat!", "{name} is choking on it!"] },
+    "bandit.allyDeath": { "by": "bandits", "direction": "grief turning to rage", "lines": ["{name}! No!", "You will hang for {name}!", "That is {name} dead. You are next.", "Bastard killed {name}!"] },
+    "bandit.fury": { "by": "bandits", "direction": "afraid, backing away", "lines": ["What the fuck is he?", "He has gone mad! Watch out!", "Stay back from him!"] },
+    "bandit.disarmed": { "by": "bandits", "direction": "dismayed", "lines": ["My blade!", "Shit, my sword!"] },
+    "bandit.victory": { "by": "bandits", "direction": "laughing, cruel", "lines": ["Hah! Farmer is dead.", "Strip him. Check his boots."] },
+    "bandit.chat": { "by": "bandits", "direction": "bored, idle talk by a fire", "lines": ["Saltmaker is late again.", "He is always late. Pays, though.", "What if the Crown comes up this road?", "Then we go in the sea with the rest of them.", "Smell that? Rain is coming.", "That is you, Fenn.", "Who keeps eating the bread?", "Nobody. Shut up."] },
+    "chief.spot": { "by": "chief", "direction": "commanding, contemptuous", "lines": ["Kill him! Fifty septims for his head!", "You walked into the wrong camp, farmer."] },
+    "chief.hurt": { "by": "chief", "direction": "angry, unimpressed", "lines": ["Is that all?", "You will die slow for that."] },
+    "chief.allyDeath": { "by": "chief", "direction": "disgusted with his men", "lines": ["Useless. All of you.", "Then I will do it myself!"] },
+    "kasim.spot": { "by": "kasim", "direction": "flat, quiet, tired, dangerous", "lines": ["Bandits.", "Get it over with."] },
+    "kasim.kill": { "by": "kasim", "direction": "flat, under his breath", "lines": ["Next.", "Stay down.", "One less."] },
+    "kasim.finisher": { "by": "kasim", "direction": "cold, quiet", "lines": ["Should have run.", "Quiet now.", "That is for the road."] },
+    "kasim.low": { "by": "kasim", "direction": "breathing hard, through his teeth", "lines": ["Not yet.", "Not like this."] },
+    "kasim.clear": { "by": "kasim", "direction": "exhaling, flat", "lines": ["Quiet. Good."] },
+    "kasim.note": { "by": "kasim", "direction": "reading, a slow realisation", "lines": ["Hegathe."] }
+  }
+}
