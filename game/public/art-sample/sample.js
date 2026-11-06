@@ -1,5 +1,5 @@
 /* =====================================================================
-   Art sample, round four (design bible 4.0, style A).
+   Art sample, round five (design bible 4.0, style A).
    A bandit camp to fight through and loot, with Skyrim's interface functions in our
    own look (ui.js). Everything here is drawn by code while the page runs: small pixel
    buffers, palette ramps, ordered dithering, a rim light and a coloured outline.
@@ -876,7 +876,10 @@
   const W8 = (f) => ITEMS[f.eq.weapon] || ITEMS.Fists;
   const shieldOn = (f) => !!(f.eq.shield && W8(f).hands === 1);
   const frames = (f) => ANIMS[f.anim].frames;
-  const dur = (f, i) => { const fr = frames(f)[i]; return ANIMS[f.anim].attack ? fr.d / W8(f).speed : fr.d; };
+  // Swing speed: Skyrim's weapon speed, with two-handers a further 15 percent slower and
+  // daggers 10 percent quicker, so the classes feel further apart (Broden, round five).
+  const swingSpeed = (w) => w.speed * (w.hands === 2 ? 0.85 : w.cls === 'dagger' ? 1.1 : 1);
+  const dur = (f, i) => { const fr = frames(f)[i]; return ANIMS[f.anim].attack || f.anim === 'power' ? fr.d / swingSpeed(W8(f)) : fr.d; };
   function play(f, anim) { f.anim = anim; f.fi = 0; f.ft = 0; f.struck = false; f.hits = 0; }
   const busy = (f) => !['idle', 'walk', 'run', 'block', 'shieldBlock'].includes(f.anim);
   const canAct = (f) => !fin && !f.dead && (!busy(f) || (SWINGS.includes(f.anim) && f.struck && f.fi > frames(f).findIndex((q) => q.hit)));
@@ -901,6 +904,9 @@
     return s + (free ? 0 : (it?.weight || 0) * n);
   }, 0);
   const sfx = (n, o) => window.HFA?.play(n, o);
+  // What a blow lands on: bare or clothed flesh, leather and hide, or metal.
+  const matOf = (f) => { const t = ITEMS[f.eq.body]?.armourType; return t === 'Heavy' ? 'metal' : t === 'Light' ? 'leather' : 'flesh'; };
+  const guardOf = (f) => (shieldOn(f) ? (f.eq.shield === 'ArmorHideShield' ? 'wood' : 'metal') : 'blade');
 
   // ---------- skills and perks: Skyrim's curves, half as fast again (Broden, round four) ----------
   // A use gives (base x the skill's use multiplier) skill XP; the next skill level needs
@@ -950,24 +956,38 @@
   const matched = () => { const sets = ['body', 'hands', 'feet', 'head'].map((k) => PIECE[pl.eq[k]]?.[0]); return sets.every((x) => x && x === sets[0]); };
 
   // ---------- blood ----------
+  // Blood: more and heavier on full gore. Drops land as spatter; a fast blow also leaves a
+  // streak along the ground in the direction it was struck.
+  const BLOOD = ['#5a0907', '#6e0c09', '#8a120c', '#9c160e', '#b01d12'];
   function spray(x, y, z, n, dir = [0, 0], force = 1) {
     if (gore() === 'off') return;
-    for (let i = 0; i < n; i++) particles.push({ x, y, z: z + Math.random() * 4, vx: (dir[0] * 60 + (Math.random() - 0.5) * 70) * force, vy: (dir[1] * 40 + (Math.random() - 0.5) * 30) * force, vz: (20 + Math.random() * 60) * force, c: Math.random() < 0.5 ? '#6e0c09' : '#9c160e', big: Math.random() < 0.25 });
+    const k = gore() === 'full' ? 1.7 : 1;
+    for (let i = 0; i < n * k; i++) particles.push({ x, y, z: z + Math.random() * 4, vx: (dir[0] * 70 + (Math.random() - 0.5) * 80) * force, vy: (dir[1] * 45 + (Math.random() - 0.5) * 34) * force, vz: (20 + Math.random() * 70) * force, c: BLOOD[Math.floor(Math.random() * BLOOD.length)], big: Math.random() < 0.35 });
+    if (gore() === 'full' && (dir[0] || dir[1])) streak(x, y, dir, 10 + n * 0.8);
   }
-  function bits(x, y, z, n) { for (let i = 0; i < n; i++) particles.push({ x, y, z, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 40, vz: 40 + Math.random() * 70, c: Math.random() < 0.5 ? '#c7bc9b' : '#7c3920', big: false }); }
+  function streak(x, y, dir, len) {
+    const l = Math.hypot(dir[0], dir[1]) || 1, ux = dir[0] / l, uy = dir[1] / l;
+    for (let i = 4; i < len; i++) { if (Math.random() < 0.3) continue; const w = Math.random() < 0.5 ? 2 : 1; dg.fillStyle = BLOOD[Math.floor(Math.random() * 3)]; dg.fillRect(Math.round(x + ux * i + (Math.random() - 0.5) * 3), Math.round(y + uy * i * 0.6 + (Math.random() - 0.5) * 2), w, 1); }
+  }
+  // Chunks: bone, flesh and worse, which bounce and stay where they land.
+  function bits(x, y, z, n) {
+    const C = ['#c7bc9b', '#e2d9bb', '#7c3920', '#622817', '#c87a7a', '#a85a5a'];
+    for (let i = 0; i < n * (gore() === 'full' ? 1.6 : 1); i++) particles.push({ x, y, z, vx: (Math.random() - 0.5) * 110, vy: (Math.random() - 0.5) * 50, vz: 40 + Math.random() * 90, c: C[Math.floor(Math.random() * C.length)], big: Math.random() < 0.6, chunk: true });
+  }
   function sparks(x, y) { for (let i = 0; i < 9; i++) particles.push({ x, y, z: 20, vx: (Math.random() - 0.5) * 110, vy: (Math.random() - 0.5) * 50, vz: 30 + Math.random() * 50, c: '#ffe7a0', spark: 0.22 }); }
-  function pool(x, y, max) { if (gore() !== 'off') pools.push({ x, y, r: 1, max }); }
+  function pool(x, y, max) { if (gore() !== 'off') pools.push({ x, y, r: 1, max: max * (gore() === 'full' ? 1.5 : 1) }); }
   function pixelEllipse(g, cx, cy, rx, ry, c) { g.fillStyle = c; for (let y = -Math.floor(ry); y <= ry; y++) { const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (y / ry) ** 2))); g.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); } }
 
   // ---------- hurting and killing ----------
   function sever(f, part, from) {
     if (gore() !== 'full' || f.cut.includes(part)) return;
     const img = frameOf(f, f.anim, f.fi, f.face, { only: part, cut: [] }), c = crop(img.canvas);
-    f.cut = [...f.cut, part]; f.spurt = part === 'head' ? 1.6 : 1.1; state.stats.severed++; sfx('gore');
+    f.cut = [...f.cut, part]; f.spurt = part === 'head' ? 2.2 : 1.6; state.stats.severed++; sfx(part === 'head' ? 'decap' : 'dismember');
+    if (gore() === 'full') bits(f.x, f.y, OY - 40, 5);
     if (!c) return;
     const dx = f.x - from.x, dy = f.y - from.y, d = Math.hypot(dx, dy) || 1;
     pieces.push({ canvas: c.canvas, x: f.x + (c.cx - OX), y: f.y + 2, z: OY - c.cy, vx: (dx / d) * 45 + (Math.random() - 0.5) * 30, vy: (dy / d) * 25 + (Math.random() - 0.5) * 12, vz: part === 'head' ? 95 : 70, rot: 0, vr: (Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 6), rest: false });
-    spray(f.x, f.y, OY - c.cy, 30, [dx / d, dy / d], 1.2);
+    spray(f.x, f.y, OY - c.cy, 42, [dx / d, dy / d], 1.3);
   }
   // A body becomes a container of what he carried, his gold, and odds and ends.
   function lootOf(f) {
@@ -983,10 +1003,10 @@
   function kill(f, by, how = {}) {
     f.dead = true; f.hp = 0; play(f, how.anim || 'death'); f.stagger = 0; f.kb = [f.kb[0] * 0.5, f.kb[1] * 0.5];
     if (how.part) sever(f, how.part, by);
-    if (how.crush && gore() !== 'off') { f.crushed = gore() === 'full'; spray(f.x, f.y, 40, 40, [0, 0], 1.3); if (gore() === 'full') bits(f.x, f.y, 40, 12); sfx('gore'); }
-    if (how.throat) f.spurt = 2.4;
+    if (how.crush) { sfx('crush'); if (gore() !== 'off') { f.crushed = gore() === 'full'; spray(f.x, f.y, 40, 46, [0, 0], 1.4); if (gore() === 'full') bits(f.x, f.y, 40, 16); } }
+    if (how.throat) { f.spurt = 2.6; sfx('throat'); }
     f.poolAt = 0.6; if (attacker === f) attacker = null;
-    sfx('death');
+    if (!how.part && !how.crush && !how.throat) sfx('death');
     if (f === pl) { say('You died. Esc, then Reset the camp, to try again.', 'warn'); return; }
     f.loot = lootOf(f); state.stats.kills++; addRage(8);
     if (f.chief) { state.quest.chief = true; say('Objective complete: Kill the bandit chief', 'quest'); }
@@ -1015,7 +1035,8 @@
       if (allOf('Heavy') && has('ReflectBlows') && Math.random() < 0.1) { att.hp -= 1; att.flash = 0.08; say('Reflected', 'hint'); }
     }
     def.hp -= dmg; def.flash = 0.08;
-    sfx(crit ? 'crit' : 'hit', { heavy }); if (crit) say('Critical', 'skill');
+    sfx('impact', { cls: w.cls, mat: matOf(def), heavy, crit, gore: gore() !== 'off', hurt: def.hp > 0 && Math.random() < 0.35 }); if (crit) say('Critical', 'skill');
+    if (gore() === 'full' && matOf(def) !== 'metal') { const ddx = def.x - att.x, ddy = def.y - att.y, dd = Math.hypot(ddx, ddy) || 1; streak(def.x, def.y, [ddx / dd, ddy / dd], heavy ? 22 : 12); }
     // Hack and Slash, Limbsplitter: axes leave him bleeding.
     if (att === pl && ((w.shape === 'waraxe' && has('HackAndSlash30')) || (w.shape === 'battleaxe' && has('Limbsplitter30')))) { def.bleed = 3; def.bleedRate = 0.12 * rank(w.shape === 'waraxe' ? 'HackAndSlash30' : 'Limbsplitter30'); }
     // Paralysing Strike, Warmaster: a power attack stepping backwards may freeze him.
@@ -1028,7 +1049,7 @@
     spray(def.x, def.y, 34, heavy ? 16 : 8, [dx / d, dy / d]);
     if (att === pl) { train(w.skillName, w.damage); addRage(4); }
     if (def === pl) {
-      addRage(dmg * 0.6);
+      addRage(dmg * 0.6); if (Math.random() < 0.5) sfx('hurt');
       for (const it of worn()) if (it && it.armourType !== 'Clothing') train(it.armourType === 'Heavy' ? 'HeavyArmor' : 'LightArmor', dmg / 4);
     }
     if (def.hp <= 0) {
@@ -1045,7 +1066,8 @@
     else play(def, 'hit');
   }
   function landBlow(att) {
-    if (fin && att !== pl) return;
+    if (fin && att !== pl) return; // nobody strikes the player mid-finisher
+    if (att !== pl) sfx('swing', { shape: W8(att).shape, heavy: W8(att).hands === 2 });
     const targets = att === pl ? foes : [pl];
     const kind = att.anim === 'power' ? 'power' : att.anim === 'chop' && att === pl ? 'combo3' : att.anim === 'enemyChop' ? 'power' : 'quick';
     for (const def of targets) {
@@ -1060,13 +1082,13 @@
         const wall = 1 - 0.1 * rank('ShieldWall00'), raw = W8(att).hands === 2 ? 22 : 13;
         state.stamina = Math.max(0, state.stamina - (kind === 'power' ? 30 : 15) * (shieldOn(pl) ? 0.6 : 1) * wall); state.staminaWait = 0.8; train('Block', raw); state.stats.blocks++;
         if (!shieldOn(pl)) pl.hp -= 3 * wall;
-        sfx(parry ? 'parry' : shieldOn(pl) ? 'shieldBlock' : 'block');
+        sfx('clash', { cls: W8(att).cls, guard: guardOf(pl), parry });
         if (parry) { play(att, 'stagger'); att.stagger = 1.6; if (attacker === att) attacker = null; state.stats.parries++; say('Parried', 'hint'); }
         continue;
       }
       // A bandit with a shield may catch quick blows; power attacks and the third hit break through.
       if (att === pl && shieldOn(def) && kind === 'quick' && !busy(def) && inArc(def, att, 80, 0.2) && Math.random() < 0.5) {
-        sparks((att.x + def.x) / 2, (att.y + def.y) / 2); hitStop = 0.05; shake = 1.2; play(def, 'shieldBlock'); def.blockFor = 0.5; sfx('shieldBlock');
+        sparks((att.x + def.x) / 2, (att.y + def.y) / 2); hitStop = 0.05; shake = 1.2; play(def, 'shieldBlock'); def.blockFor = 0.5; sfx('clash', { cls: W8(att).cls, guard: guardOf(def) });
         continue;
       }
       damage(att, def, kind);
@@ -1089,7 +1111,7 @@
       if (e.dead || !inArc(pl, e, 30, 0.2)) continue;
       e.hp -= 0.4 * (has('DeadlyBash') ? 5 : 1); e.flash = 0.08;
       const dx = e.x - pl.x, dy = e.y - pl.y, d = Math.hypot(dx, dy) || 1; e.kb = [(dx / d) * 120, (dy / d) * 80];
-      hitStop = 0.09; shake = 3.5; sfx('bash'); train('Block', 10);
+      hitStop = 0.09; shake = 3.5; sfx('bash', { guard: guardOf(pl) }); train('Block', 10);
       if (e.hp <= 0) { kill(e, pl); continue; }
       play(e, 'stagger'); e.stagger = 1.8; if (attacker === e) attacker = null;
       if (has('DisarmingBash') && e.eq.weapon && Math.random() < 0.5) { e.dropped = [...(e.dropped || []), e.eq.weapon]; e.eq = { ...e.eq, weapon: null }; say(`Disarmed the ${e.name.toLowerCase()}`, 'skill'); }
@@ -1107,7 +1129,7 @@
     let mx = 0, my = 0; if (keys.has('KeyW')) my -= 1; if (keys.has('KeyS')) my += 1; if (keys.has('KeyA')) mx -= 1; if (keys.has('KeyD')) mx += 1;
     const [ffx, ffy] = fwd(pl), running = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && !!(mx || my);
     pl.atk = { standing: !mx && !my, running, backward: !!(mx || my) && (mx * ffx + my * ffy) / Math.hypot(mx, my) < -0.5 };
-    sfx('swing', { heavy: power || w.hands === 2 });
+    sfx('swing', { shape: w.shape, heavy: power || w.hands === 2 });
     const chained = !power && (COMBO.includes(pl.anim) || pl.comboT < 0.45);
     pl.combo = chained ? (pl.combo + 1) % 3 : 0;
     // Aim assist and a step in: close the gap so the chain keeps landing.
@@ -1136,21 +1158,22 @@
     play(pl, `fin_${kind}`); pl.kb = [0, 0];
     fin = { e, kind }; if (attacker === e) attacker = null;
   }
+  const P_gurgle = () => sfx('throat');
   // A finisher's blows land on its hit frames in turn (n counts them).
   function landFinisher(n) {
     const { e, kind } = fin, [fx, fy] = fwd(pl), last = { impale: 1, headsplit: 1, legbreak: 1, stabs: 2 }[kind] ?? 0;
     hitStop = n === last ? 0.22 : 0.12; shake = n === last ? 6.5 : 4; if (n === last) { slow = 0.55; state.stats.finishers++; addRage(15); train(W8(pl).skillName, W8(pl).damage * 3); say(FIN_NAMES[kind], 'skill'); }
-    sfx(n === last ? 'finisher' : 'hit', { heavy: true });
-    const chest = () => spray(e.x, e.y, 30, 22, [fx, fy], 1.2);
+    if (n === last) sfx('finisher');
+    const chest = () => { spray(e.x, e.y, 30, 30, [fx, fy], 1.3); if (gore() === 'full') bits(e.x, e.y, 30, 3); };
     switch (kind) {
-      case 'behead': kill(e, pl, { part: gore() === 'full' ? 'head' : null }); spray(e.x, e.y, 34, 30, [fx, fy], 1.3); break;
-      case 'impale': if (n === 0) { chest(); play(e, 'impaled'); e.spurt = 1.2; e.spurtAt = 'chest'; sfx('gore'); } else { kill(e, pl); e.kb = [fx * 160, fy * 110]; } break;
-      case 'cleave': kill(e, pl, { part: gore() === 'full' ? 'armL' : null }); spray(e.x, e.y, 30, 40, [fx, fy], 1.4); break;
-      case 'headsplit': if (n === 0) kill(e, pl, { crush: true }); else { spray(e.x, e.y, 30, 24, [-fx, -fy], 1.1); sfx('gore'); } break;
+      case 'behead': kill(e, pl, { part: gore() === 'full' ? 'head' : null }); spray(e.x, e.y, 34, 36, [fx, fy], 1.4); if (gore() !== 'full') sfx('impact', { cls: 'blade', mat: 'flesh', heavy: true }); break;
+      case 'impale': if (n === 0) { chest(); play(e, 'impaled'); e.spurt = 1.6; e.spurtAt = 'chest'; sfx('impale'); } else { kill(e, pl); e.kb = [fx * 160, fy * 110]; spray(e.x, e.y, 26, 26, [-fx, -fy], 1.2); sfx('impact', { cls: 'fist', mat: 'flesh', heavy: true }); } break;
+      case 'cleave': kill(e, pl, { part: gore() === 'full' ? 'armL' : null }); spray(e.x, e.y, 30, 46, [fx, fy], 1.5); if (gore() === 'full') bits(e.x, e.y, 30, 6); else sfx('impact', { cls: 'axe', mat: 'flesh', heavy: true }); break;
+      case 'headsplit': if (n === 0) kill(e, pl, { crush: true }); else { spray(e.x, e.y, 30, 30, [-fx, -fy], 1.2); if (gore() === 'full') bits(e.x, e.y, 34, 8); sfx('dismember'); } break;
       case 'crush': kill(e, pl, { crush: true }); break;
-      case 'legbreak': if (n === 0) { play(e, 'kneel'); spray(e.x, e.y, 8, 14, [fx, fy]); if (gore() === 'full') bits(e.x, e.y, 6, 5); sfx('gore'); } else kill(e, pl, { crush: true }); break;
+      case 'legbreak': if (n === 0) { play(e, 'kneel'); spray(e.x, e.y, 8, 18, [fx, fy]); if (gore() === 'full') bits(e.x, e.y, 6, 6); sfx('snapLeg'); } else kill(e, pl, { crush: true }); break;
       case 'throat': kill(e, pl, { throat: true }); play(e, 'clutch'); e.dying = 1.1; spray(e.x, e.y, 36, 24, [fx, fy], 1.2); break;
-      case 'stabs': if (n < 2) { chest(); e.flash = 0.06; play(e, 'clutch'); sfx('gore'); } else { kill(e, pl); chest(); e.kb = [fx * 60, fy * 40]; } break;
+      case 'stabs': if (n < 2) { chest(); e.flash = 0.06; play(e, 'clutch'); sfx('stab'); } else { kill(e, pl); chest(); e.kb = [fx * 60, fy * 40]; e.spurt = 1.4; e.spurtAt = 'chest'; sfx('stab'); P_gurgle(); } break;
     }
   }
   // Space: a quick dodge (a hop, short, cheap). C: a roll (further, safe for longer, dearer).
@@ -1238,7 +1261,7 @@
     f.x += f.kb[0] * dt; f.y += f.kb[1] * dt; const k = Math.exp(-9 * dt); f.kb[0] *= k; f.kb[1] *= k;
     if (f.flash > 0) f.flash -= dt; if (f.inv > 0) f.inv -= dt;
     if (f.dying !== undefined && (f.dying -= dt) <= 0) { play(f, 'death'); f.dying = undefined; }
-    if (f.spurt > 0 && f.pt) { f.spurt -= dt; if (Math.random() < 0.8) { const src = f.spurtAt === 'chest' ? f.pt.chest : f.cut.includes('head') || f.anim === 'clutch' || f.spurt > 1.7 ? f.pt.neck : f.cut.includes('armR') ? f.pt.shR : f.pt.shL; spray(f.x + src[0] - OX, f.y + 1, OY - src[1], 2, [0, -0.2], 0.8); } }
+    if (f.spurt > 0 && f.pt) { f.spurt -= dt; const beat = Math.sin(f.spurt * 16) > 0.2; if (beat && Math.random() < 0.95) { const src = f.spurtAt === 'chest' ? f.pt.chest : f.cut.includes('head') || f.anim === 'clutch' || f.spurt > 1.7 ? f.pt.neck : f.cut.includes('armR') ? f.pt.shR : f.pt.shL; spray(f.x + src[0] - OX, f.y + 1, OY - src[1], 3, [Math.sin(f.face) * -0.4, -0.2], 0.9); } }
     // Bleeding (Hack and Slash, Limbsplitter).
     if (f.bleed > 0 && !f.dead) { f.bleed -= dt; f.hp -= (f.bleedRate || 0.1) * dt; if (Math.random() < 6 * dt) spray(f.x, f.y, 26, 1, [0, 0], 0.4); if (f.hp <= 0) kill(f, pl); }
     if (f.dead && f.poolAt !== undefined && f.anim === 'death' && f.fi === frames(f).length - 1 && (f.poolAt -= dt) <= 0) { pool(f.x + Math.sin(f.face) * 10, f.y + Math.cos(f.face) * 6, 9 + (f.cut.length ? 4 : 0) + (f.crushed ? 3 : 0)); f.poolAt = undefined; }
@@ -1283,7 +1306,7 @@
             pl.x += (mx / l) * sp * dt; pl.y += (my / l) * sp * dt * 0.8;
             if (charge) {
               state.stamina -= 18 * dt; state.staminaWait = 0.5;
-              for (const e of foes) if (!e.dead && e.stagger <= 0 && Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3) < 17) { e.kb = [(mx / l) * 220, (my / l) * 160]; play(e, 'stagger'); e.stagger = 2; if (attacker === e) attacker = null; hitStop = 0.08; shake = 4; sfx('bash'); }
+              for (const e of foes) if (!e.dead && e.stagger <= 0 && Math.hypot(e.x - pl.x, (e.y - pl.y) * 1.3) < 17) { e.kb = [(mx / l) * 220, (my / l) * 160]; play(e, 'stagger'); e.stagger = 2; if (attacker === e) attacker = null; hitStop = 0.08; shake = 4; sfx('bash', { guard: guardOf(pl) }); }
             }
           }
         }
@@ -1322,13 +1345,13 @@
       if (q.rest) continue;
       q.vz -= 300 * dt; q.z += q.vz * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt;
       if (Math.random() < 0.5 && gore() !== 'off') particles.push({ x: q.x, y: q.y, z: q.z, vx: 0, vy: 0, vz: 0, c: '#7a0d0a' });
-      if (q.z <= 2) { q.z = 2; if (q.vz < -50) { q.vz *= -0.35; q.vx *= 0.5; q.vy *= 0.5; q.vr *= 0.5; } else { q.rest = true; q.rot = Math.round(q.rot / (Math.PI / 2)) * (Math.PI / 2); pool(q.x, q.y + 1, 5); } }
+      if (q.z <= 2) { q.z = 2; if (q.vz < -50) { if (!q.bounced) { sfx('land'); spray(q.x, q.y, 2, 6, [q.vx, q.vy], 0.5); } q.bounced = true; q.vz *= -0.35; q.vx *= 0.5; q.vy *= 0.5; q.vr *= 0.5; } else { q.rest = true; q.rot = Math.round(q.rot / (Math.PI / 2)) * (Math.PI / 2); pool(q.x, q.y + 1, 6); streak(q.x, q.y, [q.vx || 1, q.vy], 8); } }
     }
     for (const q of pools) if (q.r < q.max) { q.r += dt * 4; pixelEllipse(dg, q.x, q.y, q.r, q.r * 0.45, '#4a0b0b'); pixelEllipse(dg, q.x, q.y, q.r * 0.7, q.r * 0.3, '#5e100e'); }
     particles = particles.filter((q) => {
       q.vz -= 280 * dt; q.z += q.vz * dt; q.x += q.vx * dt; q.y += q.vy * dt;
       if (q.spark !== undefined) return (q.spark -= dt) > 0;
-      if (q.z <= 0) { dg.fillStyle = q.c; dg.fillRect(Math.round(q.x), Math.round(q.y), q.big ? 2 : 1, 1); return false; }
+      if (q.z <= 0) { dg.fillStyle = q.c; dg.fillRect(Math.round(q.x), Math.round(q.y), q.big ? 2 : 1, q.chunk && q.big ? 2 : 1); if (q.big && !q.chunk && Math.random() < 0.3) dg.fillRect(Math.round(q.x + (Math.random() - 0.5) * 4), Math.round(q.y + (Math.random() - 0.5) * 2), 1, 1); return false; }
       return true;
     });
     camX += (pl.x - W / 2 - camX) * Math.min(1, rdt * 6); camY += (pl.y - H / 2 - 10 - camY) * Math.min(1, rdt * 6);
